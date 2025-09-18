@@ -10,3 +10,9 @@ enum Difficulty {
 };
 
 Symbol DifficultyToSym(Difficulty);
+Difficulty SymToDifficulty(Symbol);
+bool IsEasierDifficulty(Difficulty, Difficulty);
+bool IsHarderDifficulty(Difficulty, Difficulty);
+Difficulty DifficultyOneHarder(Difficulty);
+Difficulty DifficultyOneEasier(Difficulty);
+void DifficultyInit();
