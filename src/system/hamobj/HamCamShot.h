@@ -119,10 +119,6 @@ protected:
     virtual bool CheckShotStarted() { return !unk2d4 && CamShot::CheckShotStarted(); }
     virtual bool CheckShotOver(float f1) {
         return !unk2d4 && f1 >= unk2d8 && CamShot::CheckShotOver(f1);
-        //           if (((this[0x2d4] == 0x0) && (*(this + 0x2d8) <= param_1)) &&
-        //      (bVar1 = CamShot::CheckShotOver(this,param_1), bVar1)) {
-        //     return true;
-        //   }
     }
     virtual void SetFrameEx(float, float);
 
