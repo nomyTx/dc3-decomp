@@ -22,9 +22,10 @@ public:
     // size 0x20
     struct LimbState {
         LimbState() : unkc(nullptr) {}
-        int unk0; // 0x0
-        int unk4; // 0x4
-        int unk8; // 0x8
+        bool unk0; // 0x0
+        bool unk1; // 0x1
+        float unk4; // 0x4
+        float unk8; // 0x8
         ObjPtr<RndMesh> unkc; // 0xc
     };
     // Hmx::Object
@@ -44,6 +45,7 @@ public:
     NEW_OBJ(CharFeedback)
 
     void UpdateLimb(int, bool);
+    void ResetErrors();
 
     static bool sEnabled;
 

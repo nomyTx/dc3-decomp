@@ -1,5 +1,7 @@
 #include "hamobj/CharFeedback.h"
 #include "obj/Object.h"
+#include "obj/Task.h"
+#include "os/Debug.h"
 #include "rndobj/Draw.h"
 #include "rndobj/Poll.h"
 
@@ -66,6 +68,47 @@ void CharFeedback::TestUpdateLimbs(bool b1) {
     for (int i = 0; i < kNumLimbFeedbacks; i++) {
         if (mTestLimbs & (1 << i)) {
             UpdateLimb(i, b1);
+        }
+    }
+}
+
+void CharFeedback::ResetErrors() {
+    for (int i = 0; i < kNumLimbFeedbacks; i++) {
+        mLimbStates[i].unk1 = 0;
+        mLimbStates[i].unk0 = 0;
+        mLimbStates[i].unk4 = -1;
+        mLimbStates[i].unk8 = 0;
+    }
+}
+
+void CharFeedback::UpdateLimb(int limb_index, bool b2) {
+    MILO_ASSERT((0) <= (limb_index) && (limb_index) < (kNumLimbFeedbacks), 0x25);
+    LimbState &cur = mLimbStates[limb_index];
+    if (b2 != cur.unk1) {
+        float secs = TheTaskMgr.Seconds(TaskMgr::kRealTime);
+        if (b2 || cur.unk4 == -1 || secs - cur.unk4 > mMinFailSecs) {
+            cur.unk4 = secs;
+            cur.unk1 = b2;
+        }
+    }
+}
+
+void CharFeedback::Sync() {
+    static const char *sLimbMeshes[4] = {
+        "left_arm.mesh", "right_arm.mesh", "left_leg.mesh", "right_leg.mesh"
+    };
+    for (int i = 0; i < kNumLimbFeedbacks; i++) {
+        mLimbStates[i].unkc = nullptr;
+    }
+    ResetErrors();
+    if (mTarget) {
+        for (int i = 0; i < kNumLimbFeedbacks; i++) {
+            RndMesh *mesh = mTarget->Find<RndMesh>(sLimbMeshes[i], false);
+            mLimbStates[i].unkc = mesh;
+            if (mesh) {
+                mesh->SetShowing(false);
+                mesh->SetMat(mFailMat);
+            }
         }
     }
 }
