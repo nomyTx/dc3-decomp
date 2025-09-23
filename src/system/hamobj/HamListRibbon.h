@@ -1,10 +1,13 @@
 #pragma once
 #include "flow/Flow.h"
 #include "hamobj/HamLabel.h"
+#include "math/DoubleExponentialSmoother.h"
+#include "obj/Data.h"
 #include "obj/Object.h"
 #include "rndobj/Anim.h"
 #include "rndobj/Dir.h"
 #include "synth/Sound.h"
+#include "utl/BinStream.h"
 #include "utl/MemMgr.h"
 
 enum RibbonMode {
@@ -12,6 +15,15 @@ enum RibbonMode {
     kRibbonSlide = 1,
     kRibbonSelect = 2,
     kRibbonDisengaged = 3
+};
+
+struct HamListRibbonDrawState {
+    DoubleExponentialSmoother unk0;
+    bool unk14;
+    int unk18;
+    bool unk1c;
+    float unk20;
+    bool unk24;
 };
 
 /** "Top-level resource object for UILists" */
@@ -22,6 +34,12 @@ public:
         ScrollAnims(Hmx::Object *owner)
             : mScrollAnim(owner), mScrollActive(owner), mScrollFade(owner),
               mScrollFaded(owner) {}
+
+        void SetScrollFrame(float);
+        void SetAnims(int);
+        void Save(BinStream &) const;
+        void Load(BinStreamRev &);
+
         ObjPtr<RndAnimatable> mScrollAnim; // 0x0
         ObjPtr<RndAnimatable> mScrollActive; // 0x14
         ObjPtr<RndAnimatable> mScrollFade; // 0x28
@@ -49,6 +67,17 @@ public:
 
     OBJ_MEM_OVERLOAD(0x2E)
     NEW_OBJ(HamListRibbon)
+
+    void HandleEnter();
+    void OnSelectDone();
+    void PlayHighlightSound(int);
+    void PlaySelectSound(int);
+
+private:
+    void ResetAnims(bool);
+
+    DataNode OnEnterBlacklightMode(const DataArray *);
+    DataNode OnExitBlacklightMode(const DataArray *);
 
 protected:
     ScrollAnims mScrollAnims; // 0x1fc
