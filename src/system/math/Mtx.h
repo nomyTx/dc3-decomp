@@ -217,6 +217,8 @@ public:
 
     bool operator==(const Transform &tf) const { return m == tf.m && v == tf.v; }
     bool operator!=(const Transform &tf) const { return m != tf.m || v != tf.v; }
+
+    static const Transform &IDXfm() { return sID; }
 };
 
 TextStream &operator<<(TextStream &, const Transform &);

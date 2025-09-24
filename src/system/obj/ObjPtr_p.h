@@ -318,6 +318,12 @@ void ObjPtrList<T1, T2>::pop_back() {
 }
 
 template <class T1, class T2>
+void ObjPtrList<T1, T2>::pop_front() {
+    MILO_ASSERT(mNodes != NULL, 0x18C);
+    erase(mNodes);
+}
+
+template <class T1, class T2>
 void ObjPtrList<T1, T2>::push_back(T1 *obj) {
     insert(end(), obj);
 }
