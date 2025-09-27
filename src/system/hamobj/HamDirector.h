@@ -6,6 +6,7 @@
 #include "hamobj/HamCamShot.h"
 #include "hamobj/HamCharacter.h"
 #include "hamobj/HamVisDir.h"
+#include "obj/Data.h"
 #include "obj/Dir.h"
 #include "obj/Object.h"
 #include "rndobj/Dir.h"
@@ -49,6 +50,31 @@ public:
     void SetMainFaceOverrideWeight(float);
     Symbol GetMainFaceOverrideClip() const;
     void SetMainFaceOverrideClip(Symbol);
+    bool IsWorldLoaded() const;
+    void UnloadAll();
+    void ForceScene(Symbol);
+    void ForceMiniVenue(Symbol);
+    void ReselectWorldPostProc();
+    void PlayCharBaseVisemes();
+    void EnableFacialAnimation();
+    void DisableFacialAnimation();
+    void ResetFacialAnimation();
+    void SetLipsyncOffsets(float);
+    void ResyncFaceDrivers();
+    void BlendInFaceOverrides(float);
+    void BlendOutFaceOverrides(float);
+    Symbol MoveNameFromBeat(float, int);
+    RndPropAnim *SongAnim(int);
+    RndPropAnim *SongAnimByDifficulty(Difficulty);
+    RndPropAnim *DancerFaceAnimByPlayer(int);
+    void Reteleport();
+    void StartStopVisualizer(bool, int);
+    void SetPlayerSpotlightsEnabled(bool);
+    void ChangePlayerCharacter(int, Symbol, Symbol, Symbol);
+    void InitOffline();
+    void OfflineLoadSong(Symbol);
+
+    DataNode OnGetDancerVisemes(DataArray *);
 
 protected:
     HamDirector();
@@ -66,6 +92,39 @@ protected:
         if (unk2c0)
             unk2c0->SetShowing(!pause);
     }
+    void Initialize();
+    void HideBackups(bool, bool);
+    void RestoreBackups();
+    void TeleportChars();
+    void OnPopulateMoves();
+    void OnPopulateMoveMgr();
+    void OnPopulateFromFile();
+
+    DataNode OnShotOver(DataArray *);
+    DataNode OnPostProcInterp(DataArray *);
+    DataNode OnSaveSong(DataArray *);
+    DataNode OnSaveFaceAnims(DataArray *);
+    DataNode OnFileLoaded(DataArray *);
+    DataNode OnFileMerged(DataArray *);
+    DataNode OnLoadSong(DataArray *);
+    DataNode OnSelectCamera(DataArray *);
+    DataNode OnCycleShot(DataArray *);
+    DataNode OnForceShot(DataArray *);
+    DataNode OnPostProcs(DataArray *);
+    DataNode OnSetDircut(DataArray *);
+    DataNode OnBlendInFaceClip(DataArray *);
+    DataNode OnPracticeBeats(DataArray *);
+    DataNode OnToggleCamshotFlag();
+    DataNode OnListPossibleMoves();
+    DataNode OnListPossibleVariants();
+    DataNode OnClipAnnotate(DataArray *);
+    DataNode OnClipSafeToAdd(DataArray *);
+    DataNode OnClipList(DataArray *);
+    DataNode OnPracticeSafeToAdd(DataArray *);
+    DataNode OnPracticeAnnotate(DataArray *);
+    DataNode PracticeList(Difficulty);
+    DataNode OnToggleDebugInterests(DataArray *);
+    DataNode OnToggleCamCharacterSkeleton(DataArray *);
 
     ObjDirPtr<RndDir> unk48; // 0x48
     std::map<Difficulty, AnimPtr> unk5c; // 0x5c
@@ -173,5 +232,5 @@ extern HamDirector *TheHamDirector;
 
 class AnimPtr : public ObjPtr<RndPropAnim> {
 public:
-    AnimPtr(RndPropAnim *anim) : ObjPtr<RndPropAnim>(TheHamDirector, anim) {}
+    AnimPtr(RndPropAnim *anim = nullptr) : ObjPtr<RndPropAnim>(TheHamDirector, anim) {}
 };

@@ -38,6 +38,7 @@ public:
     NEW_OBJ(HamVisDir)
 
     void Run(bool);
+    void SetGrooviness(float);
 
 protected:
     HamVisDir();

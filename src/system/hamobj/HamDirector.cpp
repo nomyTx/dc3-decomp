@@ -1,4 +1,5 @@
 #include "hamobj/HamDirector.h"
+#include "hamobj/Difficulty.h"
 #include "hamobj/HamGameData.h"
 #include "math/Rand.h"
 #include "math/Utl.h"
@@ -6,6 +7,8 @@
 #include "obj/Object.h"
 #include "os/Debug.h"
 #include "rndobj/Draw.h"
+#include "rndobj/Poll.h"
+#include "utl/Str.h"
 #include "utl/Symbol.h"
 
 HamDirector *TheHamDirector;
@@ -40,6 +43,86 @@ HamDirector::~HamDirector() {
         TheHamDirector = nullptr;
     }
 }
+
+BEGIN_HANDLERS(HamDirector)
+    HANDLE(shot_over, OnShotOver)
+    HANDLE(postproc_interp, OnPostProcInterp)
+    HANDLE(save_song, OnSaveSong)
+    HANDLE(save_face_anims, OnSaveFaceAnims)
+    HANDLE(on_file_loaded, OnFileLoaded)
+    HANDLE(on_file_merged, OnFileMerged)
+    HANDLE(load_song, OnLoadSong)
+    HANDLE_EXPR(is_world_loaded, IsWorldLoaded())
+    HANDLE_ACTION(unload_all, UnloadAll())
+    HANDLE_ACTION(pick_new_shot, unk140 = true)
+    HANDLE(select_camera, OnSelectCamera)
+    HANDLE(cycle_shot, OnCycleShot)
+    HANDLE(force_shot, OnForceShot)
+    HANDLE_EXPR(camera_source, mCurWorld)
+    HANDLE_ACTION(force_scene, ForceScene(_msg->Sym(2)))
+    HANDLE_ACTION(force_minivenue, ForceMiniVenue(_msg->Sym(2)))
+    HANDLE(cur_postprocs, OnPostProcs)
+    HANDLE_ACTION(reselect_world_postproc, ReselectWorldPostProc())
+    HANDLE_EXPR(get_venue_world, mCurWorld)
+    HANDLE_EXPR(get_world, mCurWorld)
+    HANDLE(set_dircut, OnSetDircut)
+    HANDLE(get_dancer_visemes, OnGetDancerVisemes)
+    HANDLE_ACTION(play_base_visemes, PlayCharBaseVisemes())
+    HANDLE_ACTION(enable_facial_animation, EnableFacialAnimation())
+    HANDLE_ACTION(disable_facial_animation, DisableFacialAnimation())
+    HANDLE_ACTION(reset_facial_animation, ResetFacialAnimation())
+    HANDLE_ACTION(set_lipsync_offsets, SetLipsyncOffsets(_msg->Float(2)))
+    HANDLE_ACTION(resync_face_drivers, ResyncFaceDrivers())
+    HANDLE(blend_face_clip, OnBlendInFaceClip)
+    HANDLE_ACTION(blend_face_overrides_in, BlendInFaceOverrides(_msg->Float(2)))
+    HANDLE_ACTION(blend_face_overrides_out, BlendOutFaceOverrides(_msg->Float(2)))
+    HANDLE(practice_beats, OnPracticeBeats)
+    HANDLE_EXPR(beat_to_movename, MoveNameFromBeat(_msg->Float(2), _msg->Int(3)))
+    HANDLE_EXPR(is_intro, strneq(_msg->Sym(2).Str(), "INTRO_", 6))
+    HANDLE_ACTION(initialize, Initialize())
+    HANDLE_EXPR(player_song_anim, SongAnim(_msg->Int(2)))
+    HANDLE_EXPR(difficulty_song_anim, SongAnimByDifficulty((Difficulty)_msg->Int(2)))
+    HANDLE_EXPR(dancer_face_anim_by_difficulty, unk5c[(Difficulty)_msg->Int(2)].Ptr())
+    HANDLE_EXPR(dancer_face_anim_by_player, DancerFaceAnimByPlayer(_msg->Int(2)))
+    HANDLE_EXPR(toggle_camshot_flag, OnToggleCamshotFlag())
+    HANDLE_EXPR(get_character_sym, unk2f4[_msg->Int(2)])
+    HANDLE_ACTION(hide_backups, HideBackups(_msg->Int(2), _msg->Int(3)))
+    HANDLE_ACTION(restore_backups, RestoreBackups())
+    HANDLE_ACTION(teleport_chars, TeleportChars())
+    HANDLE_ACTION(reteleport, Reteleport())
+    HANDLE_EXPR(list_possible_move, OnListPossibleMoves())
+    HANDLE_EXPR(list_possible_variants, OnListPossibleVariants())
+    HANDLE_ACTION(set_grooviness, unk2c0->SetGrooviness(_msg->Float(2)))
+    HANDLE_ACTION(start_stop_visualizer, StartStopVisualizer(_msg->Int(2), _msg->Int(3)))
+    HANDLE_ACTION(set_player_spotlights_enabled, SetPlayerSpotlightsEnabled(_msg->Int(2)))
+    HANDLE_ACTION(hud_entered, 0)
+    HANDLE_ACTION(
+        change_player_character,
+        ChangePlayerCharacter(_msg->Int(2), _msg->Sym(3), _msg->Sym(4), _msg->Sym(5))
+    )
+    HANDLE_ACTION(set_suppress_intro_shot, unk2a1 = _msg->Int(2))
+    HANDLE_EXPR(get_suppress_intro_shot, 0)
+    HANDLE_ACTION(set_suppress_next_shot, unk2a4 = _msg->Int(2))
+    HANDLE_EXPR(get_suppress_next_shot, unk2a4)
+    HANDLE_EXPR(is_game_start_hold, unk33d)
+    HANDLE_ACTION(enable_poll, unk2ac = _msg->Int(2))
+    HANDLE(clip_annotate, OnClipAnnotate)
+    HANDLE(clip_safetoadd, OnClipSafeToAdd)
+    HANDLE(clip_list, OnClipList)
+    HANDLE(practice_safetoadd, OnPracticeSafeToAdd)
+    HANDLE(practice_annotate, OnPracticeAnnotate)
+    HANDLE_EXPR(practice_list, PracticeList((Difficulty)_msg->Int(2)))
+    HANDLE(toggle_debug_interests, OnToggleDebugInterests)
+    HANDLE_ACTION(init_offline, InitOffline())
+    HANDLE_ACTION(offline_load_song, OfflineLoadSong(_msg->Sym(2)))
+    HANDLE(toggle_cam_character_skeleton, OnToggleCamCharacterSkeleton)
+    HANDLE_ACTION(populate_moves, OnPopulateMoves())
+    HANDLE_ACTION(populate_movemgr, OnPopulateMoveMgr())
+    HANDLE_ACTION(populate_from_file, OnPopulateFromFile())
+    HANDLE_SUPERCLASS(RndPollable)
+    HANDLE_SUPERCLASS(RndDrawable)
+    HANDLE_SUPERCLASS(Hmx::Object)
+END_HANDLERS
 
 BEGIN_PROPSYNCS(HamDirector)
     SYNC_PROP_SET(shot, mShot, SetShot(_val.Sym()))
@@ -91,3 +174,17 @@ BEGIN_PROPSYNCS(HamDirector)
     SYNC_SUPERCLASS(RndDrawable)
     SYNC_SUPERCLASS(Hmx::Object)
 END_PROPSYNCS
+
+DataNode HamDirector::OnSaveSong(DataArray *) { return 0; }
+DataNode HamDirector::OnSaveFaceAnims(DataArray *) { return 0; }
+DataNode HamDirector::OnFileMerged(DataArray *) { return 0; }
+
+void HamDirector::ForceScene(Symbol s) {
+    unk13c = s;
+    unk138 = gNullStr;
+}
+
+void HamDirector::ForceMiniVenue(Symbol s) {
+    unk138 = s;
+    Symbol idk(gNullStr);
+}
