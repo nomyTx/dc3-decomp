@@ -45,6 +45,8 @@ public:
             mPlayerSidesLocked = locked;
         }
     }
+    void SetSong(Symbol song) { mSong = song; }
+    Symbol GetSong() const { return mSong; }
 
 protected:
     HamGameData();

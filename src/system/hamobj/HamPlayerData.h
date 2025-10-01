@@ -32,6 +32,10 @@ public:
     String GetPlayerName() const;
     SkeletonSide Side() const;
     void SetUsingFitness(bool);
+    Difficulty GetDifficulty() { return mDifficulty; }
+    PropertyEventProvider *Provider() const { return mProvider; }
+    bool InFreestyle() const { return mSkeletonTrackingID >= 0; }
+    Symbol Crew() const { return mCrew; }
 
 private:
     void SetSkeletonTrackingID(int);

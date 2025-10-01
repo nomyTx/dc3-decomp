@@ -42,6 +42,8 @@ public:
     GatherVariants(std::vector<const MoveVariant *> *, MoveVariantFunc *, void *) const;
     void ImportMoveData(DataArray *);
     MoveGraph &operator=(const MoveGraph &);
+    const std::map<Symbol, MoveParent *> &MoveParents() const { return mMoveParents; }
+    const std::map<Symbol, MoveVariant *> &MoveVariants() const { return mMoveVariants; }
 
 private:
     std::map<Symbol, MoveParent *> mMoveParents; // 0x2c
@@ -120,7 +122,10 @@ public:
     void CacheLinks(MoveGraph *);
     void Load(BinStream &, MoveGraph *, MoveParent *);
     Symbol Name() const { return mVariantName; }
+    Symbol HamMoveName() const { return mHamMoveName; }
+    Symbol Genre() const { return mGenre; }
     bool IsFinalPose() const { return mFlags & 8; }
+    MoveParent *Parent() const { return mMoveParent; }
 
 private:
     Vector3 mPositionOffset; // 0x0
