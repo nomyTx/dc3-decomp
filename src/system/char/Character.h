@@ -1,5 +1,6 @@
 #pragma once
 #include "char/CharDriver.h"
+#include "char/CharServoBone.h"
 #include "math/Sphere.h"
 #include "obj/Data.h"
 #include "obj/Dir.h"
@@ -91,6 +92,7 @@ public:
     void SetSelfShadow(bool selfshadow) { mSelfShadow = selfshadow; }
     void SetLodType(LODType lod) { mForceLod = lod; }
     void ForceBlink();
+    CharServoBone *BoneServo();
     void SetTeleport(bool t) { unk298 = t; }
     CharDriver *Driver() const { return mDriver; }
 

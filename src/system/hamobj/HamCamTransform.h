@@ -16,7 +16,9 @@ public:
     void Save(BinStream &) const;
     void Load(BinStream &);
 
+    /** "The crowd to show for this shot" */
     ObjPtr<WorldCrowd> mCrowd; // 0x0
+    /** "How to rotate crowd" */
     CrowdRotate mCrowdRotate; // 0x14
 };
 
@@ -28,10 +30,14 @@ public:
     void Save(BinStream &) const;
     void Load(BinStreamRev &);
 
+    /** "New origin for area" */
     ObjPtr<RndTransformable> mArea; // 0x0
+    /** "Camera shots to be moved to this area" */
     ObjPtrList<HamCamShot> mCamshots; // 0x14
+    /** "Anim to be run for these cam shots" */
     ObjPtrList<RndAnimatable> mAnims; // 0x28
     ObjVector<TransformCrowd> mCrowds; // 0x3c
+    /** "Flow to execute for the setup of these camshots" */
     ObjPtr<Flow> mFlow; // 0x4c
 };
 

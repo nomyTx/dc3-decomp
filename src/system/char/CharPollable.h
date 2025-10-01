@@ -6,5 +6,6 @@
 class CharPollable : public RndPollable {
 public:
     CharPollable() {}
-    virtual void PollDeps(std::list<Hmx::Object *> &, std::list<Hmx::Object *> &) = 0;
+    virtual void
+    PollDeps(std::list<Hmx::Object *> &changedBy, std::list<Hmx::Object *> &change) = 0;
 };
