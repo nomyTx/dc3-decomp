@@ -44,7 +44,7 @@
 
 HamDirector *TheHamDirector;
 
-float FrameToBeat(float secs) { return SecondsToBeat(secs * 0.033333335f); }
+float FrameToBeat(float frame) { return SecondsToBeat(frame * 0.033333335f); }
 float BeatToFrame(float beat) { return BeatToSeconds(beat) * 30.0f; }
 
 HamDirector::HamDirector()

@@ -105,6 +105,7 @@ public:
     bool InPracticeMode();
     void MoveKeys(Difficulty, class MoveDir *, std::vector<HamMoveKey> &);
     ObjectDir *ClipDir() const { return mClipDir; }
+    bool NoTransitions() const { return mNoTransitions; }
 
     DataNode OnGetDancerVisemes(DataArray *);
 

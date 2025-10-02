@@ -12,5 +12,5 @@ struct Range {
 
 bool PropSync(Range &, DataNode &, DataArray *, int, PropOp);
 
-float FrameToBeat(float secs);
+float FrameToBeat(float frame);
 float BeatToFrame(float beat);

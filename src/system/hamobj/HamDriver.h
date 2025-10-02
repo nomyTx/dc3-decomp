@@ -53,7 +53,7 @@ public:
         virtual void OffsetSec(float);
 
         int unk8;
-        int unkc;
+        float unkc;
         ObjOwnerPtr<CharClip> unk10; // 0x10
     };
 
@@ -84,6 +84,7 @@ public:
     LayerClip *NewLayerClip();
     void OffsetSec(float);
     CharClip *FirstClip();
+    LayerArray &Layers() { return mLayers; }
 
 protected:
     HamDriver();

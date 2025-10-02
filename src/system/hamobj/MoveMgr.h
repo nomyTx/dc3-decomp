@@ -1,6 +1,7 @@
 #pragma once
 #include "MoveGraph.h"
 #include "hamobj/Difficulty.h"
+#include "hamobj/MoveGraph.h"
 #include "hamobj/SongLayout.h"
 #include "obj/Data.h"
 #include "obj/Dir.h"
@@ -61,6 +62,8 @@ public:
     void NextMovesToShow(DataArray *, int);
     SongLayout *GetSongLayout();
     Symbol PickRandomGenre();
+    const std::pair<const MoveVariant *, const MoveVariant *> *
+    GetRoutineMeasure(int, int) const;
 
     static void Init(const char *);
 

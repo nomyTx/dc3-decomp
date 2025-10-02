@@ -169,6 +169,7 @@ public:
     int NumFrames() const {
         return Max<int>(Max<int>(1, mFull.NumSamples()), mFull.NumFrames());
     }
+    int Flags() const { return mFlags; }
     int InGroups();
     bool SharesGroups(CharClip *);
     float LengthSeconds() const;

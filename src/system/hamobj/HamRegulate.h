@@ -29,6 +29,7 @@ public:
     NEW_OBJ(HamRegulate)
 
     void RegulateWay(Waypoint *, float);
+    void SetWaypoint(Waypoint *w) { unk14 = w; }
 
 protected:
     HamRegulate();

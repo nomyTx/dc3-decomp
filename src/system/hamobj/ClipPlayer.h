@@ -1,21 +1,39 @@
 #pragma once
 #include "char/CharClip.h"
+#include "hamobj/Difficulty.h"
 #include "hamobj/HamCharacter.h"
 #include "hamobj/HamDriver.h"
 #include "math/Key.h"
+#include "math/Utl.h"
 #include "obj/Dir.h"
 #include "rndobj/PropAnim.h"
 #include "utl/Symbol.h"
 
 class ClipPlayer {
 public:
+    ClipPlayer()
+        : mClipKeys(nullptr), mClipCrossoverKeys(nullptr), mMasterClipKeys(nullptr),
+          unk14(0), unk20(-kHugeFloat), unk24(kHugeFloat), mInClip(nullptr),
+          mOutClip(nullptr), unk48(0), unk50(0) {}
+
     void PlayAnims(HamCharacter *, float, float, int);
+    bool Init(int);
+    bool Init(Difficulty);
+    bool CanUseRestStep();
 
     static const char *sRestStepNames[4];
 
 protected:
     bool Init(RndPropAnim *);
     void PlayNormal(float, HamDriver::LayerArray *, const char *);
+    float ClipLength(CharClip *);
+    void PlayClip(CharClip *, float, float, HamDriver::LayerArray *);
+    bool PushExpertClip(int, HamDriver::LayerArray *);
+    CharClip *GetTransitionBefore(Key<Symbol> *);
+    CharClip *GetRoutineTransition(const char *, Key<Symbol> *);
+    void GetRoutineCrossoverClips(float, const char *, CharClip **, CharClip **);
+    bool PushRoutineBuilderClip(int, HamDriver::LayerArray *);
+    void PushClip(int, HamDriver::LayerArray *);
 
     Keys<Symbol, Symbol> *mClipKeys; // 0x0
     Keys<Symbol, Symbol> *mClipCrossoverKeys; // 0x4

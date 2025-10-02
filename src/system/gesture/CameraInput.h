@@ -20,6 +20,6 @@ public:
     const SkeletonFrame *NewFrame() const;
 
 protected:
-    const SkeletonFrame *unk8; // 0x8
-    SkeletonFrame unkc; // 0xc - size 0x11c8
+    const SkeletonFrame *mNewFrame; // 0x8
+    SkeletonFrame mCachedFrame; // 0xc - size 0x11c8
 };

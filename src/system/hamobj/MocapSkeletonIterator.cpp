@@ -1,4 +1,6 @@
 #include "hamobj/MocapSkeletonIterator.h"
+#include "ClipPlayer.h"
+#include "HamRegulate.h"
 #include "hamobj/HamCharacter.h"
 #include "hamobj/HamDirector.h"
 #include "hamobj/HamGameData.h"
@@ -46,4 +48,28 @@ bool MocapSkeletonIterator::PrevSkeleton(
     return PrevFromArchive(*this, s, i2, as, i3);
 }
 
-void MocapSkeletonIterator::Update() { MILO_ASSERT(mDancer, 0x55); }
+void MocapSkeletonIterator::Update() {
+    MILO_ASSERT(mDancer, 0x55);
+    TheTaskMgr.SetSeconds(unk24b8 * 0.033333335f, (unk24b0 - unk24b8) == 0);
+    ClipPlayer player;
+    if (player.Init(0)) {
+        player.PlayAnims(mDancer, unk24b8, unk24bc, 0);
+        unk24bc = unk24b8;
+    } else {
+        MILO_NOTIFY(
+            "Failed to init ClipPlayer for %s!", PathName(TheHamDirector->ClipDir())
+        );
+    }
+    HamRegulate *reg = mDancer->Regulator();
+    reg->SetWaypoint(nullptr);
+    mDancer->Poll();
+    if (unk24c4.IsTracked()) {
+        AddToHistory(0, unk24c4);
+    }
+    mInput.PollTracking();
+    const SkeletonFrame *frame_data = mInput.NewFrame();
+    MILO_ASSERT(frame_data, 0x6F);
+    MILO_ASSERT(frame_data->mElapsedMs == 33, 0x70);
+    MILO_ASSERT(frame_data->mSkeletonDatas[0].mTracking == kSkeletonTracked, 0x71);
+    unk24c4.Poll(0, *frame_data);
+}

@@ -387,7 +387,7 @@
             "system/hamobj/SongCollision.cpp": "NonMatching",
             "system/hamobj/SongDifficultyDisplay.cpp": "MISSING",
             "system/hamobj/SongLayout.cpp": "NonMatching",
-            "system/hamobj/SongUtl.cpp": "MISSING",
+            "system/hamobj/SongUtl.cpp": "NonMatching",
             "system/hamobj/StarsDisplay.cpp": "MISSING",
             "system/hamobj/SuperEasyRemixer.cpp": "MISSING",
             "system/hamobj/TransConstraint.cpp": "MISSING",
