@@ -8,6 +8,7 @@
 #include "hamobj/HamCharacter.h"
 #include "hamobj/HamMove.h"
 #include "hamobj/HamVisDir.h"
+#include "hamobj/MoveDir.h"
 #include "hamobj/MoveGraph.h"
 #include "obj/Data.h"
 #include "obj/Dir.h"
@@ -104,8 +105,11 @@ public:
     void LoadRoutineBuilderData(std::set<const MoveVariant *> &, bool);
     bool InPracticeMode();
     void MoveKeys(Difficulty, class MoveDir *, std::vector<HamMoveKey> &);
+    bool IsMoveMergerFinished() const;
     ObjectDir *ClipDir() const { return mClipDir; }
     bool NoTransitions() const { return mNoTransitions; }
+    MoveDir *GetMoveDir() const { return static_cast<MoveDir *>(mMoveDir.Ptr()); }
+    FileMerger *GetMerger() const { return mMerger; }
 
     DataNode OnGetDancerVisemes(DataArray *);
 

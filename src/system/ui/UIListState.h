@@ -30,6 +30,8 @@ public:
     bool ScrollPastMinDisplay() const;
     bool ScrollPastMaxDisplay() const;
     bool IsScrolling() const;
+    int NumShowing() const;
+    UIListProvider *Provider();
 
 private:
     /** "Does the list scrolling wrap?" */

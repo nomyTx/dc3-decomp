@@ -44,6 +44,7 @@ public:
     MoveGraph &operator=(const MoveGraph &);
     const std::map<Symbol, MoveParent *> &MoveParents() const { return mMoveParents; }
     const std::map<Symbol, MoveVariant *> &MoveVariants() const { return mMoveVariants; }
+    const DataArrayPtr &Layout() const { return mLayoutData; }
 
 private:
     std::map<Symbol, MoveParent *> mMoveParents; // 0x2c
@@ -71,6 +72,8 @@ public:
     bool HasEra(Symbol) const;
     bool HasCategory(Symbol) const;
     Difficulty GetDifficulty() const { return mDifficulty; }
+    const std::vector<MoveVariant *> &Variants() const { return mVariants; }
+    Symbol Name() const { return unk4; }
 
 private:
     void PopulateAdjacentParents();
