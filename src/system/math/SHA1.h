@@ -22,6 +22,7 @@ public:
     }
     void Update(const unsigned char *, unsigned int);
     const Digest &Final();
+    void CopyDigest(unsigned char *uc) { m_digest.Copy(uc); }
 
 private:
     union SHA1_WORKSPACE_BLOCK {

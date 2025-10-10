@@ -1,12 +1,12 @@
-#ifndef MATH_STREAMCHECKSUM_H
-#define MATH_STREAMCHECKSUM_H
+#pragma once
 #include "math/SHA1.h"
 
 class StreamChecksum {
-public:
+private:
     int mState; // this is an enum - what the state enums are? that's anybody's guess
     CSHA1 mSHA1;
 
+public:
     StreamChecksum() : mState(0), mSHA1() {}
     ~StreamChecksum() {}
     void Begin();
@@ -16,20 +16,20 @@ public:
 };
 
 class StreamChecksumValidator {
-public:
+private:
+    void HandleError(const char *);
+    bool SetFileChecksum(bool);
+    bool ValidateChecksum(const unsigned char *);
+
     StreamChecksum mStreamChecksum;
-    unsigned char *mSignature;
+    const unsigned char *mSignature;
     const char *mFile;
 
+public:
     StreamChecksumValidator() : mStreamChecksum(), mSignature(0), mFile(0) {}
     ~StreamChecksumValidator() {}
     bool Begin(const char *, bool);
     void Update(const unsigned char *, unsigned int);
     void End();
     bool Validate();
-    void HandleError(const char *);
-    bool SetFileChecksum(bool);
-    bool ValidateChecksum(const unsigned char *);
 };
-
-#endif

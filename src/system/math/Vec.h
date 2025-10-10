@@ -3,6 +3,7 @@
 #include "os/Debug.h"
 #include "utl/BinStream.h"
 #include "utl/TextStream.h"
+#include "math/Utl.h"
 #include <cmath>
 
 class Vector2 {
@@ -248,3 +249,17 @@ inline void Cross(const Vector3 &v1, const Vector3 &v2, Vector3 &dst) {
 
 void Normalize(const Vector3 &, Vector3 &);
 void ClosestPoint(const Vector3 &, const Vector3 &, const Vector3 &, Vector3 *);
+
+inline void Interp(const Vector2 &v1, const Vector2 &v2, float f, Vector2 &res) {
+    res.Set(Interp(v1.x, v2.x, f), Interp(v1.y, v2.y, f));
+}
+
+inline void Interp(const Vector3 &v1, const Vector3 &v2, float f, Vector3 &dst) {
+    if (f == 0.0f) {
+        dst = v1;
+    } else if (f == 1.0f) {
+        dst = v2;
+    } else {
+        dst.Set(Interp(v1.x, v2.x, f), Interp(v1.y, v2.y, f), Interp(v1.z, v2.z, f));
+    }
+}

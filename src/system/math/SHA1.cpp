@@ -1,7 +1,10 @@
 #include "math/SHA1.h"
 #include "utl/BinStream.h"
+#include "utl/Licenses.h"
 #include <cstdio>
 #include <cstring>
+
+Licenses sLicense("system/src/math/SHA1.h", Licenses::kRequirementNotification);
 
 // shoutouts to clibs' implementation of sha1: https://github.com/clibs/sha1
 
