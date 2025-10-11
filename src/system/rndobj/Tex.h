@@ -28,6 +28,8 @@ public:
         kTexDeviceTexture = 0x1000,
         kTexRegularLinear = 0x2000
     };
+    enum AlphaCompress {
+    };
 
     virtual ~RndTex();
     OBJ_CLASSNAME(RndTex)

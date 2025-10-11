@@ -15,9 +15,13 @@
 #include "Spline.h"
 #include "TexBlendController.h"
 #include "TexBlender.h"
+#include "math/Color.h"
 #include "obj/DataFunc.h"
 #include "obj/Dir.h"
+#include "os/Debug.h"
+#include "os/OSFuncs.h"
 #include "os/System.h"
+#include "os/Timer.h"
 #include "rndobj/AnimFilter.h"
 #include "rndobj/BaseMaterial.h"
 #include "rndobj/Cam.h"
@@ -71,11 +75,20 @@
 #include "utl/Cheats.h"
 #include "utl/FileStream.h"
 #include "utl/Option.h"
+#include "utl/TextStream.h"
+#include "xdk/XAPILIB.h"
+#include "xdk/xapilibi/closehandle.h"
+#include "xdk/xapilibi/setevent.h"
+#include "xdk/xapilibi/waitforsingleobject.h"
+#include "xdk/xapilibi/xthread.h"
 
 // Rnd & TheRnd;
 bool gNotifyKeepGoing;
 bool gFailKeepGoing;
 bool gFailRestartConsole;
+
+HANDLE gRndTextureEvent;
+HANDLE gRndThread;
 
 DataNode ModalKeyListener::OnMsg(const KeyboardKeyMsg &k) {
     if (k.GetKey() == 0x12e) {
@@ -323,8 +336,8 @@ void Rnd::PreInit() {
     InitShaderOptions();
     mRateOverlay = RndOverlay::Find("rate", true);
     mHeapOverlay = RndOverlay::Find("heap", true);
-    mWatchOverlay = RndOverlay::Find("watch", true);
-    mWatcher.SetOverlay(mWatchOverlay);
+    // well ok then
+    mWatcher.SetOverlay(mWatchOverlay = RndOverlay::Find("watch", true));
     mWatcher.Init();
     mStatsOverlay = RndOverlay::Find("stats", true);
     mTimersOverlay = RndOverlay::Find("timers", true);
@@ -343,6 +356,144 @@ void Rnd::PreInit() {
     DataRegisterFunc("restart_console", FailRestartConsole);
 }
 
+DWORD CompressThread(HANDLE h);
+// {
+//     while(true){
+//         WaitForSingleObject(gRndTextureEvent, -1);
+//         if(!sTexture) break;
+//     }
+// }
+
+void Rnd::Init() {
+    DataArray *cfg = SystemConfig("rnd");
+    DataArray *stats = cfg->FindArray("timer_stats", false);
+    if (stats) {
+        if (stats->Int(1)) {
+            MILO_LOG("config showing timers\n");
+            SetShowTimers(true, true);
+        }
+    }
+    RndUtlInit();
+    RndPostProc::Init();
+    gRndTextureEvent = CreateEventA(nullptr, false, false, "texture_event");
+    gRndThread = CreateThread(nullptr, 0, CompressThread, nullptr, 4, nullptr);
+    XSetThreadProcessor(gRndThread, 1);
+    ResumeThread(gRndThread);
+}
+
+void Rnd::Terminate() {
+    RELEASE(mConsole);
+    TheDebug.RemoveExitCallback(TerminateCallback);
+    RndOverlay::Terminate();
+    RndMultiMesh::Terminate();
+    DOFProc::Terminate();
+    RndMat::Terminate();
+    SetName(nullptr, nullptr);
+    SetEvent(gRndTextureEvent);
+    CloseHandle(gRndThread);
+    CloseHandle(gRndTextureEvent);
+}
+
+void Rnd::ScreenDump(const char *file) {
+    RndTex *tex = Hmx::Object::New<RndTex>();
+    RndBitmap bmap;
+    tex->SetBitmap(0, 0, 0, RndTex::kTexFrontBuffer, false, nullptr);
+    tex->LockBitmap(bmap, 1);
+    FileStream stream(file, FileStream::kWrite, true);
+    if (stream.Fail()) {
+        MILO_NOTIFY("Screenshot failed; could not open destination file (%s).", file);
+    } else {
+        bmap.SaveBmp(&stream);
+    }
+    delete tex;
+}
+
+void Rnd::ScreenDumpUnique(const char *cc) {
+    String filename = UniqueFilename(cc, "bmp");
+    ScreenDump(filename.c_str());
+}
+
+Vector2 &Rnd::DrawString(const char *, const Vector2 &v, const Hmx::Color &, bool) {
+    static Vector2 s;
+    s = v;
+    return s;
+}
+
+void Rnd::BeginDrawing() {
+    mDrawing = true;
+    mWorldEnded = false;
+    mDrawTimer.Restart();
+    AutoTimer::ResetTimers();
+    mLastProcCmds = mProcCmds;
+    mProcCmds = mProcCounter.ProcCommands();
+    mDefaultCam->Select();
+    mDefaultEnv->Select(nullptr);
+    if (!TheHiResScreen.IsActive()) {
+        mPointTests.clear();
+    }
+    mDrawCount++;
+    if (mPostProcBlackLightOverride) {
+        mPostProcBlackLightOverride->SetBloomColor();
+    } else if (mPostProcOverride) {
+        mPostProcOverride->SetBloomColor();
+    } else if (RndPostProc::Current()) {
+        RndPostProc::Current()->SetBloomColor();
+    }
+}
+
+void Rnd::EndDrawing() {
+    EndWorld();
+    if (MainThread()) {
+        {
+            static Timer *cpu = AutoTimer::GetTimer("cpu");
+            if (cpu)
+                cpu->Stop();
+        }
+        {
+            static Timer *draw = AutoTimer::GetTimer("draw");
+            if (draw)
+                draw->Stop();
+        }
+        static Timer *t = AutoTimer::GetTimer("overlays");
+        AutoTimer at(t, 50, nullptr, nullptr);
+        AutoSlowFrame asf("RndOverlay::DrawAll", 10);
+        if (RndCam::Current()->TargetTex()) {
+            mDefaultCam->Select();
+        }
+        RndOverlay::DrawAll(false);
+        RndGraph::DrawAll();
+        {
+            static Timer *cpu = AutoTimer::GetTimer("cpu");
+            if (cpu)
+                cpu->Start();
+        }
+        {
+            static Timer *draw = AutoTimer::GetTimer("draw");
+            if (draw)
+                draw->Start();
+        }
+    }
+    mDrawing = false;
+    mFrameID++;
+}
+
+void Rnd::RemovePointTest(RndFlare *flare) {
+    if (!TheHiResScreen.IsActive()) {
+        for (std::list<PointTest>::iterator it = mPointTests.begin();
+             it != mPointTests.end();) {
+            if (it->unkc == flare) {
+                it = mPointTests.erase(it);
+            } else
+                ++it;
+        }
+    }
+}
+
+float Rnd::YRatio() {
+    static const float kRatio[5] = { 1.0f, 0.75f, 0.5625f, 0.5625f, 0.6f };
+    return kRatio[mAspect];
+}
+
 struct SortPostProc {
     bool operator()(PostProcessor *p1, PostProcessor *p2) const {
         return p1->Priority() < p2->Priority();
@@ -351,11 +502,6 @@ struct SortPostProc {
 
 void Rnd::ShowConsole(bool show) { mConsole->SetShowing(show); }
 bool Rnd::ConsoleShowing() { return mConsole->Showing(); }
-
-float Rnd::YRatio() {
-    static const float kRatio[5] = { 1.0f, 0.75f, 0.5625f, 0.5625f, 0.6f };
-    return kRatio[mAspect];
-}
 
 void Rnd::EndWorld() {
     if (!mWorldEnded) {
@@ -387,11 +533,6 @@ void Rnd::ResetProcCounter() {
 bool Rnd::GetEvenOddDisabled() const { return mProcCounter.EvenOddDisabled(); }
 void Rnd::SetEvenOddDisabled(bool b) { mProcCounter.SetEvenOddDisabled(b); }
 
-void Rnd::ScreenDumpUnique(const char *cc) {
-    String filename = UniqueFilename(cc, "bmp");
-    ScreenDump(filename.c_str());
-}
-
 void Rnd::DrawRectScreen(
     const Hmx::Rect &r,
     const Hmx::Color &c1,
@@ -401,12 +542,6 @@ void Rnd::DrawRectScreen(
 ) {
     Hmx::Rect rect(r.x * mWidth, r.y * mHeight, r.w * mWidth, r.h * mHeight);
     DrawRect(rect, c1, mat, cptr1, cptr2);
-}
-
-Vector2 &Rnd::DrawString(const char *, const Vector2 &v, const Hmx::Color &, bool) {
-    static Vector2 s;
-    s = v;
-    return s;
 }
 
 const Vector2 &
@@ -544,20 +679,6 @@ DataNode Rnd::OnToggleOverlayPosition(const DataArray *) {
     return 0;
 }
 
-void Rnd::ScreenDump(const char *file) {
-    RndTex *tex = Hmx::Object::New<RndTex>();
-    RndBitmap bmap;
-    tex->SetBitmap(0, 0, 0, RndTex::kTexFrontBuffer, false, nullptr);
-    tex->LockBitmap(bmap, 1);
-    FileStream stream(file, FileStream::kWrite, true);
-    if (stream.Fail()) {
-        MILO_NOTIFY("Screenshot failed; could not open destination file (%s).", file);
-    } else {
-        bmap.SaveBmp(&stream);
-    }
-    delete tex;
-}
-
 DataNode Rnd::OnShowConsole(const DataArray *) {
     ShowConsole(true);
     return 0;
@@ -622,4 +743,156 @@ void Rnd::RegisterPostProcessor(PostProcessor *proc) {
     sPostProcPanelCount++;
     mPostProcessors.push_back(proc);
     mPostProcessors.sort(SortPostProc());
+}
+
+void Rnd::CopyWorldCam(RndCam *cam) {
+    if (mProcCmds & kProcessWorld) {
+        mWorldCamCopy->Copy(cam ? cam : RndCam::Current(), kCopyShallow);
+        mWorldCamCopy->SetTransParent(nullptr, false);
+        unk147 = true;
+    }
+}
+
+RndTex *Rnd::GetNullTexture() { return mDefaultTex[kUnk7]; }
+
+void Rnd::SetupFont() {
+    mFont = SystemConfig("rnd", "font");
+    for (int i = 0; i < 26; i++) {
+        DataArray *arr = mFont->Array(i + 66)->Clone(true, false, 0);
+        for (int j = 0; j < arr->Size(); j++) {
+            DataArray *jArr = arr->Array(j);
+            for (int k = 1; k < jArr->Size(); k += 2) {
+                jArr->Node(k) = jArr->Float(k) * 0.7f + 0.3f;
+            }
+        }
+        mFont->Node(i + 98) = arr;
+        arr->Release();
+    }
+}
+
+void Rnd::CreateCubeTextures() {
+    unk110 = Hmx::Object::New<RndCubeTex>();
+    unk114 = Hmx::Object::New<RndCubeTex>();
+    for (unsigned int i = 0; i < RndCubeTex::kNumCubeFaces; i++) {
+        RndCubeTex::CubeFace cf = (RndCubeTex::CubeFace)i;
+        RndBitmap &bm110 = unk110->GetBitmap(cf);
+        RndBitmap &bm114 = unk114->GetBitmap(cf);
+        bm110.Create(32, 32, 0, 32, 0, nullptr, nullptr, nullptr);
+        bm114.Create(32, 32, 0, 32, 0, nullptr, nullptr, nullptr);
+        for (int j = 0; j < 32; j++) {
+            for (int k = 0; k < 32; k++) {
+                bm110.SetPixelColor(k, j, 0, 0, 0, 0);
+                bm114.SetPixelColor(k, j, 255, 255, 255, 255);
+            }
+        }
+        unk110->UpdateFace(cf);
+        unk114->UpdateFace(cf);
+    }
+}
+
+DataNode Rnd::OnToggleWatch(const DataArray *) {
+    mWatchOverlay->SetShowing(!mWatchOverlay->Showing());
+    return 0;
+}
+
+DataNode Rnd::OnToggleShowMetaMatErrors(const DataArray *) {
+    TheShaderMgr.ToggleShowMetaMatErrors();
+    return 0;
+}
+
+DataNode Rnd::OnToggleShowShaderErrors(const DataArray *) {
+    TheShaderMgr.ToggleShowShaderErrors();
+    return 0;
+}
+
+void Rnd::SetPostProcOverride(RndPostProc *pp) {
+    MILO_LOG(
+        "Rnd::SetPostProcOverride: %s -> %s\n",
+        !mPostProcOverride ? "NULL" : PathName(mPostProcOverride),
+        !pp ? "NULL" : PathName(pp)
+    );
+    mPostProcOverride = pp;
+    RndOverlay *ppOverlay = RndOverlay::Find("postproc", true);
+    TextStream *old = TheDebug.Reflect();
+    if (ppOverlay->Showing()) {
+        TheDebug.SetReflect(ppOverlay);
+        MILO_LOG("SETPROSTPROCOVERRIDE: %s\n", !pp ? "NULL" : PathName(pp));
+    }
+    TheDebug.SetReflect(old);
+}
+
+void Rnd::SetPostProcBlacklightOverride(RndPostProc *pp) {
+    mPostProcBlackLightOverride = pp;
+    RndOverlay *ppOverlay = RndOverlay::Find("postproc", true);
+    TextStream *old = TheDebug.Reflect();
+    if (ppOverlay->Showing()) {
+        TheDebug.SetReflect(ppOverlay);
+        MILO_LOG("SETBLACKLIGHTOVERRIDE: %s\n", !pp ? "NULL" : PathName(pp));
+    }
+    TheDebug.SetReflect(old);
+}
+
+void Rnd::CreateDefaults() {
+    RELEASE(mWorldCamCopy);
+    RELEASE(mDefaultCam);
+    RELEASE(mDefaultEnv);
+    RELEASE(mDefaultLit);
+    RELEASE(mDefaultMat);
+    RELEASE(mOverlayMat);
+    RELEASE(mOverdrawMat);
+    mWorldCamCopy = ObjectDir::Main()->New<RndCam>("[world cam copy]");
+    mDefaultCam = ObjectDir::Main()->New<RndCam>("[default cam]");
+    mDefaultEnv = ObjectDir::Main()->New<RndEnviron>("[default env]");
+    mDefaultLit = ObjectDir::Main()->New<RndLight>("[default lit]");
+    mDefaultLit->SetTransParent(mDefaultCam, false);
+    mDefaultLit->SetLightType(RndLight::kDirectional);
+    mDefaultEnv->AddLight(mDefaultLit);
+    mDefaultEnv->SetUseApproxes(true);
+    mDefaultEnv->SetUseApproxGlobal(false);
+    mDefaultMat = Hmx::Object::New<RndMat>();
+    mDefaultMat->SetUseEnv(false);
+    mDefaultMat->SetPreLit(true);
+    CreateAndSetMetaMat(mDefaultMat);
+    mOverlayMat = Hmx::Object::New<RndMat>();
+    mOverlayMat->SetUseEnv(false);
+    mOverlayMat->SetPreLit(true);
+    mOverlayMat->SetBlend(RndMat::kBlendSrcAlpha);
+    mOverlayMat->SetZMode(kZModeForce);
+    CreateAndSetMetaMat(mOverlayMat);
+    mOverdrawMat = Hmx::Object::New<RndMat>();
+    mOverdrawMat->SetUseEnv(false);
+    mOverdrawMat->SetBlend(RndMat::kBlendSrcAlpha);
+    mOverdrawMat->SetColor(1, 0, 0);
+    mOverdrawMat->SetAlpha(0.2);
+    CreateAndSetMetaMat(mOverdrawMat);
+    for (unsigned int i = 0; i < kDefaultTex_Max; i++) {
+        RELEASE(mDefaultTex[i]);
+        mDefaultTex[i] = CreateDefaultTexture((DefaultTextureType)i);
+    }
+    RELEASE(unk110);
+    RELEASE(unk114);
+    CreateCubeTextures();
+}
+
+int Rnd::CompressTexture(
+    RndTex *tex, RndTex::AlphaCompress a, CompressTextureCallback *cb
+) {
+    for (std::list<CompressTexDesc *>::iterator it = unk1d8.begin(); it != unk1d8.end();
+         ++it) {
+        if (tex == (*it)->tex) {
+            MILO_NOTIFY("%s: texture added to compression twice", PathName(tex));
+        }
+    }
+    CompressTexDesc *desc = new CompressTexDesc(tex, a, cb);
+    unk1d8.push_back(desc);
+    return (int)desc;
+}
+
+void Rnd::PreClearDrawAddOrRemove(RndDrawable *d, bool b2, bool b3) {
+    ObjPtrList<RndDrawable> &list = b3 ? unk18c : mDraws;
+    if (!b2) {
+        list.remove(d);
+    } else {
+        PreClearCompilerHelper(list, d);
+    }
 }

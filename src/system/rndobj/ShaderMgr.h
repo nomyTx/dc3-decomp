@@ -48,10 +48,8 @@ public:
     void SetTransform(const Transform &);
     void SetAllowPerPixel(bool allow) { unk40 = allow; }
     void Invalidate(ShaderType);
-    bool ToggleShaderErrorDisplay() {
-        SetShaderErrorDisplay(!GetShaderErrorDisplay());
-        return GetShaderErrorDisplay();
-    }
+    void ToggleShowMetaMatErrors() { unk6f = !unk6f; }
+    void ToggleShowShaderErrors() { unk6e = !unk6e; }
 
 protected:
     virtual void LoadShaders(const char *);

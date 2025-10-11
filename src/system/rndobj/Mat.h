@@ -74,12 +74,22 @@ public:
         mDirty |= 2;
     }
     void SetPointLights(bool lit) { mPointLights = lit; }
+    void SetColor(float r, float g, float b) {
+        mColor.Set(r, g, b);
+        mDirty |= 1;
+    }
+    void SetAlpha(float a) {
+        mColor.alpha = a;
+        mDirty |= 1;
+    }
+
     void SetColorMod(const Hmx::Color &, int);
     void SetSpecularMap(RndTex *);
     void SetMetaMat(MetaMaterial *, bool);
     MetaMaterial *CreateMetaMaterial(bool);
 
     static void Init();
+    static void Terminate();
     static void ReloadMetaMaterials();
     static void UpdateAllMatPropertiesFromMetaMat(ObjectDir *);
     static void ReloadAndUpdateMat(ObjectDir *dir) {

@@ -14,6 +14,7 @@
 #include "rndobj/PostProc.h"
 #include "rndobj/Trans.h"
 #include "rndobj/Watcher.h"
+#include "utl/MemMgr.h"
 
 class RndCam;
 class RndFlare;
@@ -50,11 +51,28 @@ public:
         kDefaultTex_Max = 8
     };
 
-    class CompressTextureCallback {};
+    struct PointTest {
+        int unk0, unk4, unk8;
+        RndFlare *unkc;
+    };
 
-    struct PointTest {};
+    struct CompressTextureCallback;
 
-    struct CompressTexDesc {};
+    struct CompressTexDesc {
+        CompressTexDesc(RndTex *tex, RndTex::AlphaCompress a, CompressTextureCallback *cb)
+            : tex(nullptr, tex), alpha(a), callback(cb) {}
+
+        MEM_OVERLOAD(CompressTexDesc, 0x1E4)
+
+        ObjPtr<RndTex> tex;
+        RndTex::AlphaCompress alpha;
+        CompressTextureCallback *callback;
+    };
+
+    struct CompressTextureCallback {
+        virtual ~CompressTextureCallback() {}
+        virtual void TextureCompressed(int) = 0;
+    };
 
     Rnd();
     virtual DataNode Handle(DataArray *, bool);
@@ -62,7 +80,7 @@ public:
     virtual void Init();
     virtual void ReInit() {}
     virtual void Terminate();
-    virtual void SetClearColor(const Hmx::Color &c);
+    virtual void SetClearColor(const Hmx::Color &c) { mClearColor = c; }
     virtual void Clear(unsigned int, const Hmx::Color &) = 0;
     virtual void ForceColorClear() {}
     virtual void ScreenDump(const char *);
@@ -75,27 +93,27 @@ public:
     virtual void BeginDrawing();
     virtual void EndDrawing();
     virtual void MakeDrawTarget() {}
-    virtual void SetSync(int);
-    virtual int GetSync();
+    virtual void SetSync(int sync) { mSync = sync; }
+    virtual int GetSync() { return mSync; }
     virtual int NumDrawPasses() const { return 1; }
     virtual void BeginDrawPass() {}
     virtual void EndDrawPass() {}
-    virtual unsigned int GetFrameID() const;
+    virtual unsigned int GetFrameID() const { return mFrameID; }
     virtual bool ShouldDrawPanel(const UIPanel *) { return true; }
     virtual RndTex *GetCurrentFrameTex(bool) { return nullptr; }
     virtual void ReleaseOwnership() {}
     virtual void AcquireOwnership() {}
     virtual void SetShadowMap(RndTex *, RndCam *, const Hmx::Color *) {}
-    virtual void SetGSTiming(bool);
+    virtual void SetGSTiming(bool b) { mGsTiming = b; }
     virtual void CaptureNextGpuFrame() {}
     virtual void RemovePointTest(RndFlare *);
     virtual bool HasDeviceReset() const { return false; }
-    virtual void SetAspect(Aspect);
+    virtual void SetAspect(Aspect a) { mAspect = a; }
     virtual float YRatio();
     virtual RndTex *GetShadowMap() { return nullptr; }
     virtual RndCam *GetShadowCam() { return nullptr; }
-    virtual void SetShrinkToSafeArea(bool);
-    virtual void SetInGame(bool);
+    virtual void SetShrinkToSafeArea(bool shrink) { mShrinkToSafe = shrink; }
+    virtual void SetInGame(bool game) { mInGame = game; }
     virtual int BeginQuery(RndDrawable *) { return -1; }
     virtual bool EndQuery(int) { return false; }
     virtual bool VisibleSets(std::vector<RndDrawable *> &, std::vector<RndDrawable *> &) {
@@ -130,6 +148,8 @@ public:
     void SetPostProcOverride(RndPostProc *);
     void SetPostProcBlacklightOverride(RndPostProc *);
     void PreClearDrawAddOrRemove(RndDrawable *, bool, bool);
+    RndTex *GetNullTexture();
+    int CompressTexture(RndTex *, RndTex::AlphaCompress, CompressTextureCallback *);
 
     static int sPostProcPanelCount;
 
@@ -149,6 +169,8 @@ protected:
     float DrawTimers(float);
     void CreateDefaults();
     void SetupFont();
+    void CreateCubeTextures();
+    RndTex *CreateDefaultTexture(DefaultTextureType);
 
     DataNode OnShowConsole(const DataArray *);
     DataNode OnToggleTimers(const DataArray *);

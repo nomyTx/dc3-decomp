@@ -37,6 +37,7 @@ public:
     OBJ_MEM_OVERLOAD(0x1C);
     NEW_OBJ(RndMultiMesh)
     static void Init() { REGISTER_OBJ_FACTORY(RndMultiMesh) }
+    static void Terminate();
 
     RndMesh *Mesh() const { return mMesh; }
 

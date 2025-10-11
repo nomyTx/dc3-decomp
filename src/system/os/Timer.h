@@ -171,6 +171,7 @@ public:
     static void CollectTimerStats();
     static void PrintTimers(bool);
     static void Init();
+    static void ResetTimers();
 };
 
 #ifdef MILO_DEBUG
@@ -193,25 +194,8 @@ class AutoSlowFrame {
 public:
     static int sDepth;
 
-    AutoSlowFrame(const char *reason) {
-        if (!MainThread()) {
-            return;
-        }
-
-        sDepth++;
-        // Timer::sSlowFrameReason = reason;
-        // Timer::sSlowFrameWaiver += 10.0f;
-        // Timer::sSlowFrameTimer.Start();
-    }
-
-    ~AutoSlowFrame() {
-        if (!MainThread()) {
-            return;
-        }
-
-        sDepth--;
-        // Timer::sSlowFrameTimer.Stop();
-    }
+    AutoSlowFrame(const char *reason, float);
+    ~AutoSlowFrame();
 };
 
 class AutoGlitchReport {

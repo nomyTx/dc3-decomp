@@ -33,6 +33,16 @@ public:
     NEW_OBJ(RndEnviron)
     static void Init() { REGISTER_OBJ_FACTORY(RndEnviron) }
 
+    void SetUseApproxLocal(bool b) { mUseApprox_Local = b; }
+    void SetUseApproxGlobal(bool b) { mUseApprox_Global = b; }
+    void SetUseApproxes(bool b) {
+        SetUseApproxLocal(b);
+        SetUseApproxGlobal(b);
+    }
+    bool GetUseApprox() const { return mUseApprox_Local || mUseApprox_Global; }
+    bool UsesApproxLocal() const { return mUseApprox_Local; }
+    bool UsesApproxGlobal() const { return mUseApprox_Global; }
+
     const Transform &ColorXfm() const;
     bool FogEnable() const;
     Transform LRFadeRef() const;

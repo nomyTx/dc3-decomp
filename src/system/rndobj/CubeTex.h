@@ -56,6 +56,7 @@ public:
 
     void SetBitmap(CubeFace, const FilePath &, bool);
     void UpdateFace(CubeFace);
+    RndBitmap &GetBitmap(CubeFace cf) { return mBitmap[cf]; }
 
 private:
     bool LoadBitmap(const FilePath &, RndBitmap &);

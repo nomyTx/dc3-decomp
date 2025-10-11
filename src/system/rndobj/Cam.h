@@ -33,6 +33,7 @@ public:
     void SetTargetTex(RndTex *);
     void SetFrustum(float, float, float, float);
     Transform &LocalProjectXfm() { return mLocalProjectXfm; }
+    RndTex *TargetTex() const { return mTargetTex; }
 
     NEW_OBJ(RndCam);
     OBJ_MEM_OVERLOAD(0x1B);
