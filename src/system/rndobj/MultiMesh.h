@@ -1,4 +1,5 @@
 #pragma once
+#include "obj/Object.h"
 #include "rndobj/Draw.h"
 #include "rndobj/Mesh.h"
 #include "utl/MemMgr.h"
@@ -34,6 +35,8 @@ public:
     virtual void CollideList(const Segment &, std::list<Collision> &);
 
     OBJ_MEM_OVERLOAD(0x1C);
+    NEW_OBJ(RndMultiMesh)
+    static void Init() { REGISTER_OBJ_FACTORY(RndMultiMesh) }
 
     RndMesh *Mesh() const { return mMesh; }
 

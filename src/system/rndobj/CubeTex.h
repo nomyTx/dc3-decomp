@@ -51,6 +51,8 @@ public:
     virtual void Sync() {}
 
     OBJ_MEM_OVERLOAD(0x17);
+    NEW_OBJ(RndCubeTex)
+    static void Init() { REGISTER_OBJ_FACTORY(RndCubeTex) }
 
     void SetBitmap(CubeFace, const FilePath &, bool);
     void UpdateFace(CubeFace);

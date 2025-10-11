@@ -36,6 +36,10 @@ public:
     // RndPollable
     virtual void Poll();
 
+    OBJ_MEM_OVERLOAD(0x18);
+    NEW_OBJ(RndSpline)
+    static void Init() { REGISTER_OBJ_FACTORY(RndSpline) }
+
     void SetStartCtrlPoint(int);
     void SetEndCtrlPoint(int);
 

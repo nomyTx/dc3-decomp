@@ -20,6 +20,8 @@ public:
     virtual void Highlight() { RndDrawable::Highlight(); }
 
     OBJ_MEM_OVERLOAD(0x14);
+    NEW_OBJ(RndMultiMeshProxy)
+    static void Init() { REGISTER_OBJ_FACTORY(RndMultiMeshProxy) }
 
 protected:
     RndMultiMeshProxy();

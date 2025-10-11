@@ -79,6 +79,7 @@ public:
     void SetMetaMat(MetaMaterial *, bool);
     MetaMaterial *CreateMetaMaterial(bool);
 
+    static void Init();
     static void ReloadMetaMaterials();
     static void UpdateAllMatPropertiesFromMetaMat(ObjectDir *);
     static void ReloadAndUpdateMat(ObjectDir *dir) {

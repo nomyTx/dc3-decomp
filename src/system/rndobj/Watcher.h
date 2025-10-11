@@ -14,6 +14,7 @@ public:
     void Remove(int);
     void SaveWatches();
     void LoadWatches();
+    void SetOverlay(RndOverlay *o) { mOverlay = o; }
 
 private:
     DataNode OnAdd(const DataArray *);

@@ -132,6 +132,10 @@ public:
     virtual void Copy(const Hmx::Object *, Hmx::Object::CopyType);
     virtual void Load(BinStream &);
 
+    OBJ_MEM_OVERLOAD(0x3C);
+    NEW_OBJ(BaseMaterial)
+    static void Init() { REGISTER_OBJ_FACTORY(BaseMaterial) }
+
     const DataNode *GetDefaultPropVal(Symbol);
     BaseMaterial *NextPass() const { return mNextPass; }
     RndTex *GetDiffuseTex() const { return mDiffuseTex; }

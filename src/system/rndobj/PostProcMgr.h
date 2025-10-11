@@ -21,6 +21,8 @@ public:
     virtual void Exit();
 
     OBJ_MEM_OVERLOAD(0x22);
+    NEW_OBJ(RndPostProcMgr)
+    static void Init() { REGISTER_OBJ_FACTORY(RndPostProcMgr) }
 
 protected:
     RndPostProcMgr();

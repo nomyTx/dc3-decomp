@@ -28,3 +28,7 @@ void UtilDrawString(const char *, const Vector3 &, const Hmx::Color &);
 void TestTextureSize(ObjectDir *, int, int, int, int, int);
 void TestTexturePaths(ObjectDir *);
 void TestMaterialTextures(ObjectDir *);
+
+void RndUtlPreInit();
+void RndUtlInit();
+void RndUtlTerminate();

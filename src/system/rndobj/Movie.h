@@ -2,6 +2,7 @@
 #include "obj/Object.h"
 #include "rndobj/Anim.h"
 #include "rndobj/Tex.h"
+#include "utl/MemMgr.h"
 
 class RndMovie : public RndAnimatable {
 public:
@@ -20,6 +21,10 @@ public:
     virtual bool Loop();
     virtual void SetFile(const FilePath &, bool);
     virtual void SetTex(RndTex *tex) { mTex = tex; }
+
+    OBJ_MEM_OVERLOAD(0x18)
+    NEW_OBJ(RndMovie)
+    static void Init() { REGISTER_OBJ_FACTORY(RndMovie) }
 
 protected:
     RndMovie();

@@ -69,6 +69,10 @@ public:
     virtual float FontUnit() const { return mCellSize.x; }
     virtual void Print() const;
 
+    OBJ_MEM_OVERLOAD(0x7C)
+    NEW_OBJ(RndFont)
+    static void Init() { REGISTER_OBJ_FACTORY(RndFont) }
+
     RndMat *Mat(int) const;
     RndTex *ValidTexture(int) const;
     void SetCellSize(float, float);
@@ -118,6 +122,10 @@ public:
     virtual const RndFontBase *DataOwner() const;
     virtual float FontUnit() const { return mTextureOwner->unk6c.x; }
     virtual float FontUnitInverse() const { return mTextureOwner->unk7c.x; }
+
+    OBJ_MEM_OVERLOAD(0x10A)
+    NEW_OBJ(RndFont3d)
+    static void Init() { REGISTER_OBJ_FACTORY(RndFont3d) }
 
 protected:
     RndFont3d();

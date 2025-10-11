@@ -2,6 +2,7 @@
 #include "obj/Object.h"
 #include "rndobj/Anim.h"
 #include "rndobj/Trans.h"
+#include "utl/MemMgr.h"
 
 class RndTransAnim : public RndAnimatable {
 public:
@@ -21,6 +22,10 @@ public:
     virtual float EndFrame();
     virtual Hmx::Object *AnimTarget();
     virtual void SetKey(float);
+
+    OBJ_MEM_OVERLOAD(0x19)
+    NEW_OBJ(RndTransAnim)
+    static void Init() { REGISTER_OBJ_FACTORY(RndTransAnim) }
 
 protected:
     RndTransAnim();

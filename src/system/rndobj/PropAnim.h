@@ -29,6 +29,10 @@ public:
     virtual float EndFrame();
     virtual void SetKey(float);
 
+    OBJ_MEM_OVERLOAD(0x17);
+    NEW_OBJ(RndPropAnim)
+    static void Init() { REGISTER_OBJ_FACTORY(RndPropAnim) }
+
     void AdvanceFrame(float);
     void RemoveKeys();
     void SetKey(Hmx::Object *, DataArray *, float);

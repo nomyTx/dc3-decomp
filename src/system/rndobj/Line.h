@@ -1,5 +1,6 @@
 #pragma once
 #include "math/Color.h"
+#include "obj/Object.h"
 #include "rndobj/Draw.h"
 #include "rndobj/Mat.h"
 #include "rndobj/Mesh.h"
@@ -40,6 +41,8 @@ public:
     virtual void Highlight() { RndDrawable::Highlight(); }
 
     OBJ_MEM_OVERLOAD(0x1A);
+    NEW_OBJ(RndLine)
+    static void Init() { REGISTER_OBJ_FACTORY(RndLine) }
 
 protected:
     RndLine();

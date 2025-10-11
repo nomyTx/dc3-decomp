@@ -169,6 +169,8 @@ public:
     void SetTextASCII(const char *);
     void SetFixedLength(int);
 
+    static void Init();
+
 protected:
     RndText();
 

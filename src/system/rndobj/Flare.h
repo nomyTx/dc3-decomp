@@ -1,4 +1,5 @@
 #pragma once
+#include "obj/Object.h"
 #include "rndobj/Draw.h"
 #include "rndobj/Mat.h"
 #include "rndobj/Trans.h"
@@ -22,6 +23,8 @@ public:
     virtual void Highlight() { RndDrawable::Highlight(); }
 
     OBJ_MEM_OVERLOAD(0x18);
+    NEW_OBJ(RndFlare)
+    static void Init() { REGISTER_OBJ_FACTORY(RndFlare) }
 
     RndMat *GetMat() const { return mMat; }
     void SetMat(RndMat *mat);

@@ -19,6 +19,10 @@ public:
     virtual void Enter();
     virtual void Exit();
 
+    OBJ_MEM_OVERLOAD(0x1D);
+    NEW_OBJ(RndShockwave)
+    static void Init() { REGISTER_OBJ_FACTORY(RndShockwave) }
+
 private:
     static RndShockwave *sSelected;
 

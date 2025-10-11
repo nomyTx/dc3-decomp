@@ -1,6 +1,7 @@
 #pragma once
 #include "obj/Object.h"
 #include "obj/Object.h"
+#include "utl/MemMgr.h"
 #include <vector>
 
 /**
@@ -18,6 +19,10 @@ public:
     virtual void Copy(const Hmx::Object *, Hmx::Object::CopyType);
     virtual void Load(BinStream &);
     virtual void SetTypeDef(DataArray *);
+
+    OBJ_MEM_OVERLOAD(0x14)
+    NEW_OBJ(RndSet)
+    static void Init() { REGISTER_OBJ_FACTORY(RndSet) }
 
 protected:
     RndSet();

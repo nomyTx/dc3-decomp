@@ -1,6 +1,7 @@
 #pragma once
 #include "obj/Object.h"
 #include "rndobj/Mesh.h"
+#include "utl/MemMgr.h"
 
 class RndMeshDeform : public Hmx::Object {
 public:
@@ -38,6 +39,10 @@ public:
     virtual void Load(BinStream &);
     virtual void PreSave(BinStream &);
     virtual void Print();
+
+    OBJ_MEM_OVERLOAD(0x1A)
+    NEW_OBJ(RndMeshDeform)
+    static void Init() { REGISTER_OBJ_FACTORY(RndMeshDeform) }
 
 protected:
     RndMeshDeform();

@@ -17,6 +17,8 @@ public:
     virtual void Load(BinStream &);
 
     OBJ_MEM_OVERLOAD(0x15);
+    NEW_OBJ(RndTexBlendController)
+    static void Init() { REGISTER_OBJ_FACTORY(RndTexBlendController) }
 
 protected:
     RndTexBlendController();

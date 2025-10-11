@@ -33,6 +33,10 @@ public:
     }
     RndMeshAnim *KeysOwner() const { return mKeysOwner; }
 
+    OBJ_MEM_OVERLOAD(0x1A)
+    NEW_OBJ(RndMeshAnim)
+    static void Init() { REGISTER_OBJ_FACTORY(RndMeshAnim) }
+
 protected:
     RndMeshAnim();
 

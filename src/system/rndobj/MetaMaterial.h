@@ -86,6 +86,9 @@ public:
     virtual void Copy(const Hmx::Object *, Hmx::Object::CopyType);
     virtual void Load(BinStream &);
 
+    OBJ_MEM_OVERLOAD(0x5E);
+    NEW_OBJ(MetaMaterial)
+
     bool IsEquivalent(MetaMaterial *);
 
 protected:

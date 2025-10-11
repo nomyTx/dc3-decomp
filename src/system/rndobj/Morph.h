@@ -34,6 +34,8 @@ public:
     virtual float EndFrame();
 
     OBJ_MEM_OVERLOAD(0x16);
+    NEW_OBJ(RndMorph)
+    static void Init() { REGISTER_OBJ_FACTORY(RndMorph) }
 
 protected:
     RndMorph();

@@ -5,6 +5,7 @@
 #include "rndobj/Tex.h"
 #include "rndobj/Wind.h"
 #include "utl/BinStream.h"
+#include "utl/MemMgr.h"
 
 // size 0x9c
 class RndFur : public Hmx::Object {
@@ -18,6 +19,10 @@ public:
     virtual void Load(BinStream &);
 
     bool LoadOld(BinStreamRev &);
+
+    OBJ_MEM_OVERLOAD(0x1A)
+    NEW_OBJ(RndFur)
+    static void Init() { REGISTER_OBJ_FACTORY(RndFur); }
 
 protected:
     RndFur();

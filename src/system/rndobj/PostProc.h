@@ -74,6 +74,7 @@ public:
     virtual const char *GetProcType() { return "RndPostProc"; }
 
     OBJ_MEM_OVERLOAD(0x22);
+    NEW_OBJ(RndPostProc)
 
     void Interp(const RndPostProc *, const RndPostProc *, float);
 

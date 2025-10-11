@@ -22,6 +22,8 @@ public:
     void Clean();
 
     OBJ_MEM_OVERLOAD(0x15);
+    NEW_OBJ(RndAmbientOcclusion)
+    static void Init() { REGISTER_OBJ_FACTORY(RndAmbientOcclusion) }
 
 protected:
     RndAmbientOcclusion();

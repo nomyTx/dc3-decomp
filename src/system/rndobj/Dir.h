@@ -57,6 +57,8 @@ public:
     virtual void ListPollChildren(std::list<RndPollable *> &) const;
 
     OBJ_MEM_OVERLOAD(0x19);
+    NEW_OBJ(RndDir)
+    static void Init() { REGISTER_OBJ_FACTORY(RndDir) }
 
     void SetEnv(RndEnviron *env) { mEnv = env; }
 

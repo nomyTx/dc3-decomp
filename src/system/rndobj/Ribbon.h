@@ -6,6 +6,7 @@
 #include "rndobj/Mat.h"
 #include "rndobj/Mesh.h"
 #include "rndobj/Poll.h"
+#include "utl/MemMgr.h"
 #include <vector>
 #include "types.h"
 
@@ -23,6 +24,10 @@ public:
     virtual void Load(BinStream &);
     // RndDrawable
     virtual void DrawShowing();
+
+    OBJ_MEM_OVERLOAD(0x19)
+    NEW_OBJ(RndRibbon)
+    static void Init() { REGISTER_OBJ_FACTORY(RndRibbon) }
 
 protected:
     RndRibbon();

@@ -1,6 +1,7 @@
 #pragma once
 #include "rndobj/Anim.h"
 #include "obj/Object.h"
+#include "utl/MemMgr.h"
 
 /**
  * @brief: A filter for an animatable object.
@@ -27,6 +28,10 @@ public:
     virtual float EndFrame();
     virtual Hmx::Object *AnimTarget() { return mAnim; }
     virtual void ListAnimChildren(std::list<RndAnimatable *> &) const;
+
+    OBJ_MEM_OVERLOAD(0x1B)
+    NEW_OBJ(RndAnimFilter)
+    static void Init() { REGISTER_OBJ_FACTORY(RndAnimFilter) }
 
     /** Set the animatable object to receive this filter. */
     void SetAnim(RndAnimatable *);

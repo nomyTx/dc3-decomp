@@ -36,6 +36,10 @@ public:
     virtual Hmx::Object *AnimTarget();
     virtual void SetKey(float);
 
+    OBJ_MEM_OVERLOAD(0x17)
+    NEW_OBJ(RndMatAnim)
+    static void Init() { REGISTER_OBJ_FACTORY(RndMatAnim) }
+
 protected:
     RndMatAnim();
 

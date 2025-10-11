@@ -148,6 +148,7 @@ protected:
     void UpdateHeap();
     float DrawTimers(float);
     void CreateDefaults();
+    void SetupFont();
 
     DataNode OnShowConsole(const DataArray *);
     DataNode OnToggleTimers(const DataArray *);

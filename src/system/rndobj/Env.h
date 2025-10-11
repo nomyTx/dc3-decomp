@@ -2,6 +2,7 @@
 #include "BoxMap.h"
 #include "Lit.h"
 #include "obj/Data.h"
+#include "obj/Object.h"
 #include "os/Timer.h"
 #include "rndobj/ColorXfm.h"
 #include "rndobj/Draw.h"
@@ -29,6 +30,8 @@ public:
     virtual bool IsReal(RndLight *) const;
 
     OBJ_MEM_OVERLOAD(0x1B);
+    NEW_OBJ(RndEnviron)
+    static void Init() { REGISTER_OBJ_FACTORY(RndEnviron) }
 
     const Transform &ColorXfm() const;
     bool FogEnable() const;

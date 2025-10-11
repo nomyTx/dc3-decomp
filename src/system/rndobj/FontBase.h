@@ -1,6 +1,7 @@
 #pragma once
 #include "obj/Object.h"
 #include "rndobj/Mat.h"
+#include "utl/MemMgr.h"
 
 class RndFontBase : public Hmx::Object {
 public:
@@ -31,6 +32,10 @@ public:
     virtual float FontUnitInverse() const { return 1.0f / FontUnit(); }
     virtual void Print() const {}
     virtual bool BitmapFont() const { return true; }
+
+    OBJ_MEM_OVERLOAD(0x1C)
+    NEW_OBJ(RndFontBase)
+    static void Init() { REGISTER_OBJ_FACTORY(RndFontBase) }
 
     void SetBaseKerning(float);
     void SetKerning(const std::vector<KernInfo> &);

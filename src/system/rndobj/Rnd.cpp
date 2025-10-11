@@ -1,22 +1,111 @@
 #include "rndobj/Rnd.h"
+#include "AmbientOcclusion.h"
+#include "CamAnim.h"
+#include "Enter.h"
+#include "Group.h"
+#include "Morph.h"
+#include "MotionBlur.h"
+#include "MultiMeshProxy.h"
+#include "PollAnim.h"
+#include "PostProcMgr.h"
+#include "PropAnim.h"
+#include "ScreenMask.h"
+#include "Shockwave.h"
+#include "SoftParticles.h"
+#include "Spline.h"
+#include "TexBlendController.h"
+#include "TexBlender.h"
+#include "obj/DataFunc.h"
+#include "obj/Dir.h"
 #include "os/System.h"
+#include "rndobj/AnimFilter.h"
+#include "rndobj/BaseMaterial.h"
+#include "rndobj/Cam.h"
+#include "rndobj/Console.h"
+#include "rndobj/CubeTex.h"
+#include "rndobj/DOFProc.h"
+#include "rndobj/Dir.h"
 #include "rndobj/Draw.h"
+#include "rndobj/Env.h"
+#include "rndobj/EventTrigger.h"
+#include "rndobj/Flare.h"
+#include "rndobj/Font.h"
+#include "rndobj/FontBase.h"
+#include "rndobj/Fur.h"
+#include "rndobj/Gen.h"
+#include "rndobj/Graph.h"
 #include "rndobj/HiResScreen.h"
+#include "rndobj/Line.h"
+#include "rndobj/Lit.h"
+#include "rndobj/LitAnim.h"
+#include "rndobj/Mat.h"
+#include "rndobj/MatAnim.h"
 #include "rndobj/Mesh.h"
+#include "rndobj/MeshAnim.h"
+#include "rndobj/MeshDeform.h"
+#include "rndobj/MetaMaterial.h"
+#include "rndobj/Movie.h"
+#include "rndobj/MultiMesh.h"
+#include "rndobj/MultiMeshProxy.h"
+#include "rndobj/Part.h"
+#include "rndobj/PartAnim.h"
+#include "rndobj/PartLauncher.h"
+#include "rndobj/Ribbon.h"
+#include "rndobj/Set.h"
 #include "rndobj/ShaderMgr.h"
+#include "rndobj/ShaderOptions.h"
+#include "rndobj/Tex.h"
+#include "rndobj/TexProc.h"
+#include "rndobj/TexRenderer.h"
+#include "rndobj/Text.h"
+#include "rndobj/Trans.h"
+#include "rndobj/TransAnim.h"
+#include "rndobj/TransProxy.h"
 #include "rndobj/Utl.h"
 #include "obj/Data.h"
 #include "obj/Object.h"
 #include "rndobj/Bitmap.h"
 #include "rndobj/Overlay.h"
 #include "rndobj/PostProc.h"
+#include "rndobj/Wind.h"
 #include "utl/Cheats.h"
 #include "utl/FileStream.h"
+#include "utl/Option.h"
 
 // Rnd & TheRnd;
 bool gNotifyKeepGoing;
 bool gFailKeepGoing;
 bool gFailRestartConsole;
+
+DataNode ModalKeyListener::OnMsg(const KeyboardKeyMsg &k) {
+    if (k.GetKey() == 0x12e) {
+        if (!GetEnabledKeyCheats() && !TheRnd.ConsoleShowing()) {
+            TheRnd.ShowConsole(true);
+            return 0;
+        } else
+            return DataNode(kDataUnhandled, 0);
+    } else {
+        if (!TheRnd.ConsoleShowing()) {
+            gNotifyKeepGoing = true;
+            return 0;
+        } else
+            return DataNode(kDataUnhandled, 0);
+    }
+}
+
+BEGIN_HANDLERS(ModalKeyListener)
+    HANDLE_MESSAGE(KeyboardKeyMsg)
+END_HANDLERS
+
+DataNode FailKeepGoing(DataArray *) {
+    gFailKeepGoing = true;
+    return 0;
+}
+
+DataNode FailRestartConsole(DataArray *) {
+    gFailRestartConsole = true;
+    return 0;
+}
 
 Rnd::Rnd()
     : mClearColor(0.3f, 0.3f, 0.3f), mWidth(640), mHeight(480), mScreenBpp(16),
@@ -150,6 +239,110 @@ BEGIN_HANDLERS(Rnd)
     HANDLE_SUPERCLASS(Hmx::Object)
 END_HANDLERS
 
+void TerminateCallback() {
+    RndUtlTerminate();
+    TheRnd.Terminate();
+}
+
+void Rnd::PreInit() {
+    SetName("rnd", ObjectDir::Main());
+    TheDebug.AddExitCallback(TerminateCallback);
+    DataArray *rndcfg = SystemConfig("rnd");
+    rndcfg->FindData("bpp", mScreenBpp, true);
+    rndcfg->FindData("height", mHeight, true);
+    rndcfg->FindData("clear_color", mClearColor, true);
+    rndcfg->FindData("sync", mSync, true);
+    rndcfg->FindData("aspect", (int &)mAspect, true);
+    if (OptionBool("widescreen", false))
+        mAspect = kWidescreen;
+    mWidth = ((float)mHeight / Rnd::YRatio()) + 0.5f;
+    MILO_ASSERT((mScreenBpp == 16) || (mScreenBpp == 32), 0x209);
+    SetupFont();
+    RndGraph::Init();
+    RndUtlPreInit();
+    RndDrawable::Init();
+    RndFur::Init();
+    RndTransformable::Init();
+    RndSet::Init();
+    RndAnimFilter::Init();
+    RndFlare::Init();
+    RndCam::Init();
+    RndMesh::Init();
+    RndMeshDeform::Init();
+    RndText::Init();
+    RndFontBase::Init();
+    RndFont::Init();
+    RndFont3d::Init();
+    RndEnviron::Init();
+    RndTex::Init();
+    RndCubeTex::Init();
+    RndMovie::Init();
+    RndLight::Init();
+    RndTransAnim::Init();
+    RndLightAnim::Init();
+    RndMeshAnim::Init();
+    RndMatAnim::Init();
+    RndTransProxy::Init();
+    RndPartLauncher::Init();
+    RndLine::Init();
+    RndGenerator::Init();
+    RndParticleSys::Init();
+    RndParticleSysAnim::Init();
+    RndRibbon::Init();
+    RndMultiMesh::Init();
+    RndMultiMeshProxy::Init();
+    RndMorph::Init();
+    RndCamAnim::Init();
+    REGISTER_OBJ_FACTORY(RndTransformable)
+    RndGroup::Init();
+    RndDir::Init();
+    RndMotionBlur::Init();
+    RndTexBlendController::Init();
+    RndTexBlender::Init();
+    RndTexRenderer::Init();
+    RndScreenMask::Init();
+    RndSoftParticles::Init();
+    REGISTER_OBJ_FACTORY(RndPostProc)
+    RndPostProcMgr::Init();
+    RndAmbientOcclusion::Init();
+    RndOverlay::Init();
+    RndPropAnim::Init();
+    EventTrigger::Init();
+    RndWind::Init();
+    RndPollAnim::Init();
+    BaseMaterial::Init();
+    REGISTER_OBJ_FACTORY(MetaMaterial)
+    RndEnterable::Init();
+    RndMat::Init();
+    RndSpline::Init();
+    RndShockwave::Init();
+    DOFProc::Init();
+    TexProc::Init();
+    // this is likely some other rndobj without a NewObject overload
+    REGISTER_OBJ_FACTORY(Hmx::Object)
+    InitShaderOptions();
+    mRateOverlay = RndOverlay::Find("rate", true);
+    mHeapOverlay = RndOverlay::Find("heap", true);
+    mWatchOverlay = RndOverlay::Find("watch", true);
+    mWatcher.SetOverlay(mWatchOverlay);
+    mWatcher.Init();
+    mStatsOverlay = RndOverlay::Find("stats", true);
+    mTimersOverlay = RndOverlay::Find("timers", true);
+    mRateOverlay->SetCallback(this);
+    mHeapOverlay->SetCallback(this);
+    mWatchOverlay->SetCallback(this);
+    mStatsOverlay->SetCallback(this);
+    mTimersOverlay->SetCallback(this);
+    mConsole = new RndConsole();
+    mWorldEnded = true;
+    mDrawing = false;
+    mGsTiming = mTimersOverlay->Showing();
+    CreateDefaults();
+    InitParticleSystem();
+    DataRegisterFunc("keep_going", FailKeepGoing);
+    DataRegisterFunc("restart_console", FailRestartConsole);
+}
+
 struct SortPostProc {
     bool operator()(PostProcessor *p1, PostProcessor *p2) const {
         return p1->Priority() < p2->Priority();
@@ -227,36 +420,6 @@ Rnd::DrawStringScreen(const char *c, const Vector2 &v, const Hmx::Color &color, 
 }
 
 RndPostProc *Rnd::GetPostProcOverride() { return mPostProcOverride; }
-
-DataNode ModalKeyListener::OnMsg(const KeyboardKeyMsg &k) {
-    if (k.GetKey() == 0x12e) {
-        if (!GetEnabledKeyCheats() && !TheRnd.ConsoleShowing()) {
-            TheRnd.ShowConsole(true);
-            return 0;
-        } else
-            return DataNode(kDataUnhandled, 0);
-    } else {
-        if (!TheRnd.ConsoleShowing()) {
-            gNotifyKeepGoing = true;
-            return 0;
-        } else
-            return DataNode(kDataUnhandled, 0);
-    }
-}
-
-BEGIN_HANDLERS(ModalKeyListener)
-    HANDLE_MESSAGE(KeyboardKeyMsg)
-END_HANDLERS
-
-DataNode FailKeepGoing(DataArray *) {
-    gFailKeepGoing = true;
-    return 0;
-}
-
-DataNode FailRestartConsole(DataArray *) {
-    gFailRestartConsole = true;
-    return 0;
-}
 
 RndPostProc *Rnd::GetSelectedPostProc() {
     RndPostProc *selected = nullptr;

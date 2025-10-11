@@ -1,5 +1,6 @@
 #pragma once
 #include "obj/Data.h"
+#include "obj/Object.h"
 #include "rndobj/Highlight.h"
 #include "rndobj/Trans.h"
 #include "math/Geo.h"
@@ -61,6 +62,8 @@ public:
     virtual void Highlight();
 
     OBJ_MEM_OVERLOAD(0x25);
+    NEW_OBJ(RndDrawable);
+    static void Init() { REGISTER_OBJ_FACTORY(RndDrawable); }
 
     void SetShowing(bool);
     bool Showing() const { return mShowing; }

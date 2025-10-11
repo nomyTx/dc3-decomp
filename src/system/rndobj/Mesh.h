@@ -123,6 +123,8 @@ public:
     virtual void OnSync(int);
 
     OBJ_MEM_OVERLOAD(0x2E);
+    NEW_OBJ(RndMesh)
+    static void Init() { REGISTER_OBJ_FACTORY(RndMesh) }
 
     int EstimatedSizeKb() const;
     void SetMat(RndMat *);

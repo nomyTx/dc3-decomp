@@ -28,6 +28,8 @@ public:
     virtual void Print();
 
     OBJ_MEM_OVERLOAD(0x16);
+    NEW_OBJ(RndCamAnim)
+    static void Init() { REGISTER_OBJ_FACTORY(RndCamAnim) }
 
     Keys<float, float> &FovKeys() { return mKeysOwner->mFovKeys; }
     RndCamAnim *KeysOwner() const { return mKeysOwner; }

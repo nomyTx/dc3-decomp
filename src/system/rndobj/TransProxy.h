@@ -15,6 +15,10 @@ public:
     virtual void PreSave(BinStream &);
     virtual void PostSave(BinStream &);
 
+    OBJ_MEM_OVERLOAD(0x14)
+    NEW_OBJ(RndTransProxy)
+    static void Init() { REGISTER_OBJ_FACTORY(RndTransProxy) }
+
 protected:
     RndTransProxy();
 

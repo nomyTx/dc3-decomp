@@ -25,6 +25,10 @@ public:
     virtual void Enter();
     virtual void Exit();
 
+    OBJ_MEM_OVERLOAD(0x16);
+    NEW_OBJ(RndPollAnim)
+    static void Init() { REGISTER_OBJ_FACTORY(RndPollAnim) }
+
 protected:
     RndPollAnim();
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "obj/Object.h"
 #include "rndobj/Poll.h"
 
 /** "A simple object with an enter an exit script call" */
@@ -7,4 +8,7 @@ public:
     OBJ_CLASSNAME(Enterable);
     OBJ_SET_TYPE(Enterable);
     virtual DataNode Handle(DataArray *, bool);
+
+    NEW_OBJ(RndEnterable)
+    static void Init() { REGISTER_OBJ_FACTORY(RndEnterable) }
 };
