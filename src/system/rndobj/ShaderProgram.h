@@ -18,7 +18,7 @@ public:
     virtual ~RndShaderProgram();
     // 7 pures
     virtual void pure1() = 0;
-    virtual void pure2() = 0;
+    virtual void pure2(const RndShaderProgram &) = 0;
     virtual void pure3() = 0;
     virtual RndShaderBuffer *pure4(int) = 0;
 
@@ -26,6 +26,12 @@ public:
     bool Cache(ShaderType, const ShaderOptions &, RndShaderBuffer *, RndShaderBuffer *);
 
     static unsigned long InitModTime();
+
+    int unk4;
+    u64 unk8;
+    int unk10;
+    int unk14;
+    bool unk18;
 
 protected:
     void CopyErrorShader(ShaderType, const ShaderOptions &);

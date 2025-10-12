@@ -1,5 +1,6 @@
 #pragma once
 #include "math/Mtx.h"
+#include "obj/Object.h"
 #include "rndobj/Mat.h"
 #include "rndobj/ShaderOptions.h"
 #include <list>
@@ -14,7 +15,10 @@ enum PShaderConstant {
 
 class RndShaderMgr {
 public:
-    struct ShaderTree {};
+    struct ShaderTree {
+        ShaderType shaderType;
+        RndShaderProgram *obj; // fix type
+    };
     RndShaderMgr();
     virtual ~RndShaderMgr();
     virtual void PreInit();
@@ -50,6 +54,8 @@ public:
     void Invalidate(ShaderType);
     void ToggleShowMetaMatErrors() { unk6f = !unk6f; }
     void ToggleShowShaderErrors() { unk6e = !unk6e; }
+    RndShaderProgram &FindShader(ShaderType, const ShaderOptions &);
+    void *AllocShader();
 
 protected:
     virtual void LoadShaders(const char *);
@@ -95,7 +101,7 @@ protected:
     RndMat *mPostProcMat; // 0x48
     RndMat *mDrawHighlightMat; // 0x4c
     RndMat *mDrawRectMat; // 0x50
-    void *unk54;
+    void *mShaderPool; // 0x54
     int mShaderPoolCount; // 0x58
     int unk5c; // 0x5c - shader pool alloc
     int unk60;

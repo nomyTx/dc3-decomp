@@ -8,53 +8,16 @@
 #include "os/File.h"
 #include "os/Platform.h"
 #include "os/System.h"
+#include "rndobj/ShaderOptions.h"
 #include "rndobj/ShaderProgram.h"
 #include "rndobj/Utl.h"
 #include "utl/FileStream.h"
 #include "utl/Loader.h"
 #include "utl/MemMgr.h"
 
-void RndShaderMgr::Init() {
-    PreInit();
-    LoadShaders("%s_shaders");
-}
-
-void RndShaderMgr::UpdateCache(const Transform &xfm, int idx) {
-    float *cacheIdx = &mConstantCache[idx];
-    cacheIdx[0] = xfm.m.x.x;
-    cacheIdx[1] = xfm.m.y.x;
-    cacheIdx[2] = xfm.m.z.x;
-    cacheIdx[3] = xfm.v.x;
-    cacheIdx[4] = xfm.m.x.y;
-    cacheIdx[5] = xfm.m.y.y;
-    cacheIdx[6] = xfm.m.z.y;
-    cacheIdx[7] = xfm.v.y;
-    cacheIdx[8] = xfm.m.x.z;
-    cacheIdx[9] = xfm.m.y.z;
-    cacheIdx[10] = xfm.m.z.z;
-    cacheIdx[11] = xfm.v.z;
-}
-
-void RndShaderMgr::ShaderPoolAlloc(int i) { unk5c = i; }
-
-void RndShaderMgr::SetMeshInfo(int i, bool b) {
-    unk10 = i;
-    unkc = b;
-}
-
-void RndShaderMgr::SetShaderErrorDisplay(bool disp) { mDisplayShaderError = disp; }
-bool RndShaderMgr::GetShaderErrorDisplay() { return mDisplayShaderError; }
-
-unsigned long RndShaderMgr::InitShaders() {
-    if (UsingCD() || GetGfxMode() == kOldGfx)
-        mCacheShaders = false;
-    else {
-        DataArray *cfg = SystemConfig("rnd", "cache_shaders");
-        mCacheShaders = cfg->Int(1);
-    }
-    RndShader::Init();
-    return RndShaderProgram::InitModTime();
-}
+RndShaderMgr::RndShaderMgr()
+    : mShaderPoolCount(0), unk5c(0), mConstantCache(0), unk68(0), unk6d(0), unk6e(1),
+      unk6f(0) {}
 
 void RndShaderMgr::PreInit() {
     if (!unk6d) {
@@ -104,12 +67,60 @@ void RndShaderMgr::PreInit() {
         CreateAndSetMetaMat(mDrawHighlightMat);
         CreateAndSetMetaMat(mDrawRectMat);
         MILO_ASSERT(mConstantCache == NULL, 104);
-        unk68 = 0x204;
+        unk68 = 516;
         MemPushTemp();
         mConstantCache = new float[unk68];
         MemPopTemp();
         LoadShaders("%s_preinit_shaders");
     }
+}
+
+void RndShaderMgr::Init() {
+    PreInit();
+    LoadShaders("%s_shaders");
+}
+
+void RndShaderMgr::Terminate() {
+    Invalidate(kMaxShaderTypes);
+    RELEASE(mConstantCache);
+    unk68 = 0;
+}
+
+void RndShaderMgr::UpdateCache(const Transform &xfm, int idx) {
+    float *cacheIdx = &mConstantCache[idx];
+    cacheIdx[0] = xfm.m.x.x;
+    cacheIdx[1] = xfm.m.y.x;
+    cacheIdx[2] = xfm.m.z.x;
+    cacheIdx[3] = xfm.v.x;
+    cacheIdx[4] = xfm.m.x.y;
+    cacheIdx[5] = xfm.m.y.y;
+    cacheIdx[6] = xfm.m.z.y;
+    cacheIdx[7] = xfm.v.y;
+    cacheIdx[8] = xfm.m.x.z;
+    cacheIdx[9] = xfm.m.y.z;
+    cacheIdx[10] = xfm.m.z.z;
+    cacheIdx[11] = xfm.v.z;
+}
+
+void RndShaderMgr::ShaderPoolAlloc(int i) { unk5c = i; }
+
+void RndShaderMgr::SetMeshInfo(int i, bool b) {
+    unk10 = i;
+    unkc = b;
+}
+
+void RndShaderMgr::SetShaderErrorDisplay(bool disp) { mDisplayShaderError = disp; }
+bool RndShaderMgr::GetShaderErrorDisplay() { return mDisplayShaderError; }
+
+unsigned long RndShaderMgr::InitShaders() {
+    if (UsingCD() || GetGfxMode() == kOldGfx)
+        mCacheShaders = false;
+    else {
+        DataArray *cfg = SystemConfig("rnd", "cache_shaders");
+        mCacheShaders = cfg->Int(1);
+    }
+    RndShader::Init();
+    return RndShaderProgram::InitModTime();
 }
 
 void RndShaderMgr::LoadShaders(const char *cc) {
@@ -121,6 +132,8 @@ void RndShaderMgr::LoadShaders(const char *cc) {
             if (stat.st_mtime > shaders || strstr(cc, "preinit")) {
                 FileStream stream(str.c_str(), FileStream::kRead, true);
                 if (!stream.Fail()) {
+                    // this check is made somewhere in here according to the asm
+                    // TheLoadMgr.GetPlatform() == kPlatformXBox;
                     LoadShaderFile(stream);
                 } else {
                     if (UsingCD() && GetGfxMode() == kNewGfx) {
@@ -137,20 +150,99 @@ void RndShaderMgr::SetTransform(const Transform &xfm) {
     SetVConstant4x3((VShaderConstant)0x5c, Hmx::Matrix4(xfm));
 }
 
-// void __thiscall RndShaderMgr::SetTransform(RndShaderMgr *this,Transform *param_1)
+void RndShaderMgr::Invalidate(ShaderType t) {
+    for (std::list<ShaderTree>::iterator it = mShaderTrees.begin();
+         it != mShaderTrees.end();) {
+        if (it == mShaderTrees.begin() && it->shaderType != t) {
+            ++it;
+        } else {
+            delete it->obj;
+            it = mShaderTrees.erase(it);
+        }
+    }
+    RndShaderProgram::InitModTime();
+}
 
-// {
-//   int iVar1;
-//   undefined8 uVar2;
-//   Matrix4 aMStack_60 [72];
+#define PS3_SHADERS_TYPE 'PS3S'
+#define PS3_SHADERS_VERSION 1
 
-//   iVar1 = *this;
-//   *(this + 0x10) = 0;
-//   uVar2 = Hmx::Matrix4::Matrix4(aMStack_60,param_1);
-//   (**(iVar1 + 0x30))(this,0x5c,uVar2);
-//   return;
-// }
+void RndShaderMgr::LoadShaderFile(FileStream &fs) {
+    if (TheLoadMgr.GetPlatform() == kPlatformPS3) {
+        RndSplasherResume();
+        unsigned int fileType, fileVersion;
+        fs >> fileType;
+        fs >> fileVersion;
+        MILO_ASSERT(fileType == PS3_SHADERS_TYPE, 0xBF);
+        MILO_ASSERT(fileVersion == PS3_SHADERS_VERSION, 0xC0);
+        RndSplasherSuspend();
+    }
+    int num;
+    fs >> num;
+    while (num--) {
+        Symbol name;
+        fs >> name;
+        ShaderType shaderType = ShaderTypeFromName(name.Str());
+        int alloc;
+        fs >> alloc;
+        unk5c = alloc;
+        while (alloc--) {
+            u64 u50;
+            fs >> u50;
+            RndShaderProgram &program = FindShader(shaderType, ShaderOptions(u50));
+            int i6c;
+            fs >> i6c;
+            RndShaderBuffer *buf1;
+            program.LoadShaderBuffer(fs, i6c, buf1);
+            fs >> i6c;
+            RndShaderBuffer *buf2;
+            program.LoadShaderBuffer(fs, i6c, buf2);
+            program.Cache(shaderType, ShaderOptions(u50), buf1, buf2);
+            delete buf1;
+            delete buf2;
+            RndSplasherPoll();
+        }
+    }
+}
 
-RndShaderMgr::RndShaderMgr()
-    : mShaderPoolCount(0), unk5c(0), mConstantCache(0), unk68(0), unk6d(0), unk6e(1),
-      unk6f(0) {}
+void *RndShaderMgr::AllocShader() {
+    if (mShaderPoolCount == 0 && unk5c > 0) {
+        mShaderPoolCount = unk5c;
+        unk5c = 0;
+        mShaderPool = MemAlloc(unk60 * mShaderPoolCount, __FILE__, 0x11c, "ShaderPool");
+    }
+    if (mShaderPoolCount <= 0) {
+        if (UsingCD()) {
+            MILO_NOTIFY_ONCE("Shader Pool is allocating dynamically");
+        }
+        unk5c = 0;
+        mShaderPoolCount = 0x100;
+        mShaderPool = MemAlloc(unk60 << 8, __FILE__, 0x127, "ShaderPool");
+    }
+    MILO_ASSERT(mShaderPoolCount-- > 0, 0x12A);
+    // increment mShaderPool by unk60
+    void *old = mShaderPool;
+    char *pool = (char *)mShaderPool;
+    pool += unk60;
+    mShaderPool = pool;
+    unk5c--;
+    return old;
+}
+
+RndShaderProgram &RndShaderMgr::FindShader(ShaderType t, const ShaderOptions &opts) {
+    for (std::list<ShaderTree>::iterator it = mShaderTrees.begin();
+         it != mShaderTrees.end() && it->shaderType != t;
+         ++it) {
+        // more stuff here
+    }
+    ShaderTree tree;
+    tree.shaderType = t;
+    RndShaderProgram *p = NewShaderProgram();
+    p->unk8 = opts.unk;
+    tree.obj = p;
+    if (t == kShaderTypeStandard) {
+        mShaderTrees.push_front(tree);
+    } else {
+        mShaderTrees.push_back(tree);
+    }
+    return *p;
+}

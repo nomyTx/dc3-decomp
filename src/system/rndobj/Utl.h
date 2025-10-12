@@ -32,3 +32,6 @@ void TestMaterialTextures(ObjectDir *);
 void RndUtlPreInit();
 void RndUtlInit();
 void RndUtlTerminate();
+void RndSplasherPoll();
+void RndSplasherSuspend();
+void RndSplasherResume();

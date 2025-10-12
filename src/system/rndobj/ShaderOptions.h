@@ -51,6 +51,8 @@ struct ShaderMacro {
 };
 
 struct ShaderOptions {
+    ShaderOptions(u64 u) : unk(u) {}
+
     void GenerateMacros(ShaderType, std::vector<ShaderMacro> &) const;
 
     u64 unk;
