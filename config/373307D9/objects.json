@@ -750,7 +750,7 @@
             "system/rndobj/MultiMesh.cpp": "NonMatching",
             "system/rndobj/MultiMeshProxy.cpp": "NonMatching",
             "system/rndobj/Overlay.cpp": "NonMatching",
-            "system/rndobj/Part.cpp": "MISSING",
+            "system/rndobj/Part.cpp": "NonMatching",
             "system/rndobj/PartAnim.cpp": "MISSING",
             "system/rndobj/PartLauncher.cpp": "MISSING",
             "system/rndobj/Poll.cpp": "NonMatching",
