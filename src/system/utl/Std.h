@@ -2,6 +2,38 @@
 #include <algorithm>
 #include <vector>
 
+#define AUTO(name, val) auto name = val
+
+#define FOREACH_(it, container, inc)                                                     \
+    for (AUTO(it, (container).begin()); it != (container).end(); (inc))
+#define FOREACH_PTR_(it, container, inc)                                                 \
+    for (AUTO(it, (container)->begin()); it != (container)->end(); (inc))
+#define FOREACH_REVERSE_(it, container, inc)                                             \
+    for (AUTO(it, (container).rbegin()); it != (container).rend(); (inc))
+#define FOREACH_REVERSE_PTR_(it, container, inc)                                         \
+    for (AUTO(it, (container)->rbegin()); it != (container)->rend(); (inc))
+
+#define FOREACH_CONST_(it, container, inc)                                               \
+    const AUTO(&container_##__LINE__, container);                                        \
+    FOREACH_(it, container_##__LINE__, inc)
+#define FOREACH_CONST_PTR_(it, container, inc)                                           \
+    const AUTO(&container_##__LINE__, *container);                                       \
+    FOREACH_(it, container_##__LINE__, inc)
+
+#define FOREACH(it, container) FOREACH_(it, container, ++it)
+#define FOREACH_POST(it, container) FOREACH_(it, container, it++)
+#define FOREACH_PTR(it, container) FOREACH_PTR_(it, container, ++it)
+#define FOREACH_PTR_POST(it, container) FOREACH_PTR_(it, container, it++)
+#define FOREACH_REVERSE(it, container) FOREACH_REVERSE_(it, container, ++it)
+#define FOREACH_REVERSE_POST(it, container) FOREACH_REVERSE_(it, container, it++)
+#define FOREACH_REVERSE_PTR(it, container) FOREACH_REVERSE_PTR_(it, container, ++it)
+#define FOREACH_REVERSE_PTR_POST(it, container) FOREACH_REVERSE_PTR_(it, container, it++)
+
+#define FOREACH_CONST(it, container) FOREACH_CONST_(it, container, ++it)
+#define FOREACH_CONST_POST(it, container) FOREACH_CONST_(it, container, it++)
+#define FOREACH_CONST_PTR(it, container) FOREACH_CONST_PTR_(it, container, ++it)
+#define FOREACH_CONST_PTR_POST(it, container) FOREACH_CONST_PTR_(it, container, it++)
+
 struct Delete {
     // not sure if this template is real, but it's required for
     // C++ standards compliance (can't delete a void*),

@@ -23,7 +23,7 @@ EventTrigger::EventTrigger()
 }
 
 bool EventTrigger::Replace(ObjRef *from, Hmx::Object *to) {
-    for (auto it = mAnims.begin(); it != mAnims.end(); ++it) {
+    FOREACH (it, mAnims) {
         if (from == &it->mAnim) {
             if (!it->mAnim.SetObj(to)) {
                 mAnims.erase(it);
@@ -31,7 +31,7 @@ bool EventTrigger::Replace(ObjRef *from, Hmx::Object *to) {
             return true;
         }
     }
-    for (auto it = mHideDelays.begin(); it != mHideDelays.end(); ++it) {
+    FOREACH (it, mHideDelays) {
         if (from == &it->mHide) {
             if (!it->mHide.SetObj(to)) {
                 mHideDelays.erase(it);
@@ -39,7 +39,7 @@ bool EventTrigger::Replace(ObjRef *from, Hmx::Object *to) {
             return true;
         }
     }
-    for (auto it = mProxyCalls.begin(); it != mProxyCalls.end(); ++it) {
+    FOREACH (it, mProxyCalls) {
         if ((from == &it->mEvent && !it->mEvent.SetObj(to))
             || (from == &it->mProxy && !it->mProxy.SetObj(to))) {
             mProxyCalls.erase(it);
