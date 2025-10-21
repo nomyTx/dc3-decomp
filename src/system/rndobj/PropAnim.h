@@ -3,6 +3,7 @@
 #include "obj/Object.h"
 #include "rndobj/Anim.h"
 #include "rndobj/PropKeys.h"
+#include "utl/BinStream.h"
 
 /**
  * @brief: A property animator.
@@ -151,6 +152,8 @@ protected:
     RndPropAnim();
 
     virtual DataNode OnListFlowLabels(DataArray *);
+
+    void LoadPre7(BinStreamRev &);
 
     /** Get the position of the PropKeys collection containing a PropKeys with the
      * supplied target and prop.

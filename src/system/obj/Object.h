@@ -18,6 +18,8 @@ class ObjRef;
 class ObjRefOwner;
 class ObjectDir;
 
+#pragma region ObjRef
+
 // Object Ref/Ptr declarations
 // ObjRefOwner size: 0x4
 class ObjRefOwner {
@@ -119,6 +121,9 @@ public:
     // for (ObjRef *it = mRefs.next; it != &mRefs; it = it->next) {
 };
 
+#pragma endregion
+#pragma region ObjRefConcrete
+
 // ObjRefConcrete size: 0x10
 template <class T1, class T2 = class ObjectDir>
 class ObjRefConcrete : public ObjRef {
@@ -145,6 +150,9 @@ public:
 template <class T1>
 BinStream &operator<<(BinStream &bs, const ObjRefConcrete<T1, class ObjectDir> &f);
 
+#pragma endregion
+#pragma region ObjPtr
+
 // ObjPtr size: 0x14
 template <class T>
 class ObjPtr : public ObjRefConcrete<T> {
@@ -168,6 +176,9 @@ public:
 template <class T1>
 BinStream &operator>>(BinStream &bs, ObjPtr<T1> &ptr);
 
+#pragma endregion
+#pragma region ObjOwnerPtr
+
 // ObjOwnerPtr size: 0x14
 template <class T>
 class ObjOwnerPtr : public ObjRefConcrete<T> {
@@ -188,6 +199,9 @@ BinStream &operator<<(BinStream &bs, const ObjOwnerPtr<T1> &ptr);
 
 template <class T1>
 BinStream &operator>>(BinStream &bs, ObjOwnerPtr<T1> &ptr);
+
+#pragma endregion
+#pragma region ObjPtrVec
 
 enum EraseMode {
 };
@@ -319,6 +333,9 @@ BinStream &operator<<(BinStream &bs, const ObjPtrVec<T1, ObjectDir> &vec);
 template <class T1>
 BinStream &operator>>(BinStream &bs, ObjPtrVec<T1, ObjectDir> &vec);
 
+#pragma endregion
+#pragma region ObjPtrList
+
 // ObjPtrList size: 0x14
 template <class T1, class T2 = class ObjectDir>
 class ObjPtrList : public ObjRefOwner {
@@ -433,6 +450,9 @@ BinStream &operator<<(BinStream &bs, const ObjPtrList<T1, ObjectDir> &list);
 
 template <class T1>
 BinStream &operator>>(BinStream &bs, ObjPtrList<T1, ObjectDir> &list);
+
+#pragma endregion
+#pragma region Object Macros
 
 // Hmx::Object-centric macros
 /** Get this Object's path name.
@@ -823,6 +843,9 @@ extern DataArray *SystemConfig(Symbol, Symbol, Symbol);
 #define REGISTER_OBJ_FACTORY(objType)                                                    \
     Hmx::Object::RegisterFactory(objType::StaticClassName(), objType::NewObject);
 
+#pragma endregion
+#pragma region TypeProps
+
 // TypeProps implementation
 class TypeProps : public ObjRefOwner {
 private:
@@ -860,6 +883,9 @@ public:
 };
 
 typedef Hmx::Object *ObjectFunc(void);
+
+#pragma endregion
+#pragma region Hmx::Object
 
 // Hmx::Object implementation
 namespace Hmx {
@@ -1019,6 +1045,9 @@ inline TextStream &operator<<(TextStream &ts, const Hmx::Object *obj) {
     return ts;
 }
 
+#pragma endregion
+#pragma region DataNodeObjTrack
+
 // DataNodeObjTrack
 class DataNodeObjTrack {
 public:
@@ -1047,6 +1076,9 @@ protected:
     ObjPtr<Hmx::Object> unk0; // 0x0
     DataNode unk14; // 0x14
 };
+
+#pragma endregion
+#pragma region ObjVector
 
 // ObjVector
 template <class T>
@@ -1104,6 +1136,9 @@ BinStream &operator>>(BinStream &bs, ObjVector<T> &vec) {
     return bs;
 }
 
+#pragma endregion
+#pragma region ObjList
+
 // ObjList
 template <class T>
 class ObjList : public std::list<T> {
@@ -1151,6 +1186,9 @@ BinStream &operator>>(BinStreamRev &bs, ObjList<T> &oList) {
     return bs.stream;
 }
 
+#pragma endregion
+#pragma region ObjectStage
+
 // ObjectStage
 class ObjectStage : public ObjPtr<Hmx::Object> {
 public:
@@ -1170,6 +1208,9 @@ Interp(const ObjectStage &stage1, const ObjectStage &stage2, float f, Hmx::Objec
 BinStream &operator<<(BinStream &, const ObjectStage &);
 BinStreamRev &operator>>(BinStreamRev &, ObjectStage &);
 
+#pragma endregion
+#pragma region ObjVersion
+
 // ObjVersion
 struct ObjVersion {
     ObjVersion(int i, Hmx::Object *o) : revs(i), obj(nullptr, o) {}
@@ -1178,5 +1219,7 @@ struct ObjVersion {
     ObjPtr<Hmx::Object> obj;
     int revs;
 };
+
+#pragma endregion
 
 #include "ObjPtr_p.h"

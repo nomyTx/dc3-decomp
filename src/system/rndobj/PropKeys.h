@@ -230,6 +230,7 @@ public:
     void SetInterpolation(Interpolation interp) { mInterpolation = interp; }
     Symbol InterpHandler() const { return mInterpHandler; }
     ExceptionID GetExceptionID() const { return mPropExceptionID; }
+    ObjRef *TargetRef() { return &mTarget; }
 
     static ExceptionID PropExceptionID(Hmx::Object *, DataArray *);
     static Message sInterpMessage;

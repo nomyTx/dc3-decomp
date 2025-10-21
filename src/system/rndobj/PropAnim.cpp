@@ -22,18 +22,21 @@ RndPropAnim::RndPropAnim()
 
 RndPropAnim::~RndPropAnim() { DeleteAll(mPropKeys); }
 
-bool RndPropAnim::Replace(ObjRef *ref, Hmx::Object *obj) {
-    for (std::list<PropKeys *>::iterator it = mPropKeys.begin(); it != mPropKeys.end();
-         ++it) {
-        if (obj) {
-            (*it)->SetTarget(obj);
-        } else {
-            mPropKeys.erase(it);
-            delete *it;
+bool RndPropAnim::Replace(ObjRef *from, Hmx::Object *to) {
+    for (auto it = mPropKeys.begin(); it != mPropKeys.end();) {
+        PropKeys *cur = *it;
+        if (cur->TargetRef() == from) {
+            if (!to) {
+                it = mPropKeys.erase(it);
+                delete cur;
+            } else {
+                cur->SetTarget(to);
+            }
             return true;
-        }
+        } else
+            ++it;
     }
-    return Hmx::Object::Replace(ref, obj);
+    return Hmx::Object::Replace(from, to);
 }
 
 BEGIN_HANDLERS(RndPropAnim)
@@ -148,6 +151,36 @@ BEGIN_COPYS(RndPropAnim)
         COPY_MEMBER(mIntensity)
     END_COPYING_MEMBERS
 END_COPYS
+
+BEGIN_LOADS(RndPropAnim)
+    LOAD_REVS(bs)
+    ASSERT_REVS(15, 0)
+    LOAD_SUPERCLASS(Hmx::Object)
+    LOAD_SUPERCLASS(RndAnimatable)
+    ObjOwnerPtr<Hmx::Object> obj(this);
+    mLastFrame = mFrame;
+    DeleteAll(mPropKeys);
+    if (d.rev < 7) {
+        LoadPre7(d);
+    } else {
+        int num;
+        d >> num;
+        for (int i = 0; i < num; i++) {
+            int type;
+            d >> type;
+            AddKeys(nullptr, nullptr, (PropKeys::AnimKeysType)type)->Load(d);
+        }
+        if (d.rev > 0xB) {
+            d >> mLoop;
+        }
+        if (d.rev > 0xD) {
+            d >> mFlowLabels;
+        }
+        if (d.rev > 0xE) {
+            d >> mIntensity;
+        }
+    }
+END_LOADS
 
 void RndPropAnim::Print() {
     int idx = 0;

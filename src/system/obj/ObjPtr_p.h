@@ -10,6 +10,7 @@
 // DO NOT try to include this header directly!
 // include obj/Object.h instead
 
+#pragma region ObjRefConcrete
 // ------------------------------------------------
 // ObjRefConcrete
 // ------------------------------------------------
@@ -89,6 +90,8 @@ bool ObjRefConcrete<T1, T2>::Load(BinStream &bs, bool print, ObjectDir *dir) {
     return true;
 }
 
+#pragma endregion
+#pragma region ObjPtr
 // ------------------------------------------------
 // ObjPtr
 // ------------------------------------------------
@@ -109,6 +112,8 @@ BinStream &operator>>(BinStream &bs, ObjPtr<T> &ptr) {
     return bs;
 }
 
+#pragma endregion
+#pragma region ObjOwnerPtr
 // ------------------------------------------------
 // ObjOwnerPtr
 // ------------------------------------------------
@@ -142,6 +147,8 @@ BinStream &operator>>(BinStream &bs, ObjOwnerPtr<T1> &ptr) {
     return bs;
 }
 
+#pragma endregion
+#pragma region ObjPtrVec
 // ------------------------------------------------
 // ObjPtrVec
 // ------------------------------------------------
@@ -255,6 +262,8 @@ BinStream &operator>>(BinStream &bs, ObjPtrVec<T1, ObjectDir> &vec) {
     return bs;
 }
 
+#pragma endregion
+#pragma region ObjPtrList
 // ------------------------------------------------
 // ObjPtrList
 // ------------------------------------------------
