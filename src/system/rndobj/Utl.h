@@ -39,6 +39,8 @@ void UtilDrawString(const char *, const Vector3 &, const Hmx::Color &);
 void UtilDrawAxes(const Transform &, float, const Hmx::Color &);
 
 void TransformKeys(RndTransAnim *, const Transform &);
+void SpliceKeys(RndTransAnim *, RndTransAnim *, float, float);
+void LinearizeKeys(RndTransAnim *, float, float, float, float, float);
 
 void TestTextureSize(ObjectDir *, int, int, int, int, int);
 void TestTexturePaths(ObjectDir *);
