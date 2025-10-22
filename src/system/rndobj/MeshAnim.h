@@ -3,6 +3,9 @@
 #include "rndobj/Anim.h"
 #include "rndobj/Mesh.h"
 
+/** "A MeshAnim object animates Mesh vertices. This should be
+    done only when an effect can't be achieved with material
+    animation, because animating vertices directly is less efficient." */
 class RndMeshAnim : public RndAnimatable {
 public:
     // Hmx::Object
@@ -18,6 +21,10 @@ public:
     // RndAnimatable
     virtual void SetFrame(float, float);
     virtual float EndFrame();
+
+    int NumVerts();
+    void ShrinkVerts(int);
+    void ShrinkKeys(int);
 
     Keys<std::vector<Vector3>, std::vector<RndMesh::Vert> > &VertPointsKeys() {
         return mKeysOwner->mVertPointsKeys;

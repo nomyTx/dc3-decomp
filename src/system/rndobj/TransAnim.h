@@ -4,6 +4,12 @@
 #include "rndobj/Trans.h"
 #include "utl/MemMgr.h"
 
+/**
+ * @brief A class for animating Transes.
+ * Original _objects description:
+ * "TransAnim objects animate the position, rotation, and
+ * scale of transformable objects."
+ */
 class RndTransAnim : public RndAnimatable {
 public:
     // Hmx::Object
