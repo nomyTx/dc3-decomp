@@ -1,37 +1,50 @@
 #include "rndobj/Anim.h"
 #include "math/Easing.h"
+#include "math/Utl.h"
 #include "obj/Data.h"
 #include "obj/DataUtl.h"
 
 #include "obj/Msg.h"
 #include "obj/Object.h"
-
-#include "obj/Object.h"
+#include "os/File.h"
 #include "obj/Task.h"
 #include "os/Debug.h"
+#include "rndobj/AnimFilter.h"
+#include "rndobj/Group.h"
 #include "utl/BinStream.h"
 
 static TaskUnits gRateUnits[6] = { kTaskSeconds, kTaskBeats,           kTaskUISeconds,
                                    kTaskBeats,   kTaskTutorialSeconds, kTaskBeats };
 static float gRateFpu[6] = { 30.0f, 480.0f, 30.0f, 1.0f, 30.0f, 15.0f };
 
-TaskUnits RndAnimatable::RateToTaskUnits(Rate myRate) { return gRateUnits[myRate]; }
+#pragma region Hmx::Object
+
 RndAnimatable::RndAnimatable() : mFrame(0.0f), mRate(k30_fps) {}
-TaskUnits RndAnimatable::Units() const { return gRateUnits[mRate]; }
-float RndAnimatable::FramesPerUnit() { return gRateFpu[mRate]; }
 
-bool RndAnimatable::ConvertFrames(float &f) {
-    f /= FramesPerUnit();
-    return (Units() != kTaskBeats);
-}
+BEGIN_HANDLERS(RndAnimatable)
+    HANDLE_ACTION(set_frame, SetFrame(_msg->Float(2), 1.0f))
+    HANDLE_EXPR(frame, mFrame)
+    HANDLE_ACTION(set_key, SetKey(_msg->Float(2)))
+    HANDLE_EXPR(end_frame, EndFrame())
+    HANDLE_EXPR(start_frame, StartFrame())
+    HANDLE(animate, OnAnimate)
+    HANDLE_ACTION(stop_animation, StopAnimation())
+    HANDLE_EXPR(is_animating, IsAnimating())
+    HANDLE(convert_frames, OnConvertFrames)
+    HANDLE(list_flow_labels, OnListFlowLabels)
+END_HANDLERS
 
-void RndAnimatable::SetFrame(float frame, float blend) {
-    if (mFrame != frame) {
-        static Symbol frameSym("frame");
-        mFrame = frame;
-        BroadcastPropertyChange(frameSym);
-    }
-}
+BEGIN_PROPSYNCS(RndAnimatable)
+    SYNC_PROP(rate, (int &)mRate);
+    SYNC_PROP_SET(frame, mFrame, SetFrame(_val.Float(), 1.0f))
+    SYNC_PROP_SET(start_frame, StartFrame(), )
+    SYNC_PROP_SET(end_frame, EndFrame(), )
+END_PROPSYNCS
+
+BEGIN_SAVES(RndAnimatable)
+    SAVE_REVS(4, 0)
+    bs << mFrame << mRate;
+END_SAVES
 
 BEGIN_COPYS(RndAnimatable)
     CREATE_COPY(RndAnimatable)
@@ -41,13 +54,95 @@ BEGIN_COPYS(RndAnimatable)
     END_COPYING_MEMBERS
 END_COPYS
 
-void RndAnimatable::Save(BinStream &bs) {
-    bs << 4;
-    bs << mFrame << mRate;
+BEGIN_LOADS(RndAnimatable)
+    LOAD_REVS(bs)
+    ASSERT_REVS(4, 0)
+    if (d.rev > 1)
+        bs >> mFrame;
+    if (d.rev > 3) {
+        bs >> (int &)mRate;
+    } else if (d.rev > 2) {
+        bool rate;
+        d >> rate;
+        mRate = (Rate)(!rate);
+    }
+    if (d.rev < 1) {
+        int count;
+        bs >> count;
+        float theScale = 1.0f;
+        float theOffset = 0.0f;
+        float theMin = 0.0f;
+        float theMax = 0.0f;
+        bool theLoop = false;
+        int read;
+        int unused1, unused2, unused3, unused4, unused5, unused6, unused7;
+        while (count-- != 0) {
+            bs >> read;
+            switch (read) {
+            case 0:
+                bs >> theScale >> theOffset;
+                break;
+            case 1:
+                bs >> theMin >> theMax;
+                d >> theLoop;
+                break;
+            case 2:
+                bs >> unused1 >> unused2;
+                break;
+            case 3:
+                bs >> unused3 >> unused4;
+                break;
+            case 4:
+                bs >> unused5 >> unused6 >> unused7;
+                break;
+            default:
+                break;
+            }
+        }
+        if (theScale != 1.0f || theOffset != 0.0f || (theMin != theMax)) {
+            const char *filt = MakeString("%s.filt", FileGetBase(Name()));
+            RndAnimFilter *filtObj = Dir()->New<RndAnimFilter>(filt);
+            filtObj->SetProperty("anim", this);
+            filtObj->SetProperty("scale", theScale);
+            filtObj->SetProperty("offset", theOffset);
+            filtObj->SetProperty("min", theMin);
+            filtObj->SetProperty("max", theMax);
+            filtObj->SetProperty("loop", theLoop);
+        }
+        ObjPtrList<RndAnimatable> animList(this);
+        bs >> animList;
+        RndGroup *theGroup = dynamic_cast<RndGroup *>(this);
+        FOREACH (it, animList) {
+            if (theGroup)
+                theGroup->AddObject(*it);
+            else
+                MILO_NOTIFY("%s not in group", (*it)->Name());
+        }
+    }
+END_LOADS
+
+#pragma endregion
+#pragma region RndAnimatable
+
+void RndAnimatable::SetFrame(float frame, float blend) {
+    if (mFrame != frame) {
+        static Symbol frameSym("frame");
+        mFrame = frame;
+        BroadcastPropertyChange(frameSym);
+    }
+}
+
+TaskUnits RndAnimatable::RateToTaskUnits(Rate myRate) { return gRateUnits[myRate]; }
+TaskUnits RndAnimatable::Units() const { return gRateUnits[mRate]; }
+float RndAnimatable::FramesPerUnit() { return gRateFpu[mRate]; }
+
+bool RndAnimatable::ConvertFrames(float &f) {
+    f /= FramesPerUnit();
+    return (Units() != kTaskBeats);
 }
 
 bool RndAnimatable::IsAnimating() {
-    for (ObjRef::iterator it = mRefs.begin(); it != mRefs.end(); ++it) {
+    FOREACH (it, Refs()) {
         if (dynamic_cast<AnimTask *>(it->RefOwner()))
             return true;
     }
@@ -65,21 +160,9 @@ void RndAnimatable::StopAnimation() {
     }
 }
 
-// float AnimTask::TimeUntilEnd() {
-//     float time;
-//     if (mScale > 0.0f) {
-//         float fpu = mAnim->FramesPerUnit();
-//         time = (mMax - mAnim->GetFrame()) / fpu;
-//     } else {
-//         float fpu = mAnim->FramesPerUnit();
-//         time = (mAnim->GetFrame() - mMin) / fpu;
-//     }
-//     return time;
-// }
-
 void RndAnimatable::FireFlowLabel(Symbol s) {
     if (!s.Null()) {
-        for (ObjRef::iterator it = mRefs.begin(); it != mRefs.end(); ++it) {
+        FOREACH (it, Refs()) {
             Hmx::Object *owner = it->RefOwner();
             if (owner && owner->ClassName() == "AnimTask") {
                 AnimTask *task = static_cast<AnimTask *>(owner);
@@ -93,75 +176,6 @@ void RndAnimatable::FireFlowLabel(Symbol s) {
         Message msg(flow_label_fired, s.Str());
         Export(msg, true);
     }
-}
-
-DataNode RndAnimatable::OnConvertFrames(DataArray *arr) {
-    float f = arr->Float(2);
-    bool conv = ConvertFrames(f);
-    *arr->Var(2) = f;
-    return conv;
-}
-
-BEGIN_PROPSYNCS(RndAnimatable)
-    SYNC_PROP(rate, (int &)mRate);
-    SYNC_PROP_SET(frame, mFrame, SetFrame(_val.Float(), 1.0f))
-    SYNC_PROP_SET(start_frame, StartFrame(), )
-    SYNC_PROP_SET(end_frame, EndFrame(), )
-END_PROPSYNCS
-
-AnimTask::~AnimTask() { TheTaskMgr.QueueTaskDelete(mBlendTask); }
-
-AnimTask::AnimTask(
-    RndAnimatable *anim,
-    float start,
-    float end,
-    float fpu,
-    bool loop,
-    float blend,
-    Hmx::Object *listener,
-    EaseType easeType,
-    float,
-    bool
-)
-    : mAnim(this, nullptr), unk40(this, nullptr), mAnimTarget(this, nullptr),
-      mBlendTask(this, nullptr), mBlendPeriod(blend), mLoop(loop) {
-    MILO_ASSERT(anim, 0x1DF);
-    mMin = Min(start, end);
-    mMax = Max(start, end);
-
-    Hmx::Object *target = anim->AnimTarget();
-    if (target) {
-        for (ObjRef::iterator it = target->Refs().begin(); it != target->Refs().end();
-             ++it) {
-            Hmx::Object *owner = it->RefOwner();
-            if (owner && owner->ClassName() == StaticClassName()) {
-                AnimTask *task = static_cast<AnimTask *>(owner);
-                mBlendTask = task;
-                MILO_ASSERT(mBlendTask != this, 0x231);
-                break;
-            }
-        }
-    }
-    if (mBlendPeriod && mBlendTask) {
-        mBlendTask->mBlending = true;
-    }
-    mAnim = anim;
-    mAnimTarget = anim->AnimTarget();
-}
-
-bool AnimTask::Replace(ObjRef *ref, Hmx::Object *o) {
-    if (ref == &mAnim) {
-        RndAnimatable *myAnim = Anim();
-        if (!mAnim.SetObj(o)) {
-            if (mBlendTask && mBlendTask->Anim() == myAnim) {
-                mBlendTask = nullptr;
-            }
-            Hmx::Object::Replace(ref, o);
-            TheTaskMgr.QueueTaskDelete(this);
-        }
-        return true;
-    } else
-        return Hmx::Object::Replace(ref, o);
 }
 
 Task *RndAnimatable::Animate(
@@ -179,6 +193,171 @@ Task *RndAnimatable::Animate(
     }
     TheTaskMgr.Start(taskPtr, Units(), delay);
     return taskPtr;
+}
+
+Task *RndAnimatable::Animate(
+    float start,
+    float end,
+    TaskUnits units,
+    float period,
+    float blend,
+    Hmx::Object *listener,
+    EaseType easeType,
+    float f9,
+    bool b10
+) {
+    float fpu;
+    if (period) {
+        fpu = std::fabs(end - start);
+        fpu = fpu / period;
+    } else {
+        const float fpus[3] = { 30.0f, 480.0f, 30.0f };
+        fpu = fpus[units];
+    }
+    AnimTask *task =
+        new AnimTask(this, start, end, fpu, false, blend, listener, easeType, f9, b10);
+    ObjPtr<AnimTask> taskPtr(nullptr, task);
+    SetFrame(start, 1);
+    TheTaskMgr.Start(taskPtr, units, 0);
+    return taskPtr;
+}
+
+Task *RndAnimatable::Animate(
+    float blend,
+    bool wait,
+    float delay,
+    Rate rate,
+    float start,
+    float end,
+    float period,
+    float scale,
+    Symbol type,
+    Hmx::Object *listener,
+    EaseType easeType,
+    float f9,
+    bool b10
+) {
+    static Symbol dest("dest");
+    static Symbol loop("loop");
+    float fpu;
+    if (type == dest)
+        start = mFrame;
+    if (period) {
+        fpu = std::fabs(end - start);
+        fpu = fpu / period;
+    } else
+        fpu = scale * gRateFpu[rate];
+
+    AnimTask *task = new AnimTask(
+        this, start, end, fpu, type == loop, blend, listener, easeType, f9, b10
+    );
+    ObjPtr<AnimTask> taskPtr(nullptr, task);
+    if (wait) {
+        if (taskPtr->BlendTask()) {
+            delay += taskPtr->BlendTask()->TimeUntilEnd();
+        }
+    }
+    if (delay == 0) {
+        SetFrame(start, 1);
+    }
+    TheTaskMgr.Start(taskPtr, gRateUnits[rate], delay);
+    return taskPtr;
+}
+
+#pragma endregion
+#pragma region AnimTask
+
+// this matches, GetEaseFunction just needs to be inlined here
+AnimTask::AnimTask(
+    RndAnimatable *anim,
+    float start,
+    float end,
+    float fpu,
+    bool loop,
+    float blend,
+    Hmx::Object *listener,
+    EaseType easeType,
+    float f9,
+    bool b10
+)
+    : mAnim(this), mListener(this), mAnimTarget(this), mBlendTask(this),
+      mBlendPeriod(blend), mLoop(loop), unka4(f9) {
+    mBlending = false;
+    mBlendTime = 0;
+    unka8 = b10;
+    unkb0 = true;
+    mEaseFunc = GetEaseFunction(easeType);
+    mListener = listener;
+    MILO_ASSERT(anim, 0x213);
+    mMin = Min(start, end);
+    mMax = Max(start, end);
+    if (NearlyZero(fpu)) {
+        fpu = 1;
+    }
+    unkac = (mMax - mMin) / fpu;
+    if (start < end) {
+        mScale = fpu;
+        mOffset = mMin;
+    } else {
+        mScale = -fpu;
+        mOffset = mMax;
+    }
+    Hmx::Object *target = anim->AnimTarget();
+    if (target) {
+        FOREACH (it, target->Refs()) {
+            Hmx::Object *owner = it->RefOwner();
+            if (owner && owner->ClassName() == StaticClassName()) {
+                AnimTask *task = static_cast<AnimTask *>(owner);
+                mBlendTask = task;
+                MILO_ASSERT(mBlendTask != this, 0x231);
+                break;
+            }
+        }
+    }
+    if (mBlendPeriod && mBlendTask) {
+        mBlendTask->mBlending = true;
+    }
+    mAnim = anim;
+    mAnimTarget = anim->AnimTarget();
+}
+
+AnimTask::~AnimTask() { TheTaskMgr.QueueTaskDelete(mBlendTask); }
+
+bool AnimTask::Replace(ObjRef *ref, Hmx::Object *o) {
+    if (ref == &mAnim) {
+        RndAnimatable *myAnim = Anim();
+        if (!mAnim.SetObj(o)) {
+            if (mBlendTask && mBlendTask->Anim() == myAnim) {
+                mBlendTask = nullptr;
+            }
+            Hmx::Object::Replace(ref, o);
+            TheTaskMgr.QueueTaskDelete(this);
+        }
+        return true;
+    } else
+        return Hmx::Object::Replace(ref, o);
+}
+
+float AnimTask::TimeUntilEnd() {
+    float time;
+    if (mScale > 0.0f) {
+        float fpu = mAnim->FramesPerUnit();
+        time = (mMax - mAnim->GetFrame()) / fpu;
+    } else {
+        float fpu = mAnim->FramesPerUnit();
+        time = (mAnim->GetFrame() - mMin) / fpu;
+    }
+    return time;
+}
+
+#pragma endregion
+#pragma region Handlers
+
+DataNode RndAnimatable::OnConvertFrames(DataArray *arr) {
+    float f = arr->Float(2);
+    bool conv = ConvertFrames(f);
+    *arr->Var(2) = f;
+    return conv;
 }
 
 DataNode RndAnimatable::OnAnimate(DataArray *arr) {
@@ -285,30 +464,3 @@ DataNode RndAnimatable::OnAnimate(DataArray *arr) {
 
     return taskPtr;
 }
-
-BEGIN_HANDLERS(RndAnimatable)
-    HANDLE_ACTION(set_frame, SetFrame(_msg->Float(2), 1.0f))
-    HANDLE_EXPR(frame, mFrame)
-    HANDLE_ACTION(set_key, SetKey(_msg->Float(2)))
-    HANDLE_EXPR(end_frame, EndFrame())
-    HANDLE_EXPR(start_frame, StartFrame())
-    HANDLE(animate, OnAnimate)
-    HANDLE_ACTION(stop_animation, StopAnimation())
-    HANDLE_EXPR(is_animating, IsAnimating())
-    HANDLE(convert_frames, OnConvertFrames)
-    HANDLE(list_flow_labels, OnListFlowLabels)
-END_HANDLERS
-
-BEGIN_LOADS(RndAnimatable)
-    LOAD_REVS(bs)
-    ASSERT_REVS(4, 0)
-    if (d.rev > 1)
-        bs >> mFrame;
-    if (d.rev > 3) {
-        bs >> (int &)mRate;
-    } else if (d.rev > 2) {
-        bool rate;
-        d >> rate;
-        mRate = (Rate)(!rate);
-    }
-END_LOADS

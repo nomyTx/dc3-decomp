@@ -122,16 +122,16 @@ protected:
 class AnimTask : public Task {
 public:
     AnimTask(
-        RndAnimatable *,
-        float,
-        float,
-        float,
-        bool,
-        float,
-        Hmx::Object *,
-        EaseType,
-        float,
-        bool
+        RndAnimatable *anim,
+        float start,
+        float end,
+        float fpu,
+        bool loop,
+        float blend,
+        Hmx::Object *listener,
+        EaseType easeType,
+        float f9,
+        bool b10
     );
     virtual ~AnimTask();
     virtual bool Replace(ObjRef *, Hmx::Object *);
@@ -147,7 +147,7 @@ public:
 
     /** The animatable this task should be animating. */
     ObjOwnerPtr<RndAnimatable> mAnim; // 0x2c
-    ObjPtr<Hmx::Object> unk40; // 0x40
+    ObjPtr<Hmx::Object> mListener; // 0x40
     ObjPtr<Hmx::Object> mAnimTarget; // 0x54
     /** The anim task to blend into. */
     ObjPtr<AnimTask> mBlendTask; // 0x68
