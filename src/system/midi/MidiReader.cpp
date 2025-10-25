@@ -47,6 +47,8 @@ void MidiReader::Init() {
     mRcvr.SetMidiReader(this);
 }
 
+const char *MidiReader::GetFilename() const { return mStreamName.c_str(); }
+
 bool MidiReader::ClaimMaps(MeasureMap *&mmap, TempoMap *&tmap) {
     if (mOwnMaps) {
         mmap = mMeasureMap;

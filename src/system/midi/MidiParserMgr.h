@@ -13,7 +13,7 @@ public:
     virtual ~MidiParserMgr();
     virtual void OnNewTrack(int);
     virtual void OnEndOfTrack();
-    virtual void OnAllTracksRead();
+    virtual void OnAllTracksRead() {}
     virtual void OnMidiMessage(int, unsigned char, unsigned char, unsigned char);
     virtual void OnText(int, const char *, unsigned char);
     virtual void SetMidiReader(MidiReader *mr);
@@ -51,16 +51,16 @@ private:
     /** Clear the lists of parsed note-ons and text events. */
     void FreeAllData();
 
-    std::vector<int> mNoteOns; // 0x24
-    std::vector<MidiParser::VocalEvent> mText; // 0x30
-    GemListInterface *mGems; // 0x3c
-    bool mLoaded; // 0x40
-    const char *mFilename; // 0x44
-    Symbol mTrackName; // 0x48
-    Symbol mSongName; // 0x4c
-    std::vector<Symbol> mTrackNames; // 0x50
-    bool unk58; // 0x58
-    bool unk59; // 0x59
+    std::vector<int> mNoteOns; // 0x34
+    std::vector<MidiParser::VocalEvent> mText; // 0x40
+    GemListInterface *mGems; // 0x4c
+    bool mLoaded; // 0x50
+    const char *mFilename; // 0x54
+    Symbol mTrackName; // 0x58
+    Symbol mSongName; // 0x5c
+    std::vector<Symbol> mTrackNames; // 0x60
+    bool unk6c; // 0x6c
+    bool unk6d; // 0x6d
 };
 
 extern MidiParserMgr *TheMidiParserMgr;
