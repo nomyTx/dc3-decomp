@@ -79,7 +79,7 @@ protected:
     AddSongData(DataArray *, std::map<int, SongMetadata *> &, const char *, ContentLocT, std::vector<int> &) = 0;
     virtual void AddSongIDMapping(int, Symbol) = 0;
     virtual void ReadCachedMetadataFromStream(BinStream &, int) = 0;
-    virtual void WriteCachedMetadataFromStream(BinStream &) const = 0;
+    virtual void WriteCachedMetadataToStream(BinStream &) const = 0;
 
     char const *CachedPath(Symbol, char const *, int) const;
     void SaveMount();
@@ -101,11 +101,11 @@ protected:
     std::map<Symbol, std::vector<int> > mSongIDsInContent; // 0x7c
     std::map<int, Symbol> mContentUsedForSong; // 0x94
     std::map<Symbol, String> unkmap5; // 0xac
-    CacheID *mSongCacheID;
-    Cache *mSongCache;
-    bool unkbc;
-    bool mSongCacheNeedsWrite;
-    bool mSongCacheWriteAllowed;
+    CacheID *mSongCacheID; // 0xc4
+    Cache *mSongCache; // 0xc8
+    bool unkcc; // 0xcc
+    bool mSongCacheNeedsWrite; // 0xcd
+    bool mSongCacheWriteAllowed; // 0xce
 };
 
 int GetSongID(DataArray *, DataArray *);

@@ -1,4 +1,6 @@
 #pragma once
+#include "obj/Object.h"
+#include "types.h"
 #include "utl/MemMgr.h"
 
 enum OpType {
@@ -47,11 +49,24 @@ public:
 class Cache {
 public:
     virtual ~Cache();
+    virtual const char *GetCacheName() = 0;
+    virtual void Poll() = 0;
+    virtual bool IsConnectedSync() = 0;
+    virtual bool GetFreeSpaceSync(u64 *) = 0;
+    virtual bool DeleteSync(const char *) = 0;
+    virtual bool
+    GetDirectoryAsync(const char *, std::vector<CacheDirEntry> *, Hmx::Object *) = 0;
+    virtual bool GetFileSizeAsync(const char *, unsigned int *, Hmx::Object *) = 0;
+    virtual bool ReadAsync(const char *, void *, unsigned int, Hmx::Object *) = 0;
+    virtual bool WriteAsync(const char *, void *, unsigned int, Hmx::Object *) = 0;
+    virtual bool DeleteAsync(const char *, Hmx::Object *) = 0;
 
     Cache();
     bool IsDone();
 
     MEM_OVERLOAD(Cache, 0x56);
+
+    CacheResult GetLastResult();
 
     OpType mOpCur; // 0x4
     CacheResult mLastResult; // 0x8

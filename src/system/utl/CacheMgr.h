@@ -1,4 +1,5 @@
 #pragma once
+#include "obj/Object.h"
 #include "os/User.h"
 #include "stl/_vector.h"
 #include "utl/Cache.h"
@@ -17,27 +18,24 @@ public:
     };
 
     virtual ~CacheMgr();
+    virtual void Poll() = 0;
     virtual bool SearchAsync(char const *, CacheID **);
-    virtual bool ShowUserSelectUIAsync(
-        LocalUser *, unsigned long long, char const *, char const *, CacheID **
-    );
+    virtual bool
+    ShowUserSelectUIAsync(LocalUser *, unsigned long long, char const *, char const *, CacheID **);
     virtual bool
     CreateCacheIDFromDeviceID(unsigned int, const char *, const char *, CacheID **);
-    virtual bool CreateCacheID(
-        const char *,
-        const char *,
-        const char *,
-        const char *,
-        const char *,
-        int,
-        CacheID **
-    );
+    virtual bool
+    CreateCacheID(const char *, const char *, const char *, const char *, const char *, int, CacheID **);
+    virtual bool MountAsync(CacheID *, Cache **, Hmx::Object *) = 0;
+    virtual bool UnmountAsync(Cache **, Hmx::Object *) = 0;
+    virtual bool DeleteAsync(CacheID *) = 0;
 
     static CacheMgr *CreateCacheMgr();
     CacheID *GetCacheID(Symbol);
     void RemoveCacheID(CacheID *);
     void AddCacheID(CacheID *, Symbol);
     bool IsDone();
+    CacheResult GetLastResult();
 
     MEM_OVERLOAD(CacheMgr, 0x24);
 
