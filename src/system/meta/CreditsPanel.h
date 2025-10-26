@@ -12,8 +12,12 @@
 #include "utl/Symbol.h"
 
 class CreditsPanel : public UIListProvider, public UIPanel {
-public:
+private:
+    CreditsPanel();
     // Hmx::Object
+    virtual ~CreditsPanel();
+
+public:
     OBJ_CLASSNAME(CreditsPanel)
     OBJ_SET_TYPE(CreditsPanel)
     virtual DataNode Handle(DataArray *, bool);
@@ -24,12 +28,9 @@ public:
     virtual int NumData() const;
 
 protected:
-    DataNode OnMsg(ButtonDownMsg const &);
+    DataNode OnMsg(const ButtonDownMsg &);
 
 private:
-    // Hmx::Object
-    virtual ~CreditsPanel();
-
     // UIPanel
     virtual void Load();
     virtual void Enter();
@@ -40,17 +41,17 @@ private:
     virtual void Unload();
     virtual void FinishLoad();
 
-    CreditsPanel();
     void PausePanel(bool);
     void DebugToggleAutoScroll();
+    void SetAutoScroll(bool);
 
-    bool mCheatOn;
-    DataLoader *mLoader;
-    DataArray *mNames;
-    UIList *mList;
-    Stream *mStream;
+    bool mCheatOn; // 0x3c
+    DataLoader *mLoader; // 0x40
+    DataArray *mNames; // 0x44
+    UIList *mList; // 0x48
+    Stream *mStream; // 0x4c
     bool mAutoScroll; // 0x50
     float mSavedSpeed; // 0x54
     /** Whether or not the panel is paused. */
-    bool mPaused;
+    bool mPaused; // 0x58
 };

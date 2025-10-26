@@ -4,6 +4,7 @@
 #include "obj/DataFile.h"
 #include "obj/Object.h"
 #include "os/Debug.h"
+#include "os/Joypad.h"
 #include "os/JoypadMsgs.h"
 #include "os/System.h"
 #include "rndobj/Mat.h"
@@ -22,10 +23,23 @@
 #include "utl/Loader.h"
 #include "utl/Symbol.h"
 
+#pragma region Hmx::Object
+
 CreditsPanel::CreditsPanel()
     : mLoader(0), mNames(0), mStream(0), mAutoScroll(1), mSavedSpeed(-1.0f), mPaused(0) {}
 
 CreditsPanel::~CreditsPanel() {}
+
+BEGIN_HANDLERS(CreditsPanel)
+    HANDLE_ACTION(pause_panel, PausePanel(_msg->Int(2)))
+    HANDLE_EXPR(is_cheat_on, mCheatOn)
+    HANDLE_ACTION(debug_toggle_autoscroll, DebugToggleAutoScroll())
+    HANDLE_MESSAGE(ButtonDownMsg)
+    HANDLE_SUPERCLASS(UIPanel)
+END_HANDLERS
+
+#pragma endregion
+#pragma region UIListProvider
 
 void CreditsPanel::Text(int i, int j, UIListLabel *listlabel, UILabel *label) const {
     DataArray *arr = mNames->Array(j);
@@ -33,37 +47,29 @@ void CreditsPanel::Text(int i, int j, UIListLabel *listlabel, UILabel *label) co
     label->SetCreditsText(arr, listlabel);
 }
 
-int CreditsPanel::NumData() const { return mNames->Size(); }
-
 RndMat *CreditsPanel::Mat(int i, int j, UIListMesh *mesh) const {
     static Symbol image("image");
     static Symbol blank("blank");
     DataArray *array = mNames->Array(j);
+    Symbol imgSym = blank;
     if (array->Size() != 0) {
-        blank = array->Sym(0);
+        imgSym = array->Sym(0);
     }
-    if (blank == image) {
+    if (imgSym == image) {
         return mDir->Find<RndMat>(array->Str(1), true);
+    } else {
+        return nullptr;
     }
-
-    return nullptr;
 }
 
-DataNode CreditsPanel::OnMsg(ButtonDownMsg const &msg) {
-    if (!mAutoScroll)
-        return DataNode(kDataUnhandled, 0);
-    return 1;
-}
+int CreditsPanel::NumData() const { return mNames->Size(); }
 
-bool CreditsPanel::IsLoaded() const {
-    return UIPanel::IsLoaded() && mLoader != nullptr && mLoader->IsLoaded();
-}
+#pragma endregion
+#pragma region UIPanel
 
-void CreditsPanel::Exit() {
-    if (mStream && !mPaused) {
-        mStream->Faders()->FindLocal("fade", true)->DoFade(-96.0f, 2000.0f);
-    }
-    UIPanel::Exit();
+void CreditsPanel::Load() {
+    UIPanel::Load();
+    mLoader = new DataLoader(SystemConfig("credits_file")->Str(1), kLoadFront, true);
 }
 
 void CreditsPanel::Enter() {
@@ -75,52 +81,55 @@ void CreditsPanel::Enter() {
     mList->AutoScroll();
 }
 
-void CreditsPanel::PausePanel(bool b) {
-    if (mPaused != b) {
-        mPaused = b;
-        if (mPaused) {
-            if (mAutoScroll) {
-                mAutoScroll = false;
-                mList->StopAutoScroll();
-            }
-            if (mStream == nullptr) {
-                return;
-            }
-        }
-    } else {
-        if (mAutoScroll != 0) {
-            mAutoScroll = true;
-            mList->AutoScroll();
-        }
-        if (mStream) {
-            return;
-        }
+void CreditsPanel::Exit() {
+    if (mStream && !mPaused) {
+        mStream->Faders()->FindLocal("fade", true)->DoFade(-96.0f, 2000.0f);
     }
+    UIPanel::Exit();
 }
-
-void CreditsPanel::DebugToggleAutoScroll() {
-    if (mAutoScroll == false) {
-        mList->SetSpeed(mSavedSpeed);
-        if (mAutoScroll != true) {
-            mAutoScroll = true;
-            mList->AutoScroll();
-        }
-        mCheatOn = false;
-    } else {
-        mSavedSpeed = mList->Speed();
-        mList->SetSpeed(0.0f);
-        if (mAutoScroll) {
-            mAutoScroll = false;
-            mList->StopAutoScroll();
-        }
-        mCheatOn = true;
-    }
-}
-
-void CreditsPanel::Load() { UIPanel::Load(); }
 
 bool CreditsPanel::Exiting() const {
-    return mStream && mStream->Faders()->FindLocal("fade", true) || UIPanel::Exiting();
+    return mStream && mStream->Faders()->FindLocal("fade", true)->IsFading()
+        || UIPanel::Exiting();
+}
+
+void CreditsPanel::Poll() {
+    UIPanel::Poll();
+    if (!mStream) {
+        DataArray *cfg = SystemConfig("sound", "credits");
+        String streamStr;
+        cfg->FindData("stream", streamStr, true);
+        float volume;
+        cfg->FindData("volume", volume, true);
+        mStream = TheSynth->NewStream(streamStr.c_str(), 0, 0, 0);
+        mStream->SetPan(0, -1);
+        mStream->SetPan(1, 1);
+        mStream->SetVolume(volume);
+        mStream->Faders()->AddLocal("fade");
+        mStream->SetJump(Stream::kStreamEndMs, 0, 0);
+    } else if (!mStream->IsPlaying() && mStream->IsReady() && !mPaused) {
+        mStream->Play();
+    }
+    if (mAutoScroll && !TheUI->InTransition()) {
+        if (!mList->IsScrolling()) {
+            static Message cMsg("credits_done");
+            HandleType(cMsg);
+            SetAutoScroll(false);
+        }
+    }
+}
+
+bool CreditsPanel::IsLoaded() const {
+    return UIPanel::IsLoaded() && mLoader != nullptr && mLoader->IsLoaded();
+}
+
+void CreditsPanel::Unload() {
+    UIPanel::Unload();
+    if (mNames) {
+        mNames->Release();
+        mNames = 0;
+    }
+    RELEASE(mStream);
 }
 
 void CreditsPanel::FinishLoad() {
@@ -134,43 +143,56 @@ void CreditsPanel::FinishLoad() {
     mLoader = 0;
 }
 
-void CreditsPanel::Unload() {
-    UIPanel::Unload();
-    if (mNames) {
-        mNames->Release();
-        mNames = 0;
-    }
-    RELEASE(mStream);
-}
+#pragma endregion
+#pragma region CreditsPanel
 
-void CreditsPanel::Poll() {
-    UIPanel::Poll();
-    if (!mStream) {
-        mStream = TheSynth->NewStream("sfx/streams/credits", 0, 0, 0);
-        MILO_ASSERT_FMT(mStream, "sfx/streams/credits.foo missing");
-        // mStream->SetJump(Stream::kStreamEndMs, 0, 0);
-        mStream->SetPan(0, -1.0f);
-        mStream->SetPan(1, 1.0f);
-        mStream->SetVolume(-4.0f);
-        mStream->Faders()->AddLocal("fade");
-    } else {
-        if (!mStream->IsPlaying() && mStream->IsReady() && !mPaused) {
-            mStream->Play();
-        }
-    }
-    /*if (mAutoScroll && !TheUI->InTransition()) {
-        if (!mList->IsScrolling()) {
-            HandleType(credits_done_msg);
+void CreditsPanel::PausePanel(bool b) {
+    if (mPaused != b) {
+        mPaused = b;
+        if (mPaused) {
             SetAutoScroll(false);
+            if (mStream && !mStream->IsPaused()) {
+                mStream->Stop();
+            }
+        } else {
+            SetAutoScroll(true);
+            if (mStream && mStream->IsPaused()) {
+                mStream->Play();
+            }
         }
-    }*/
+    }
 }
 
-BEGIN_HANDLERS(CreditsPanel)
-    HANDLE_ACTION(pause_panel, PausePanel(_msg->Int(2)))
-    HANDLE_EXPR(is_cheat_on, mCheatOn)
-    HANDLE_EXPR(is_cheat_on, false)
-    HANDLE_ACTION(debug_toggle_autoscroll, DebugToggleAutoScroll())
-    HANDLE_MESSAGE(ButtonDownMsg)
-    HANDLE_SUPERCLASS(UIPanel)
-END_HANDLERS
+void CreditsPanel::DebugToggleAutoScroll() {
+    if (!mAutoScroll) {
+        mList->SetSpeed(mSavedSpeed);
+        SetAutoScroll(true);
+        mCheatOn = false;
+    } else {
+        mSavedSpeed = mList->Speed();
+        mList->SetSpeed(0.0f);
+        SetAutoScroll(false);
+        mCheatOn = true;
+    }
+}
+
+DataNode CreditsPanel::OnMsg(const ButtonDownMsg &msg) {
+    if (mAutoScroll)
+        return DataNode(kDataUnhandled, 0);
+    if (msg.GetButton() == kPad_DDown || msg.GetButton() == kPad_LStickDown) {
+        mList->Scroll(1);
+    } else if (msg.GetButton() == kPad_DUp || msg.GetButton() == kPad_LStickUp) {
+        mList->Scroll(-1);
+    }
+    return 1;
+}
+
+void CreditsPanel::SetAutoScroll(bool b) {
+    if (b != mAutoScroll) {
+        mAutoScroll = b;
+        if (mAutoScroll)
+            mList->AutoScroll();
+        else
+            mList->StopAutoScroll();
+    }
+}

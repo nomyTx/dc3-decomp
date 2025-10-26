@@ -60,7 +60,7 @@ public:
     void SetNumDisplay(int);
     void SetGridSpan(int);
     void SetCircular(bool);
-    void SetSpeed(float speed) { mListState.SetSpeed(speed); }
+    void SetSpeed(float speed); // { mListState.SetSpeed(speed); }
     void LimitCircularDisplay(bool);
     void SetProvider(UIListProvider *);
     int NumProviderData() const;
@@ -73,14 +73,15 @@ public:
     void StopAutoScroll();
     void SetSelected(int, int);
     int SelectedPos() const;
+    void Scroll(int);
 
     int NumDisplay() const { return mListState.NumDisplay(); }
     int GridSpan() const { return mListState.GridSpan(); }
     bool Circular() const { return mListState.Circular(); }
-    float Speed() const { return mListState.Speed(); }
+    float Speed() const;
     int SelectedData() const { return mListState.SelectedData(); }
     int FirstShowing() const { return mListState.FirstShowing(); }
-    bool IsScrolling() const { return mListState.IsScrolling(); }
+    bool IsScrolling() const;
 
 private:
     void Update();

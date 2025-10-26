@@ -10,6 +10,9 @@ class DataLoader : public Loader {
 public:
     DataLoader(const FilePath &, LoaderPos, bool);
     virtual ~DataLoader();
+    virtual const char *DebugText() {
+        return MakeString("DataLoader: %s", mFile.c_str());
+    }
     virtual bool IsLoaded() const;
     virtual const char *StateName() const { return "DataLoader"; }
     virtual void PollLoading();

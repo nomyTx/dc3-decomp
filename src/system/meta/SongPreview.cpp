@@ -48,7 +48,7 @@ void SongPreview::SetMusicVol(float f) {
     if (unk4c == 0) {
         return;
     }
-    if (f < mMusicFader->GetMLevelTarget()) {
+    if (f < mMusicFader->GetLevelTarget()) {
         mMusicFader->DoFade(f, 250.0f);
     } else {
         mMusicFader->DoFade(f, 1000.0f);

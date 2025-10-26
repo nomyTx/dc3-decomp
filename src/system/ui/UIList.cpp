@@ -129,3 +129,6 @@ BEGIN_LOADS(UIList)
 END_LOADS
 
 int UIList::SelectedPos() const { return mListState.Selected(); }
+bool UIList::IsScrolling() const { return mListState.IsScrolling(); }
+void UIList::SetSpeed(float speed) { mListState.SetSpeed(speed); }
+float UIList::Speed() const { return mListState.Speed(); }

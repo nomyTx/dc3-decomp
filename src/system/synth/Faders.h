@@ -26,7 +26,7 @@ public:
     virtual const char *GetSoundDisplayName();
     virtual void SynthPoll();
 
-    float GetMLevelTarget() const { return mLevelTarget; }
+    float GetLevelTarget() const { return mLevelTarget; }
     float GetPan() const { return mPan; }
     float GetTranspose() const { return mTranspose; }
     Symbol LocalName() const { return mLocalName; }
@@ -40,6 +40,7 @@ public:
     void AddDuckedVolume(float);
     void RemoveDuckedVolume(float);
     float DuckedValue() const { return GetDuckedVolume() + mLevel; }
+    bool IsFading() const { return mTimer.Running(); }
 
     NEW_OBJ(Fader)
 

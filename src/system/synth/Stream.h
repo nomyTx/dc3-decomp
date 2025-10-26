@@ -50,8 +50,8 @@ public:
     virtual void AddMarker(const Marker &) {}
     virtual int MarkerListSize() const { return 0; }
     virtual bool MarkerAt(int, Marker &) const { return 0; }
-    virtual void SetJump(float, float, const char *) = 0;
     virtual void SetJump(String &, String &) = 0;
+    virtual void SetJump(float, float, const char *) = 0;
     virtual bool CurrentJumpPoints(Marker &, Marker &) { return 0; }
     virtual void ClearJump() = 0;
     virtual void EnableSlipStreaming(int) = 0;
@@ -67,6 +67,8 @@ public:
     void SetVolume(float);
 
     FaderGroup *Faders() const { return mFaders; }
+
+    static const float kStreamEndMs;
 
 protected:
     Stream();
