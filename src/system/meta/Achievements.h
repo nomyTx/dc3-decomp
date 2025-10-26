@@ -22,7 +22,6 @@ private:
     static void SubmitAchievementsCallback(int);
 
 public:
-    virtual ~Achievements() {}
     virtual DataNode Handle(DataArray *, bool);
 
     void Poll();

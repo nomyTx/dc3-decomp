@@ -12,27 +12,20 @@ enum ProfileSaveState {
 };
 
 class Profile : public FixedSizeSaveable, public virtual Hmx::Object {
-protected:
-    bool mDirty; // 0xc
-    int mPadNum; // 0x10
-    ProfileSaveState mState; // 0x14
 public:
-    // Hmx::Object
-    virtual ~Profile();
-    virtual DataNode Handle(DataArray *, bool);
-    virtual void PreLoad() {}
-
+    Profile(int);
     // FixedSizeSaveable
+    virtual ~Profile();
+    // Hmx::Object
+    virtual DataNode Handle(DataArray *, bool);
+    // Profile
+    virtual bool HasCheated() const { return false; }
     virtual bool IsUnsaved() const;
     virtual void SaveLoadComplete(ProfileSaveState);
-    virtual void SaveFixed(FixedSizeSaveableStream &) const = 0;
+    virtual bool HasSomethingToUpload() { return false; }
+    virtual void DeleteAll() { mDirty = true; }
+    virtual void PreLoad() {}
 
-    virtual void LoadFixed(FixedSizeSaveableStream &, int) = 0;
-    virtual bool HasCheated() const { return false; }
-    virtual bool HasSomethingToUpload();
-    virtual void DeleteAll();
-
-    Profile(int);
     bool IsAutosaveEnabled() const;
     bool HasValidSaveData() const;
     ProfileSaveState GetSaveState() const;
@@ -41,6 +34,11 @@ public:
 
     int GetPadNum() const;
     const char *GetName() const;
+
+protected:
+    bool mDirty; // 0xc
+    int mPadNum; // 0x10
+    ProfileSaveState mState; // 0x14
 };
 
 #include "obj/Msg.h"

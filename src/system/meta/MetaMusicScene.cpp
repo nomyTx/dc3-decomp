@@ -12,7 +12,8 @@ void MetaMusicScene::Configure(DataArray *i_pConfig) {
     DataArray *screens_found = i_pConfig->FindArray(screens, false);
     if (screens_found) {
         for (int i = 1; i < screens_found->Size(); i++) {
-            m_lScreens.push_back(screens_found->Sym(i));
+            Symbol sym = screens_found->Sym(i);
+            m_lScreens.push_back(sym);
         }
     }
     static Symbol mix("mix");

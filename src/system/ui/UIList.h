@@ -72,12 +72,12 @@ public:
     void AutoScroll();
     void StopAutoScroll();
     void SetSelected(int, int);
+    int SelectedPos() const;
 
     int NumDisplay() const { return mListState.NumDisplay(); }
     int GridSpan() const { return mListState.GridSpan(); }
     bool Circular() const { return mListState.Circular(); }
     float Speed() const { return mListState.Speed(); }
-    int SelectedPos() const { return mListState.Selected(); }
     int SelectedData() const { return mListState.SelectedData(); }
     int FirstShowing() const { return mListState.FirstShowing(); }
     bool IsScrolling() const { return mListState.IsScrolling(); }

@@ -151,7 +151,8 @@ String HAQManager::GetButtonStatePressedString(int pad) const {
 String HAQManager::GetButtonText() const {
     String ret("");
     for (int i = 0; i < 4; i++) {
-        ret += MakeString("%i %s | ", i, String(GetButtonStatePressedString(i)));
+        String str = GetButtonStatePressedString(i);
+        ret += MakeString("%i %s | ", i, str);
     }
     return ret;
 }
@@ -197,10 +198,18 @@ void HAQManager::PrintComponentInfo(UIComponent *comp) {
 }
 
 BEGIN_HANDLERS(HAQManager)
-    // HANDLE_ACTION(toggle_enabled)
+    HANDLE_ACTION(toggle_enabled, ToggleEnabled())
     HANDLE_EXPR(is_enabled, m_bEnabled)
-    HANDLE_ACTION(display_all, Print(kHAQType_Screen))
-    HANDLE_ACTION(display_all, Print(kHAQType_Focus))
+    HANDLE_ACTION(display_all, DisplayAll())
     HANDLE_ACTION(raw_print, RawPrint(_msg->Str(2), _msg->Str(3)))
     HANDLE_SUPERCLASS(Hmx::Object)
 END_HANDLERS
+
+void HAQManager::ToggleEnabled() { m_bEnabled = !m_bEnabled; }
+
+void HAQManager::DisplayAll() {
+    if (!m_bEnabled)
+        ToggleEnabled();
+    Print(kHAQType_Screen);
+    Print(kHAQType_Focus);
+}

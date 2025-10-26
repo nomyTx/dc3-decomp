@@ -24,19 +24,17 @@ enum HAQType {
 
 class HAQManager : public Hmx::Object {
 public:
+    HAQManager();
     // Hmx::Object
     virtual ~HAQManager();
     virtual DataNode Handle(DataArray *, bool);
 
-    HAQManager();
     UIComponent *GetUIFocusComponent() const;
     static void RawPrint(char const *, char const *);
     static void PrintSongInfo(Symbol, float);
     static void Print(HAQType, Hmx::Object *, int);
     static void Print(HAQType);
     bool Enabled() const { return m_bEnabled; }
-
-    bool m_bEnabled;
 
 private:
     String GetLabelForType(HAQType) const;
@@ -49,6 +47,10 @@ private:
     void PrintList(UIList *);
     void PrintSlider(UISlider *);
     void PrintComponentInfo(UIComponent *);
+    void ToggleEnabled();
+    void DisplayAll();
+
+    bool m_bEnabled; // 0x2c
 };
 
 extern HAQManager *TheHAQMgr;

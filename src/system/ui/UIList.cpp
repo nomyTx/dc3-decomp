@@ -127,3 +127,5 @@ BEGIN_LOADS(UIList)
     PreLoad(bs);
     PostLoad(bs);
 END_LOADS
+
+int UIList::SelectedPos() const { return mListState.Selected(); }
