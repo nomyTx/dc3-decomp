@@ -1,5 +1,6 @@
 #pragma once
 #include "obj/Data.h"
+#include "os/ThreadCall.h"
 #include "utl/BinStream.h"
 #include "utl/Loader.h"
 
@@ -11,26 +12,48 @@ public:
     DataLoader(const FilePath &, LoaderPos, bool);
     virtual ~DataLoader();
     virtual const char *DebugText() {
-        return MakeString("DataLoader: %s", mFile.c_str());
+        return MakeString("DataLoader: %s", LoaderFile().c_str());
     }
     virtual bool IsLoaded() const;
     virtual const char *StateName() const { return "DataLoader"; }
+
+    void ThreadDone(DataArray *);
+    DataArray *Data();
+
+protected:
     virtual void PollLoading();
     virtual void OpenFile();
 
-    DataArray *Data();
+private:
     void LoadFile();
     void DoneLoading();
-    void ThreadDone(DataArray *);
 
-    // String unk18;
-    // DataArray *unk24;
-    // File *fileobj;
-    // int filesize; // 0x2C
-    // void *unk30;
-    // bool unk34;
-    // class DataLoaderThreadObj *unk38;
-    // DataLoaderStateFunc ptmf; // 0x3C
+    String mFilename; // 0x1c
+    DataArray *mData; // 0x24
+    File *mFile; // 0x28
+    int mBufLen; // 0x2C
+    char *mBuffer; // 0x30
+    bool mDtb; // 0x34
+    class DataLoaderThreadObj *mThreadObj; // 0x38
+    DataLoaderStateFunc mState; // 0x3C
+};
+
+class DataLoaderThreadObj : public ThreadCallback {
+public:
+    DataLoaderThreadObj(DataLoader *, File *, char *, int, bool, const char *);
+    virtual ~DataLoaderThreadObj() {}
+    virtual int ThreadStart();
+    virtual void ThreadDone(int);
+
+private:
+    DataLoader *mLoader; // 0x4
+    DataArray *unk8; // 0x8
+    File *mFile; // 0xc
+    int mBufLen; // 0x10
+    char *mBuffer; // 0x14
+    const char *mFilename; // 0x18
+    bool mDtb; // 0x1c
+    bool mLocal; // 0x1d
 };
 
 DataArray *DataReadString(const char *);
@@ -44,3 +67,4 @@ DataArray *LoadDtz(const char *, int);
 
 void BeginDataRead();
 void FinishDataRead();
+const char *CachedDataFile(const char *, bool &);
