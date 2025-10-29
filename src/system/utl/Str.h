@@ -30,6 +30,7 @@ public:
     }
 
     unsigned int length() const { return strlen(mStr); }
+    unsigned int size() const { return strlen(mStr); }
     unsigned int capacity() const { return *(unsigned int *)(mStr - 4); }
     const char *c_str() const { return mStr; }
     bool empty() const { return *mStr == '\0'; }

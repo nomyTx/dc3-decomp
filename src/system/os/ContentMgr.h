@@ -48,6 +48,29 @@ public:
     MEM_OVERLOAD(Content, 0x24);
 };
 
+class RootContent : public Content {
+public:
+    RootContent(const char *str) : mRoot(str) {}
+    virtual ~RootContent() {}
+    virtual const char *Root() { return mRoot.c_str(); }
+    virtual bool OnMemcard() { return false; }
+    virtual ContentLocT Location() { return kLocationRoot; }
+    virtual unsigned long LicenseBits() { return 0; }
+    virtual bool HasValidLicenseBits() { return true; }
+    virtual bool IsCorrupt() { return false; }
+    virtual State GetState() { return kAlwaysMounted; }
+    virtual void Poll() {}
+    virtual void Mount() {}
+    virtual void Unmount() {}
+    virtual void Delete() {}
+    virtual Symbol FileName() { return mRoot.c_str(); }
+    virtual const char *DisplayName() { return mRoot.c_str(); }
+    virtual unsigned int GetLRM() { return 0; }
+
+private:
+    String mRoot; // 0x4
+};
+
 class ContentMgr : public Hmx::Object {
 public:
     class Callback {
@@ -81,7 +104,6 @@ public:
     };
 
     ContentMgr() {}
-    virtual ~ContentMgr() {}
     virtual DataNode Handle(DataArray *, bool);
     virtual void PreInit() {}
     virtual void Init();

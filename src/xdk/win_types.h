@@ -28,6 +28,7 @@ typedef s64 LONGLONG;
 typedef s32 LONG_PTR;
 typedef s32 LONG32;
 typedef s64 LONG64;
+typedef u64 ULONGLONG;
 typedef LONG_PTR LPARAM;
 typedef LONG_PTR LRESULT;
 typedef float FLOAT;

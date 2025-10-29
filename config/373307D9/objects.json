@@ -595,7 +595,7 @@
             "system/os/BlockMgr.cpp": "MISSING",
             "system/os/CDReader.cpp": "MISSING",
             "system/os/ContentMgr.cpp": "NonMatching",
-            "system/os/ContentMgr_Xbox.cpp": "MISSING",
+            "system/os/ContentMgr_Xbox.cpp": "NonMatching",
             "system/os/CritSec.cpp": "NonMatching",
             "system/os/DateTime.cpp": "NonMatching",
             "system/os/Debug.cpp": "NonMatching",
