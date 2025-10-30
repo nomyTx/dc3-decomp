@@ -109,7 +109,7 @@ public:
     virtual bool IsLoaded() const;
     virtual void PollLoading();
 
-    int GetSize() { return mBufLen; }
+    int GetSize(); // { return mBufLen; }
     char *GetBuffer(int *);
 
     static void SaveData(BinStream &, void *, int);

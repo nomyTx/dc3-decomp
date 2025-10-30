@@ -1,14 +1,21 @@
 #include "os/File.h"
+#include "HolmesClient.h"
 #include "obj/Data.h"
 #include "obj/DataFunc.h"
 #include "os/Debug.h"
+#include "os/OSFuncs.h"
 #include "os/System.h"
+#include "types.h"
 #include "utl/BinStream.h"
 #include "utl/Loader.h"
 #include "utl/Option.h"
 #include <cctype>
 
-File *gOpenCaptureFile; // 0x18
+static char gSystemRoot[256]; // 0x0
+static char gExecRoot[256]; // 0x100
+static char gRoot[256]; // 0x200
+File *gOpenCaptureFile; // 0x300
+
 bool gFakeFileErrors;
 bool gNullFiles;
 void *kNoHandle;
@@ -16,9 +23,6 @@ DataArray *gFrameRateArray;
 
 std::vector<File *> gFiles(0x80); // 0x10...?
 int gCaptureFileMode;
-static char gSystemRoot[256]; // 0x100
-static char gExecRoot[256]; // 0x200
-static char gRoot[256]; // 0x300
 std::vector<String> gDirList;
 // const int File::MaxFileNameLen = 0x100;
 
@@ -32,6 +36,7 @@ void FileTerminate() {
     *gExecRoot = 0;
     *gSystemRoot = 0;
     TheDebug.StopLog();
+    HolmesClientTerminate();
 }
 
 void FileQualifiedFilename(String &str, const char *cc) {
@@ -112,7 +117,16 @@ const char *FrameRateSuffix() {
 // the weird __rs in the debug symbols here, is for a FileStat&
 // so BinStream >> FileStat
 BinStream &operator>>(BinStream &bs, FileStat &fs) {
-    bs >> fs.st_mode >> fs.st_size >> fs.st_ctime >> fs.st_atime >> fs.st_mtime;
+    bs >> fs.st_mode >> fs.st_size;
+    u64 ctime;
+    bs >> ctime;
+    fs.st_ctime = ctime;
+    u64 atime;
+    bs >> atime;
+    fs.st_atime = atime;
+    u64 mtime;
+    bs >> mtime;
+    fs.st_mtime = mtime;
     return bs;
 }
 
@@ -169,6 +183,14 @@ String UniqueFilename(const char *c1, const char *c2) {
     return ret;
 }
 
+DataNode OnFileGetDrive(DataArray *);
+DataNode OnFileGetPath(DataArray *);
+DataNode OnFileGetBase(DataArray *);
+DataNode OnFileAbsolutePath(DataArray *);
+DataNode OnFileRelativePath(DataArray *);
+DataNode OnToggleFakeFileErrors(DataArray *);
+DataNode OnEnumerateFrameRateResults(DataArray *);
+
 void FileInit() {
     strcpy(gRoot, ".");
     strcpy(gExecRoot, ".");
@@ -176,21 +198,34 @@ void FileInit() {
     FilePath::Root().Set(gRoot, gRoot);
     DataRegisterFunc("file_root", OnFileRoot);
     DataRegisterFunc("file_exec_root", OnFileExecRoot);
-    // DataRegisterFunc("file_get_drive", OnFileGetDrive);
-    // DataRegisterFunc("file_get_path", OnFileGetPath);
-    // DataRegisterFunc("file_get_base", OnFileGetBase);
-    // DataRegisterFunc("file_get_ext", OnFileGetExt);
-    // DataRegisterFunc("file_match", OnFileMatch);
-    // DataRegisterFunc("file_absolute_path", OnFileAbsolutePath);
-    // DataRegisterFunc("file_relative_path", OnFileRelativePath);
-    // DataRegisterFunc("with_file_root", OnWithFileRoot);
-    // DataRegisterFunc("synch_proc", OnSynchProc);
-    // DataRegisterFunc("toggle_fake_file_errors", OnToggleFakeFileErrors);
-    // DataRegisterFunc("enumerate_frame_rate_results", OnEnumerateFrameRateResults);
+    DataRegisterFunc("file_get_drive", OnFileGetDrive);
+    DataRegisterFunc("file_get_path", OnFileGetPath);
+    DataRegisterFunc("file_get_base", OnFileGetBase);
+    DataRegisterFunc("file_get_ext", OnFileGetExt);
+    DataRegisterFunc("file_match", OnFileMatch);
+    DataRegisterFunc("file_absolute_path", OnFileAbsolutePath);
+    DataRegisterFunc("file_relative_path", OnFileRelativePath);
+    DataRegisterFunc("with_file_root", OnWithFileRoot);
+    DataRegisterFunc("synch_proc", OnSynchProc);
+    DataRegisterFunc("toggle_fake_file_errors", OnToggleFakeFileErrors);
+    DataRegisterFunc("enumerate_frame_rate_results", OnEnumerateFrameRateResults);
+    HolmesClientInit();
     const char *str = OptionStr("file_order", nullptr);
     if (str && *str) {
         gOpenCaptureFile = NewFile(str, 0x301);
         MILO_ASSERT(gOpenCaptureFile, 0x18F);
     }
     TheDebug.AddExitCallback(FileTerminate);
+}
+
+const char *FileRelativePath(const char *root, const char *filepath) {
+    MainThread();
+    static char relative[256];
+    return FileRelativePathBuf(root, filepath, relative);
+}
+
+File *NewFile(const char *cc, int i) {
+    if (gNullFiles) {
+        return new NullFile();
+    }
 }

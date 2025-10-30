@@ -61,6 +61,7 @@ public:
         i = 0;
         return true;
     }
+    virtual bool GetFileHandle(void *&) { return false; }
 };
 
 struct FileStat {
@@ -78,6 +79,7 @@ void FileTerminate();
 
 const char *FileMakePath(const char *root, const char *file);
 const char *FileRelativePath(const char *root, const char *filepath);
+const char *FileRelativePathBuf(const char *, const char *, char *);
 
 const char *FileMakePathBuf(const char *, const char *, char *);
 const char *FileGetPath(const char *);

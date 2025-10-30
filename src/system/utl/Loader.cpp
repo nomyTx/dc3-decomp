@@ -97,7 +97,7 @@ const char *FileLoader::DebugText() {
 }
 bool FileLoader::IsLoaded() const { return mState == &FileLoader::DoneLoading; }
 void FileLoader::PollLoading() { (this->*mState)(); }
-
+int FileLoader::GetSize() { return mBufLen; }
 void FileLoader::DoneLoading() {}
 
 void FileLoader::AllocBuffer() {

@@ -1,5 +1,6 @@
 #include "os/FileCache.h"
 #include "macros.h"
+#include "math/Utl.h"
 #include "obj/DirLoader.h"
 #include "os/Debug.h"
 #include "os/File.h"
@@ -12,13 +13,15 @@
 
 std::list<FileCache *> gCaches;
 
+#pragma region FileCacheEntry
+
 FileCacheEntry::FileCacheEntry(FilePath const &path1, FilePath const &path2, int i)
-    : unk0(path1), unk8(path2), mBuf(0), mLoader(0), mSize(-1), mRefCount(0), unk20(i),
-      unk24(0), unk28(-1.0e30f) {}
+    : mFileName(path1), mReadFileName(path2), mBuf(0), mLoader(0), mSize(-1),
+      mRefCount(0), mPriority(i), mReads(0), mLastRead(-kHugeFloat) {}
 
 FileCacheEntry::FileCacheEntry(FilePath const &path, char *c, int i)
-    : unk0(path), unk8(path), mBuf(c), mLoader(0), mSize(i), mRefCount(0), unk20(-1),
-      unk24(0), unk28(-1.0e30f) {}
+    : mFileName(path), mReadFileName(path), mBuf(c), mLoader(0), mSize(i), mRefCount(0),
+      mPriority(-1), mReads(0), mLastRead(-kHugeFloat) {}
 
 FileCacheEntry::~FileCacheEntry() {
     MILO_ASSERT(mRefCount == 0, 0x83);
@@ -28,7 +31,7 @@ FileCacheEntry::~FileCacheEntry() {
 
 bool FileCacheEntry::ReadDone(bool b) {
     if (!b)
-        unk28 = SystemMs();
+        mLastRead = SystemMs();
 
     if (mSize > -1)
         return true;
@@ -48,93 +51,212 @@ void FileCacheEntry::StartRead(LoaderPos lp, bool b) {
     MILO_ASSERT(mLoader == NULL, 0x9b);
     MILO_ASSERT(!mBuf, 0x9c);
     MILO_ASSERT(mSize == -1, 0x9d);
-    mLoader = new FileLoader(unk8, unk8.c_str(), lp, 0x20000, b, false, 0, 0);
+    mLoader =
+        new FileLoader(mReadFileName, mReadFileName.c_str(), lp, 0x20000, b, false, 0, 0);
 }
 
-File *FileCacheEntry::MakeFile() { return nullptr; }
+File *FileCacheEntry::MakeFile() {
+    if (ReadDone(false)) {
+        if (!Fail()) {
+            MILO_LOG("making file from cache file %s\n", mFileName);
+            return new FileCacheFile(this);
+        }
+    }
+    return nullptr;
+}
 
-bool FileCacheFile::ReadDone(int &) { return false; }
+#pragma endregion
+#pragma region FileCacheFile
 
-bool FileCacheFile::Eof() { return unk4->mSize <= unk10; }
+bool FileCacheFile::ReadDone(int &iref) {
+    if (!mParent->ReadDone(false)) {
+        iref = 0;
+        return false;
+    } else {
+        if (mParent->Fail())
+            return false;
+        else {
+            void *buf = mData;
+            if (buf) {
+                mData = 0;
+                Read(buf, mBytesRead);
+            }
+            iref = mBytesRead;
+            return true;
+        }
+    }
+}
 
-int FileCacheFile::Size() { return unk4->mSize; }
+int FileCacheFile::Read(void *iData, int iBytes) {
+    MILO_ASSERT(!mData, 0xFE);
+    mBytesRead = iBytes;
+    if (mParent->Fail())
+        return 0;
+    else {
+        int bytesRead = Min(iBytes, mParent->Size() - mPos);
+        memcpy(iData, mParent->Buf() + mPos, bytesRead);
+        mBytesRead = bytesRead;
+        mPos += bytesRead;
+        return bytesRead;
+    }
+}
 
-bool FileCacheFile::Fail() { return !unk4->mSize && !unk4->mBuf; }
+bool FileCacheFile::ReadAsync(void *v, int i) {
+    MILO_ASSERT(!mData, 0x110);
+    if (mParent->ReadDone(false)) {
+        if (mParent->Fail())
+            return false;
+        else {
+            Read(v, i);
+            return true;
+        }
+    } else {
+        mBytesRead = i;
+        mData = v;
+        return true;
+    }
+}
 
-int FileCacheFile::Write(void const *, int) { return 1; }
+int FileCacheFile::Seek(int i1, int i2) {
+    int ret;
+    switch (i2) {
+    case 0:
+        ret = i1;
+        break;
+    case 1:
+        ret = Tell() + i1;
+        break;
+    case 2:
+        ret = mParent->Size() + i1;
+        break;
+    default:
+        return mPos;
+    }
+    ClampEq(ret, 0, mParent->Size());
+    mPos = ret;
+    return mPos;
+}
 
-int FileCacheFile::Read(void *, int) { return 1; }
+#pragma endregion
+#pragma region FileCache
 
-bool FileCacheFile::ReadAsync(void *, int) { return false; }
-
-int FileCacheFile::Seek(int i, int j) { return 1; }
-
-FileCache::FileCache(int i, LoaderPos lp, bool b1, bool b2)
-    : unk0(i), unk4(0), unk14(lp), unk18(b1), unk19(b2) {
+FileCache::FileCache(int size, LoaderPos lp, bool b1, bool b2)
+    : mMaxSize(size), mTryClear(0), unk14(lp), unk18(b1), unk19(b2) {
     gCaches.push_back(this);
-    unk8.reserve(0x200);
+    mEntries.reserve(0x200);
 }
 
-FileCache::~FileCache() {}
+FileCache::~FileCache() {
+    for (int i = 0; i < mEntries.size(); i++) {
+        delete mEntries[i];
+    }
+    gCaches.remove(this);
+}
 
-void FileCache::RegisterResourceCacheHelper(class FileCacheHelper *) {}
+void FileCache::RegisterResourceCacheHelper(FileCacheHelper *iHelper) {
+    MILO_ASSERT(iHelper, 0x183);
+    sResourceCacheHelper = iHelper;
+}
 
-void FileCache::RegisterWavCacheHelper(class FileCacheHelper *) {}
+void FileCache::RegisterWavCacheHelper(FileCacheHelper *iHelper) {
+    MILO_ASSERT(iHelper, 0x18A);
+    sWavCacheHelper = iHelper;
+}
 
 bool FileCache::DoneCaching() {
-    for (int i = 0; i < unk8.size(); i++) {
-        if (!unk8[i]->ReadDone(true))
+    for (int i = 0; i < mEntries.size(); i++) {
+        if (!mEntries[i]->ReadDone(true))
             return false;
     }
     return true;
 }
 
-File *FileCache::GetFileAll(const char *c) { return nullptr; }
+File *FileCache::GetFileAll(const char *cc) {
+    FOREACH (it, gCaches) {
+        File *file = (*it)->GetFile(cc);
+        if (file)
+            return file;
+    }
+    return nullptr;
+}
 
-bool FileCache::FileCached(const char *c) { return false; }
+bool FileCache::FileCached(const char *cc) {
+    FilePath path(DirLoader::CachedPath(cc, 0));
+    File *file = GetFile(path.c_str());
+    if (file) {
+        delete file;
+        return true;
+    } else
+        return false;
+}
 
-void FileCache::StartSet(int) {}
+void FileCache::StartSet(int iii) {
+    mTryClear = false;
+    for (int i = 0; i < mEntries.size(); i++) {
+        FileCacheEntry *curEntry = mEntries[i];
+        if ((!curEntry->CheckSize() || curEntry->Fail()) && !curEntry->Loader()
+            && curEntry->RefCount() == 0) {
+            delete curEntry;
+            mEntries.erase(mEntries.begin() + i);
+            i--;
+        } else {
+            mEntries[i]->SetPriority(iii);
+        }
+    }
+}
 
-void FileCache::Clear() {}
-
-void FileCache::PollUntilLoaded() {}
+void FileCache::Clear() {
+    mTryClear = true;
+    for (int i = 0; i < mEntries.size();) {
+        FileCacheEntry *curEntry = mEntries[i];
+        if (!curEntry->Loader() && curEntry->RefCount() == 0) {
+            delete curEntry;
+            mEntries.erase(mEntries.begin() + i);
+        } else
+            i++;
+    }
+}
 
 void FileCache::PollAll() {
-    for (std::list<FileCache *>::iterator it = gCaches.begin(); it != gCaches.end();
-         ++it) {
+    FOREACH (it, gCaches) {
         (*it)->Poll();
     }
 }
 
-void FileCache::Add(FilePath const &, int, FilePath const &) {}
-
-void FileCache::Add(FilePath const &, char *, int) {}
-
 struct Priority {
     bool operator()(FileCacheEntry *e1, FileCacheEntry *e2) const {
-        return e1->unk20 > e2->unk20;
+        return e1->Priority() > e2->Priority();
     }
 };
 
 void FileCache::EndSet() {
-    unk4 = false;
-    std::sort(unk8.begin(), unk8.end(), Priority());
+    mTryClear = false;
+    std::sort(mEntries.begin(), mEntries.end(), Priority());
     Poll();
 }
 
-void FileCache::SetSize(int i) { unk0 = i; }
+void FileCache::SetSize(int i) {
+    mMaxSize = i;
+    EndSet();
+}
 
-File *FileCache::GetFile(char const *) { return 0; }
+File *FileCache::GetFile(const char *cc) {
+    FilePathTracker tracker(".");
+    FilePath file(cc);
+    for (int i = 0; i < mEntries.size(); i++) {
+        FileCacheEntry *curEntry = mEntries[i];
+        if (curEntry->FileName() == file) {
+            return curEntry->MakeFile();
+        }
+    }
+    return nullptr;
+}
 
 int FileCache::CurSize() const {
     int size = 0;
-    for (int i = 0; i < unk8.size(); i++) {
-        if (unk8[i]->CheckSize())
-            size += unk8[i]->mSize;
+    for (int i = 0; i < mEntries.size(); i++) {
+        if (mEntries[i]->CheckSize())
+            size += mEntries[i]->Size();
     }
     return size;
 }
-
-void FileCache::DumpOverSize(int) {}
-
-void FileCache::Poll() {}
