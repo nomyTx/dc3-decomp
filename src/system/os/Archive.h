@@ -24,6 +24,16 @@ public:
 
 class FileEntry {
     friend BinStream &operator>>(BinStream &, FileEntry &);
+    friend class Archive;
+
+public:
+    int HashedPath() const { return mHashedPath; }
+    int Size() const { return mSize; }
+    int HashedName() const { return mHashedName; }
+    bool operator<(const FileEntry &e) const {
+        return mHashedPath < e.mHashedPath
+            || (mHashedPath == e.mHashedPath && mHashedName < e.mHashedName);
+    }
 
 private:
     u64 mOffset;
@@ -31,10 +41,6 @@ private:
     int mHashedPath;
     int mSize;
     int mUCSize;
-
-public:
-    int HashedPath() const { return mHashedPath; }
-    int Size() const { return mSize; }
 };
 
 const int preinitArk = 1;
