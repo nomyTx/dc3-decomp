@@ -3,6 +3,8 @@
 #include "os/User.h"
 #include "utl/Symbol.h"
 
+VirtualKeyboard TheVirtualKeyboard;
+
 VirtualKeyboard::VirtualKeyboard()
     : mPobjKeyboardCallback(nullptr), mCallbackReady(false), mMsgOk(false) {}
 

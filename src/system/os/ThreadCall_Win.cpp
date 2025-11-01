@@ -1,4 +1,5 @@
 #include "ThreadCall.h"
+#include "os/CritSec.h"
 #include "os/Debug.h"
 #include "xdk/XAPILIB.h"
 #include <process.h>
@@ -37,6 +38,22 @@ namespace {
 }
 
 u32 gMainThreadID = -1;
+
+namespace JobQueue {
+    struct Entry {
+        int lol;
+    };
+
+    int shouldExit;
+    int numWorkers;
+    int maxJobs;
+    volatile int numIdle;
+    Entry *allEntries;
+    Entry *idleEntries;
+    Entry *waitingEntries;
+    void **jobThreadHandle;
+    CriticalSection jobQueueMutex;
+}
 
 void ThreadCallInit() {
     memset(gData, 0, 0xF0);

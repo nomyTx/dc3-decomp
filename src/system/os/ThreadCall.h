@@ -1,4 +1,5 @@
 #pragma once
+#include "os/CritSec.h"
 #include <types.h>
 
 extern u32 gMainThreadID;
