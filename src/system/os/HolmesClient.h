@@ -18,3 +18,9 @@ void HolmesClientEnumerate(
     const char *, void (*)(const char *, const char *), bool, const char *, bool
 );
 void HolmesClientStackTrace(const char *, struct StackData *, int, String &);
+void HolmesClientTruncate(int, int);
+bool HolmesClientOpen(const char *, int, unsigned int &, int &);
+void HolmesClientWrite(int, int, int, const void *);
+void HolmesClientRead(int, int, int, void *, File *);
+bool HolmesClientReadDone(File *);
+void HolmesClientClose(File *, int);

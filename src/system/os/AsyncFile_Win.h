@@ -1,7 +1,7 @@
 #pragma once
 #include "os/AsyncFile.h"
 #include "utl/MemMgr.h"
-#include "xdk/win_types.h"
+#include "xdk/XAPILIB.h"
 
 class AsyncFileWin : public AsyncFile {
 public:
@@ -26,4 +26,10 @@ protected:
     int unk3c; // 0x3c
     bool mReadInProgress; // 0x40
     bool mWriteInProgress; // 0x41
+    OVERLAPPED mOverlapped; // 0x44
+    bool unk58;
+    void *unk5c;
+    void *unk60;
+    int unk64;
+    int unk68;
 };

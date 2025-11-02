@@ -1,4 +1,5 @@
 #include "os/AsyncFile_Win.h"
+#include "File.h"
 #include "os/ContentMgr.h"
 #include "os/File.h"
 #include "os/PlatformMgr.h"
@@ -20,8 +21,8 @@ void ReadError(const char *cc) {
 }
 
 AsyncFileWin::AsyncFileWin(const char *filename, int mode)
-    : AsyncFile(filename, mode), mFile((HANDLE)-1), unk3c(-1), mReadInProgress(0),
-      mWriteInProgress(0) {}
+    : AsyncFile(filename, mode), mFile(INVALID_HANDLE_VALUE), unk3c(-1),
+      mReadInProgress(0), mWriteInProgress(0) {}
 
 AsyncFileWin::~AsyncFileWin() { Terminate(); }
 
@@ -84,4 +85,55 @@ void AsyncFileWin::_OpenAsync() {
     }
     ReadError(mFilename.c_str());
     mFail = true;
+}
+
+bool AsyncFileWin::_WriteDone() {
+    if (!mWriteInProgress) {
+        return true;
+    } else {
+        if (mOverlapped.Internal != 0x103) {
+            mWriteInProgress = false;
+            DWORD bytes[4];
+            if (GetOverlappedResult(mFile, &mOverlapped, bytes, false)) {
+                return true;
+            }
+            mFail = true;
+        }
+        return false;
+    }
+}
+
+void AsyncFileWin::_SeekToTell() {
+    if (!(mMode & FILE_OPEN_READ)) {
+        if (unk3c >= 0) {
+            if (_lseek(unk3c, mTell, 0) < 0) {
+                mFail = true;
+            }
+        } else {
+            while (!_WriteDone())
+                ;
+        }
+    } else {
+        while (!_ReadDone())
+            ;
+    }
+}
+
+void AsyncFileWin::_Close() {
+    if (mMode & FILE_OPEN_READ) {
+        if (mFile == INVALID_HANDLE_VALUE)
+            return;
+        while (!_ReadDone())
+            ;
+    } else {
+        if (unk3c >= 0) {
+            _close(unk3c);
+        }
+        if (mFile == INVALID_HANDLE_VALUE)
+            return;
+        while (!_WriteDone())
+            ;
+    }
+    CloseHandle(mFile);
+    mFile = INVALID_HANDLE_VALUE;
 }

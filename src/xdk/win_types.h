@@ -54,6 +54,8 @@ typedef s32 HFILE;
 typedef HINSTANCE HMODULE;
 typedef LONG HRESULT;
 
+#define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR) - 1)
+
 typedef void *LPVOID;
 typedef const void *LPCVOID;
 typedef BOOL *LPBOOL;
