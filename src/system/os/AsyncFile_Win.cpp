@@ -4,7 +4,6 @@
 #include "os/PlatformMgr.h"
 #include "os/System.h"
 #include "xdk/XAPILIB.h"
-#include "xdk/xapilibi/getlasterror.h"
 #include <io.h>
 
 void ReadError(const char *cc) {

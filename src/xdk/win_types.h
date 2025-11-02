@@ -18,6 +18,7 @@ typedef u32 DWORD32;
 typedef u64 DWORD64;
 typedef DWORD SIZE_T;
 
+typedef VOID *PVOID;
 typedef char CCHAR;
 typedef char CHAR;
 typedef wchar_t WCHAR;
