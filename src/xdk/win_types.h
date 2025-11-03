@@ -1,5 +1,4 @@
 #pragma once
-
 #include <types.h>
 
 #ifdef __cplusplus
@@ -7,68 +6,86 @@ extern "C" {
 #endif
 
 #define CONST const
+#define CALLBACK __stdcall
+#define WINAPI __stdcall
 
-typedef void VOID;
-typedef int BOOL;
-typedef u8 BYTE;
-typedef u16 WORD;
-typedef u32 DWORD;
-typedef u64 DWORDLONG;
-typedef u32 DWORD32;
-typedef u64 DWORD64;
-typedef DWORD SIZE_T;
-typedef DWORD *PDWORD;
+typedef void VOID, *PVOID, *LPVOID;
+typedef CONST VOID *LPCVOID;
 
-typedef VOID *PVOID;
-typedef char CCHAR;
-typedef char CHAR;
-typedef wchar_t WCHAR;
-typedef s32 INT;
-typedef s32 INT_PTR;
-typedef s8 INT8;
-typedef s16 INT16;
-typedef s16 SHORT;
-typedef s32 INT32;
-typedef s64 INT64;
-typedef s32 LONG;
-typedef s64 LONGLONG;
-typedef s32 LONG_PTR;
-typedef s32 LONG32;
-typedef u32 ULONG_PTR;
-typedef s64 LONG64;
-typedef s64 LARGE_INTEGER;
-typedef s64 *PLARGE_INTEGER;
-typedef u64 ULONGLONG;
-typedef u64 ULARGE_INTEGER;
-typedef u64 *PULARGE_INTEGER;
-typedef LONG *PLONG;
-typedef LONG *LPLONG;
+typedef u8 BYTE, *PBYTE, *LPBYTE;
+typedef int BOOL, *PBOOL, *LPBOOL;
+typedef BYTE BOOLEAN, *PBOOLEAN;
+
+typedef char CCHAR, CHAR, *PCHAR, *PSTR, *LPSTR;
+typedef CONST CHAR *PCSTR, *LPCSTR;
+typedef s8 INT8, *PINT8;
+typedef u8 UCHAR, *PUCHAR;
+typedef u8 UINT8, *PUINT8;
+
+typedef s16 HALF_PTR, *PHALF_PTR;
+typedef s16 SHORT, *PSHORT;
+typedef signed short INT16;
+typedef INT16 *PINT16;
+
+typedef u16 UHALF_PTR, *PUHALF_PTR;
+typedef u16 USHORT, *PUSHORT;
+typedef u16 UINT16, *PUINT16;
+typedef u16 WORD, *PWORD, *LPWORD;
+
+typedef wchar_t WCHAR, *PWCHAR, *PWSTR, *LPWSTR;
+typedef CONST WCHAR *PCWSTR, *LPCWSTR;
+
+typedef float FLOAT, *PFLOAT;
+
+typedef int INT, *PINT, *LPINT;
+typedef int INT_PTR, *PINT_PTR;
+typedef signed int INT32, *PINT32;
+
+typedef uint UINT, *PUINT;
+typedef uint UINT_PTR, *PUINT_PTR;
+typedef uint UINT32, *PUINT32;
+typedef uint ULONG32, *PULONG32;
+
+typedef s32 LONG, *PLONG, *LPLONG;
+typedef s32 LONG_PTR, *PLONG_PTR;
+typedef signed int LONG32, *PLONG32;
+
+typedef u32 ULONG, *PULONG;
+typedef u32 ULONG_PTR, *PULONG_PTR;
+
+typedef u32 DWORD, *PDWORD, *LPDWORD;
+typedef uint DWORD32, *PDWORD32;
+typedef ULONG_PTR DWORD_PTR, *PDWORD_PTR;
+
+typedef ULONG_PTR SIZE_T, *PSIZE_T;
+typedef LONG_PTR SSIZE_T, *PSSIZE_T;
+
+typedef s64 LONGLONG, *PLONGLONG;
+typedef signed long long INT64, *PINT64;
+typedef s64 LONG64, *PLONG64;
+typedef s64 LARGE_INTEGER, *PLARGE_INTEGER;
+
+typedef u64 QWORD;
+typedef u64 ULONGLONG, *PULONGLONG;
+typedef u64 UINT64, *PUINT64;
+typedef u64 ULONG64, *PULONG64;
+typedef u64 DWORDLONG, *PDWORDLONG;
+typedef u64 DWORD64, *PDWORD64;
+typedef u64 ULARGE_INTEGER, *PULARGE_INTEGER;
+
 typedef LONG_PTR LPARAM;
 typedef LONG_PTR LRESULT;
-typedef float FLOAT;
-typedef uint UINT;
-typedef ULONG_PTR DWORD_PTR;
+typedef UINT_PTR WPARAM;
 
-typedef void *HANDLE;
+typedef PVOID HANDLE, *LPHANDLE;
 typedef HANDLE HDC;
 typedef HANDLE HTASK;
 typedef HANDLE HINSTANCE;
-typedef s32 HFILE;
+typedef int HFILE;
 typedef HINSTANCE HMODULE;
 typedef LONG HRESULT;
 
 #define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR) - 1)
-
-typedef void *LPVOID;
-typedef const void *LPCVOID;
-typedef BOOL *LPBOOL;
-typedef BYTE *LPBYTE;
-typedef char *LPSTR;
-typedef wchar_t *LPWSTR;
-typedef const char *LPCSTR;
-typedef const wchar_t *LPCWSTR;
-typedef DWORD *LPDWORD;
-typedef HANDLE *LPHANDLE;
 
 typedef DWORD FOURCC;
 
