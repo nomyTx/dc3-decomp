@@ -1,6 +1,6 @@
 #pragma once
 #include "xdk/win_types.h"
-#include "xdk/xapilibi/xuser.h"
+#include "xdk/XAPILIB.h"
 
 #ifdef __cplusplus
 extern "C" {

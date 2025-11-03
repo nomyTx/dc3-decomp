@@ -17,6 +17,7 @@ typedef u64 DWORDLONG;
 typedef u32 DWORD32;
 typedef u64 DWORD64;
 typedef DWORD SIZE_T;
+typedef DWORD *PDWORD;
 
 typedef VOID *PVOID;
 typedef char CCHAR;
@@ -26,6 +27,7 @@ typedef s32 INT;
 typedef s32 INT_PTR;
 typedef s8 INT8;
 typedef s16 INT16;
+typedef s16 SHORT;
 typedef s32 INT32;
 typedef s64 INT64;
 typedef s32 LONG;
@@ -45,6 +47,7 @@ typedef LONG_PTR LPARAM;
 typedef LONG_PTR LRESULT;
 typedef float FLOAT;
 typedef uint UINT;
+typedef ULONG_PTR DWORD_PTR;
 
 typedef void *HANDLE;
 typedef HANDLE HDC;

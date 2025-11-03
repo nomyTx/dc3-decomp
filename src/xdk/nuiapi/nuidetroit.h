@@ -1,6 +1,6 @@
 #pragma once
 #include "../win_types.h"
-#include "xdk/xapilibi/xuser.h"
+#include "xdk/XAPILIB.h"
 #include "../XMVECTOR.h"
 
 #ifdef __cplusplus

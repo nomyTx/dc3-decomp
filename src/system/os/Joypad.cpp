@@ -7,19 +7,26 @@
 #include "os/System.h"
 
 namespace {
+    class KeyboardJoypadExporter {
+    public:
+        virtual ~KeyboardJoypadExporter() {}
+    };
 
-    DataArray *gControllersCfg; // 0x0
-    DataArray *gButtonMeanings; // 0x4
-    // static unsigned int gPadsToKeepAlive; // 0x8
-    // static unsigned int gPadsToKeepAliveNext; // 0xc
-    // static int gKeepAliveCountdown; // 0x10
+    bool gJoypadDisabled[4]; // 0x0
+    DataArray *gControllersCfg; // 0x4
+    DataArray *gButtonMeanings; // 0x8
+    int gPadsToKeepAlive; // 0xc
+    int gPadsToKeepAliveNext; // 0x10
+    int gKeepAliveCountdown; // 0x14
+    int gHolmesPressed; // 0x18
+    Hmx::Object *gJoypadMsgSource; // 0x1c
+    bool gJoypadLibInitialized; // 0x20
+    KeyboardJoypadExporter *gKeyboardExporter; // 0x24
+    JoypadData gJoypadData[4]; // 0x28
+
     int gKeepaliveThresholdMs = -1;
     bool gExportMsgs = true;
-    bool gJoypadLibInitialized;
-    JoypadData gJoypadData[4];
-    // static unsigned int gHolmesPressed; // 0x288
-    bool gJoypadDisabled[4]; // 0x28c
-    Hmx::Object *gJoypadMsgSource; // 0x290
+    unsigned int gNotifyMask = 0x8F0;
 }
 
 JoypadData::JoypadData()
@@ -100,7 +107,7 @@ int JoypadData::GetVelocityBucket(Symbol axis) const {
 void JoypadTerminateCommon() {
     gJoypadLibInitialized = false;
     RELEASE(gJoypadMsgSource);
-    // RELEASE(gKeyboardExporter);
+    RELEASE(gKeyboardExporter);
 }
 
 void JoypadSubscribe(Hmx::Object *obj) {

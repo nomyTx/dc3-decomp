@@ -4,7 +4,6 @@
 #include "os/PlatformMgr.h"
 #include "utl/UTF8.h"
 #include "xdk/XAPILIB.h"
-#include "xdk/xapilibi/xuser.h"
 
 class XboxContent : public Content {
 public:

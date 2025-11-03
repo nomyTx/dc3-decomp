@@ -1,5 +1,6 @@
 #pragma once
 // grouped together .h's inferred from official MSVC documentation
+// create/add to these when you need a function that's shared with Windows
 #include "xapilibi/debugapi.h"
 #include "xapilibi/errhandlingapi.h"
 #include "xapilibi/fileapi.h"
@@ -12,25 +13,12 @@
 #include "xapilibi/sysinfoapi.h"
 #include "xapilibi/timezoneapi.h"
 #include "xapilibi/winbase.h"
-// standalone loose .h files inferred from vibes
-#include "xapilibi/bgdownload.h"
-#include "xapilibi/getlocale.h"
-#include "xapilibi/getlang.h"
-#include "xapilibi/nuiapithunk.h"
-#include "xapilibi/physical.h"
-#include "xapilibi/scrnsavr.h"
-#include "xapilibi/uiapithunk.h"
-#include "xapilibi/xcontent.h"
-#include "xapilibi/xcontentcrosstitle.h"
-#include "xapilibi/xgetoverlappedextendederror.h"
-#include "xapilibi/xgetoverlappedresult.h"
-#include "xapilibi/xinpapi.h"
-#include "xapilibi/xlaunch.h"
-#include "xapilibi/xoverlap.h"
-#include "xapilibi/xthread.h"
-#include "xapilibi/xuser.h"
-#include "xapilibi/xusergetsignininfo.h"
+#include "xapilibi/xinput.h"
+// inferred .h for Xbox 360 specific functions
+// condensed into one single .h to avoid dependency hell
+#include "xapilibi/xbox.h"
 
-// this is where you'd include every last .h file that you need that comes from XAPILIB
-// that way, you don't have to worry about which XAPILIB header to include for your
-// particular use case, as you can just include this one
+// Don't try to include any of the above headers directly.
+// Instead, if you need something from XAPILIB, just include "xdk/XAPILIB.h"
+// That way, you don't have to worry about which XAPILIB header to include
+// for your particular use case.
