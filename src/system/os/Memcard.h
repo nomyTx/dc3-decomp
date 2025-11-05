@@ -121,6 +121,7 @@ public:
 #include "obj/Msg.h"
 DECLARE_MESSAGE(DeviceChosenMsg, "device_chosen")
 DeviceChosenMsg(int x) : Message(Type(), x) {}
+int Device() const { return mData->Int(2); }
 END_MESSAGE
 
 DECLARE_MESSAGE(NoDeviceChosenMsg, "no_device_chosen")

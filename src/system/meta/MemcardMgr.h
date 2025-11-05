@@ -57,13 +57,13 @@ protected:
     DataNode OnMsg(const SigninChangedMsg &);
 
     State mState; // 0x30
-    void *unk34; // 0x34
-    int unk38; // 0x38
+    void *unk34; // 0x34 - save data?
+    int unk38; // 0x38 - save data len/bytes?
     MemcardAction *mAction; // 0x3c
     int unk40;
     // indexed by padnums
     ContainerId mContainerIDs[4]; // 0x44
-    int unk74[4];
+    MCContainer *mContainers[4]; // 0x74
     bool mValidDevices[4]; // 0x84
     int unk88;
     bool mSelectDeviceWaiting; // 0x8c

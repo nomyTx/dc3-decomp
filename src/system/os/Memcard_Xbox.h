@@ -67,7 +67,7 @@ public:
 
 protected:
     char mFileName[XCONTENT_MAX_FILENAME_LENGTH]; // 0x2c
-    wchar_t mDisplayName[XCONTENT_MAX_DISPLAYNAME_LENGTH]; // 0x58
+    wchar_t mDisplayName[XCONTENT_MAX_DISPLAYNAME_LENGTH]; // 0x56
     bool unk156; // 0x156
     Hmx::Object *unk158; // 0x158
     DWORD unk15c; // 0x15c

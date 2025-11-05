@@ -9,8 +9,10 @@
 #include "os/Memcard_Xbox.h"
 #include "os/PlatformMgr.h"
 #include "os/ThreadCall.h"
+#include "ui/UI.h"
 #include "utl/Locale.h"
-#include "xdk/xapilibi/stringapiset.h"
+#include "xdk/XAPILIB.h"
+#include "xdk/xapilibi/xbase.h"
 
 namespace {
     const char *kSaveFilename = "save.dat";
@@ -37,7 +39,7 @@ void MemcardMgr::Init() {
     static Symbol title_name("title_name");
     for (int i = 0; i < 4; i++) {
         mValidDevices[i] = false;
-        unk74[i] = 0;
+        mContainers[i] = nullptr;
         mContainerIDs[i].Set(i, 0);
     }
     WCHAR wideName[128];
@@ -196,4 +198,158 @@ void MemcardMgr::SelectDevice(
     } else {
         TheMC.ShowDeviceSelector(mContainerIDs[mPadNum], this, i3, waiting);
     }
+}
+
+void MemcardMgr::SetDevice(unsigned int device) {
+    mContainerIDs[mPadNum].mDeviceId = (XCONTENTDEVICEID)device;
+    if (mContainers[mPadNum]) {
+        TheMC.DestroyContainer(mContainers[mPadNum]);
+    }
+    mContainers[mPadNum] = TheMC.CreateContainer(mContainerIDs[mPadNum]);
+    mValidDevices[mPadNum] = TheMC.IsDeviceValid(mContainerIDs[mPadNum]);
+    mPadNum = -1;
+}
+
+MCResult MemcardMgr::PerformRead(MCContainer *container) {
+    MCFile *file = container->CreateMCFile();
+    int size = 0;
+    MCResult res = container->GetSize(kSaveFilename, &size);
+    if (res == kMCNoError) {
+        if (size <= 0) {
+            return kMCGeneralError;
+        } else {
+            if (size > unk38) {
+                MILO_LOG(
+                    "%s [MemcardMgrXbox] Found save file that is %d bytes, but we only have RAM for %d bytes.\n",
+                    kSaveFilename,
+                    size,
+                    unk38
+                );
+            }
+            MCResult openRes = file->Open(kSaveFilename, kAccessRead, (CreateType)0);
+            if (openRes != kMCNoError) {
+                container->DestroyMCFile(file);
+                return openRes;
+            } else {
+                int minSize = Min(size, unk38);
+                MCResult readRes = file->Read(unk34, minSize);
+                MCResult closeRes = file->Close();
+                container->DestroyMCFile(file);
+                if (readRes == kMCNoError) {
+                    return closeRes;
+                } else {
+                    return readRes;
+                }
+            }
+        }
+    }
+}
+
+MCResult MemcardMgr::PerformWrite(MCContainer *container) {
+    MCFile *file = container->CreateMCFile();
+    MCResult res = file->Open(kSaveFilename, kAccessWrite, (CreateType)1);
+    if (res != kMCNoError) {
+        container->DestroyMCFile(file);
+        return res;
+    } else {
+        MCResult writeRes = file->Write(unk34, unk38);
+        MCResult closeRes = file->Close();
+        container->DestroyMCFile(file);
+        if (writeRes != kMCNoError) {
+            closeRes = writeRes;
+        }
+        return closeRes;
+    }
+}
+
+MCResult MemcardMgr::ThreadCall_CheckForSaveContainer() {
+    MCContainer *container = mContainers[mPadNum];
+    MCResult res = container->Mount((CreateType)0);
+    if (res == kMCNoError) {
+        MCFile *file = container->CreateMCFile();
+        MCResult openRes = file->Open(kSaveFilename, kAccessWrite, (CreateType)0);
+        container->DestroyMCFile(file);
+        res = container->Unmount();
+        if (openRes != kMCNoError) {
+            res = openRes;
+        }
+    }
+    return res;
+}
+
+MCResult MemcardMgr::ThreadCall_SearchForDevice() {
+    MILO_ASSERT(mSelectDeviceWaiting == false, 0x9D);
+    MILO_ASSERT(mProfile, 0x9E);
+    MILO_ASSERT(mPadNum != -1, 0x9F);
+    mContainerIDs[mPadNum].mDeviceId = XCONTENTDEVICE_ANY;
+    MCResult res = TheMC.FindValidUnit(&mContainerIDs[mPadNum]);
+    if (res == kMCFileExists) {
+        if (mContainers[mPadNum]) {
+            TheMC.DestroyContainer(mContainers[mPadNum]);
+        }
+        mContainers[mPadNum] = TheMC.CreateContainer(mContainerIDs[mPadNum]);
+        mValidDevices[mPadNum] = TheMC.IsDeviceValid(mContainerIDs[mPadNum]);
+    }
+    return res;
+}
+
+DataNode MemcardMgr::OnMsg(const DeviceChosenMsg &msg) {
+    SetDevice(msg.Device());
+    if (mSelectDeviceCallBackObj) {
+        mSelectDeviceCallBackObj->Handle(msg, true);
+        mSelectDeviceCallBackObj = nullptr;
+    }
+    return 0;
+}
+
+DataNode MemcardMgr::OnMsg(const NoDeviceChosenMsg &msg) {
+    mPadNum = -1;
+    if (mSelectDeviceCallBackObj) {
+        mSelectDeviceCallBackObj->Handle(msg, true);
+        mSelectDeviceCallBackObj = nullptr;
+    }
+    return 0;
+}
+
+DataNode MemcardMgr::OnMsg(const UIChangedMsg &msg) {
+    if (mSelectDeviceWaiting) {
+        if (!msg.Showing()) {
+            mSelectDeviceWaiting = false;
+            TheMC.ShowDeviceSelector(mContainerIDs[mPadNum], this, unk88, false);
+        }
+    }
+    return 0;
+}
+
+DataNode MemcardMgr::OnMsg(const StorageChangedMsg &msg) {
+    for (int i = 0; i < 4; i++) {
+        if (mContainers[i]) {
+            mValidDevices[i] = TheMC.IsDeviceValid(mContainerIDs[i]);
+        }
+    }
+    return 0;
+}
+
+DataNode MemcardMgr::OnMsg(const SigninChangedMsg &msg) {
+    if (mSelectDeviceWaiting) {
+        if (ThePlatformMgr.HasPadNumsSigninChanged(mProfile->GetPadNum())) {
+            mSelectDeviceWaiting = false;
+            if (mSelectDeviceCallBackObj) {
+                static NoDeviceChosenMsg msg;
+                mSelectDeviceCallBackObj->Handle(msg, true);
+                mSelectDeviceCallBackObj = nullptr;
+            }
+        }
+    }
+    int mask = msg.GetMask();
+    for (int i = 0; i < 4; i++) {
+        if (!(mask & 1 << i)) {
+            if (mContainers[i] && !mContainers[i]->IsMounted()) {
+                TheMC.DestroyContainer(mContainers[i]);
+                mContainers[i] = nullptr;
+            }
+            mValidDevices[i] = false;
+        }
+    }
+    return 0;
 }
