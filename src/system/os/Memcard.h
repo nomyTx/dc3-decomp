@@ -50,7 +50,7 @@ enum MCResult {
 };
 
 struct ContainerId {
-    void Set(int, DWORD);
+    void Set(int userIdx, DWORD);
 
     int mUserIndex; // 0x0
     XCONTENTDEVICEID mDeviceId; // 0x4
