@@ -36,6 +36,7 @@ public:
     virtual void ContentMounted(char const *, char const *);
     virtual void ContentFailed(char const *);
 
+    NEW_OBJ(PreloadPanel)
     static FileCache *sCache;
 
 protected:

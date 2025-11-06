@@ -7,6 +7,7 @@
 
 class DeJitterPanel : public UIPanel {
 public:
+    DeJitterPanel();
     // Hmx::Object
     virtual ~DeJitterPanel();
     OBJ_CLASSNAME(DeJitterPanel)
@@ -16,7 +17,7 @@ public:
     virtual void Enter();
     virtual void Poll();
 
-    DeJitterPanel();
+    NEW_OBJ(DeJitterPanel)
 
     Timer unk38;
     DeJitter unk68;
