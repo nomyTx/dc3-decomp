@@ -15,11 +15,23 @@ public:
     void Alloc(
         int, int, const char *, void *, signed char, bool, unsigned char, const char *, int
     );
+    void Free(void *);
+    void CloseReport();
+    void SetAllocInfoName(const char *);
+    void StartLog(TextStream &);
+    void StopLog();
+    void Realloc(void *, int, int, void *);
+    void HeapReport(TextStream &);
+    void DiffDump(TextStream &);
 
     static void *operator new(unsigned int);
     static void operator delete(void *);
+    static int SpitAllocInfo(TextStream *);
 
 private:
+    void UpdateStats();
+    void ColatedPrint(TextStream &, AllocInfo *, const char *);
+
     static DataNode SpitAllocInfo(DataArray *);
 
     void *mHashMem; // 0x0

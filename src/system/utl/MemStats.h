@@ -35,10 +35,10 @@ private:
     int mNumStats; // 0x6004
     bool mSizeMatters; // 0x6008
 public:
-    BlockStatTable(bool = false);
+    BlockStatTable(bool sizeMatters = false);
     void Clear();
     void SortBySize();
     void SortByName();
-    void Update(const char *, unsigned char, int, int);
-    BlockStat &GetBlockStat(int);
+    void Update(const char *type, unsigned char heap, int reqSize, int actSize);
+    BlockStat &GetBlockStat(int iStat);
 };

@@ -22,13 +22,13 @@ AllocInfo::AllocInfo(
     signed char heap,
     bool pooled,
     unsigned char strat,
-    const char *cc2,
-    int i3,
+    const char *file,
+    int line,
     String &str1,
     String &str2
 )
     : mReqSize(requestedSize), mActSize(actualSize), mType(type), mMem(mem), mHeap(heap),
-      mPooled(pooled), mStrat(strat), unk15(cc2), unk19(i3),
+      mPooled(pooled), mStrat(strat), mFile(file), mLine(line),
       unk1d(s_pTrie->store(str1.c_str())), unk21(s_pTrie->store(str2.c_str())) {
     FillStackTrace();
 }
@@ -57,8 +57,8 @@ void AllocInfo::PrintCsv(TextStream &ts) const {
     MILO_ASSERT(s_pTrie, 0xC6);
     char buf1d[0x80];
     char buf21[0x80];
-    ts << ", actual, " << mActSize << ", heap, " << mHeap << ", " << unk15 << ", "
-       << unk19 << ", " << s_pTrie->get(unk1d, buf1d, 0x80) << ", "
+    ts << ", actual, " << mActSize << ", heap, " << mHeap << ", " << mFile << ", "
+       << mLine << ", " << s_pTrie->get(unk1d, buf1d, 0x80) << ", "
        << s_pTrie->get(unk21, buf21, 0x80);
     if (mPooled) {
         ts << ", pooled";
@@ -75,7 +75,7 @@ void AllocInfo::Print(TextStream &ts) const {
         if (mPooled)
             ts << "(pooled) ";
         ts << "(actual " << mActSize << ") (heap_number " << mHeap << ") (location "
-           << unk15 << " " << unk19 << ") ";
+           << mFile << " " << mLine << ") ";
         ts << "(stack ";
         for (int i = 0; mStackTrace[i] != 0 && i < 16; i++) {
             ts << mStackTrace[i] << " ";

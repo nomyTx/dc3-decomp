@@ -16,8 +16,8 @@ int NameLess(const void *v1, const void *v2) {
     return strcmp(b1->mName, b2->mName);
 }
 
-BlockStatTable::BlockStatTable(bool b)
-    : mMaxStats(0x400), mNumStats(0), mSizeMatters(b) {}
+BlockStatTable::BlockStatTable(bool sizeMatters)
+    : mMaxStats(0x400), mNumStats(0), mSizeMatters(sizeMatters) {}
 
 void BlockStatTable::Clear() { mNumStats = 0; }
 
@@ -34,17 +34,20 @@ BlockStat &BlockStatTable::GetBlockStat(int iStat) {
     return mStats[iStat];
 }
 
-void BlockStatTable::Update(const char *cc, unsigned char uc, int i3, int i4) {
+void BlockStatTable::Update(
+    const char *type, unsigned char heap, int reqSize, int actSize
+) {
     int idx = 0;
     for (; idx < mNumStats; idx++) {
-        if (mStats[idx].mHeap == uc && (!mSizeMatters || mStats[idx].mSizeReq == i3)) {
-            if (strcmp(mStats[idx].mName, cc) == 0) {
+        if (mStats[idx].mHeap == heap
+            && (!mSizeMatters || mStats[idx].mSizeReq == reqSize)) {
+            if (strcmp(mStats[idx].mName, type) == 0) {
                 if (!mSizeMatters) {
-                    mStats[idx].mSizeReq += i3;
+                    mStats[idx].mSizeReq += reqSize;
                 }
-                mStats[idx].mSizeAct += i4;
-                if (i3 >= mStats[idx].mMaxSize) {
-                    mStats[idx].mMaxSize = i3;
+                mStats[idx].mSizeAct += actSize;
+                if (reqSize >= mStats[idx].mMaxSize) {
+                    mStats[idx].mMaxSize = reqSize;
                 }
                 mStats[idx].mNumAllocs++;
                 return;
@@ -52,11 +55,11 @@ void BlockStatTable::Update(const char *cc, unsigned char uc, int i3, int i4) {
         }
     }
     if (idx == mNumStats && mNumStats < mMaxStats) {
-        mStats[mNumStats].mName = cc;
-        mStats[mNumStats].mHeap = uc;
-        mStats[mNumStats].mSizeReq = i3;
-        mStats[mNumStats].mMaxSize = i3;
-        mStats[mNumStats].mSizeAct = i4;
+        mStats[mNumStats].mName = type;
+        mStats[mNumStats].mHeap = heap;
+        mStats[mNumStats].mSizeReq = reqSize;
+        mStats[mNumStats].mMaxSize = reqSize;
+        mStats[mNumStats].mSizeAct = actSize;
         mStats[mNumStats].mNumAllocs = 1;
         mNumStats++;
     } else {

@@ -39,6 +39,7 @@ void *MemResizeElem(
     int line,
     const char *name
 );
+void MemFreeBlockStats(int, int &, int &, int &, int &, int &);
 
 #define kNoHeap -3
 #define kSystemHeap -1
