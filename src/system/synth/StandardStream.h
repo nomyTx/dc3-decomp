@@ -20,6 +20,7 @@ public:
         kFinished = 6,
     };
     struct ChannelParams {
+        ChannelParams();
         float mPan; // 0x0
         float mSlipSpeed; // 0x4
         bool mSlipEnabled; // 0x8
@@ -93,6 +94,8 @@ public:
 
     void PollStream();
     bool IsPastStreamJumpPointOfNoReturn();
+    void InitInfo(int, int, bool, int);
+    float GetBufferAheadTime() const;
 
     static const float kStreamEndMs;
 
@@ -104,6 +107,11 @@ private:
     void UpdateVolumes();
     void UpdateSpeed(int);
     void setJumpSamplesFromMs(float, float);
+    void ClearJumpMarkers();
+    void UpdateFXSends();
+    int MsToSamp(float) const;
+    float SampToMs(int) const;
+    bool StuffChannels();
 
     static bool sReportLargeTimerErrors;
 
@@ -135,7 +143,7 @@ protected:
     int mInfoChannels; // 0xe8
     float unkec; // 0xec
     bool mGetInfoOnly; // 0xf0
-    std::vector<void *> unkf4; // 0xf4
+    std::vector<void *> mVirtBufs; // 0xf4
     std::vector<std::pair<int, int> > mChanMaps; // 0x100
     std::vector<float *> unk10c; // 0x10c
     std::vector<Marker> mMarkerList; // 0x118

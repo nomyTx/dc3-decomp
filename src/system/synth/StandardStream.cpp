@@ -1,14 +1,26 @@
 #include "synth/StandardStream.h"
 #include "os/Debug.h"
 #include "os/File.h"
+#include "os/System.h"
 #include "synth/ADSR.h"
+#include "synth/Synth.h"
 #include "utl/MemMgr.h"
 #include "utl/Std.h"
 #include "synth/StreamReceiver.h"
+#include "synth/StreamReceiverFile.h"
 #include "utl/Symbol.h"
 #include <functional>
 
 bool StandardStream::sReportLargeTimerErrors = true;
+
+StandardStream::ChannelParams::ChannelParams()
+    : mPan(0.0f), mSlipSpeed(1.0f), mSlipEnabled(0), mADSR(), mFaders(nullptr),
+      mFxSend(nullptr) {
+    static Symbol _parent("_parent");
+    static Symbol _default("_default");
+    mFaders.AddLocal(_parent)->SetVolume(0);
+    mFaders.AddLocal(_default)->SetVolume(0);
+}
 
 StandardStream::StandardStream(
     File *f, float f1, float f2, Symbol ext, bool b1, bool b2, bool b3
@@ -29,8 +41,9 @@ StandardStream::~StandardStream() {
     }
     Destroy();
     DeleteAll(mChanParams);
-    FOREACH (it, unkf4) {
-        MemFree(*it);
+    while (!mVirtBufs.empty()) {
+        MemFree(mVirtBufs.back());
+        mVirtBufs.pop_back();
     }
 }
 
@@ -303,3 +316,160 @@ const char *StandardStream::GetSoundDisplayName() {
 }
 
 void StandardStream::SynthPoll() { PollStream(); }
+
+void StandardStream::Init(float f1, float f2, Symbol s, bool b4) {
+    ClearJumpMarkers();
+    mBufSecs = f2;
+    mGetInfoOnly = false;
+    mState = kInit;
+    mSampleRate = 0;
+    if (mBufSecs == 0) {
+        SystemConfig("synth")->FindData("stream_buf_size", mBufSecs);
+    }
+    mFileStartMs = f1;
+    mStartMs = f1;
+    mLastStreamTime = f1;
+    mTimer.Reset(f1);
+    mFloatSamples = false;
+    if (!b4) {
+        MILO_ASSERT(mChanParams.empty(), 0x6E);
+        mChanParams.resize(32);
+        for (int i = 0; i < 32; i++) {
+            mChanParams[i] = new ChannelParams();
+        }
+        mVirtualChans = 0;
+        mSpeed = 1;
+    } else {
+        while (mChanParams.size() < 32) {
+            mChanParams.push_back(new ChannelParams());
+        }
+    }
+    mJumpFromMs = 0;
+    mJumpFromSamples = 0;
+    mJumpToMs = 0;
+    mJumpToSamples = 0;
+    mCurrentSamp = 0;
+    mThrottle = SystemConfig("synth", "oggvorbis")->FindFloat("throttle");
+    if (unk150) {
+        StartPolling();
+    }
+    mRdr = TheSynth->NewStreamDecoder(mFile, this, s);
+}
+
+void StandardStream::InitInfo(int i1, int sampleRate, bool floatSamples, int i4) {
+    unk154 = i4;
+    int numChannels = mVirtualChans + i1;
+    mInfoChannels = numChannels;
+    unkec = (mInfoChannels / sampleRate);
+    if (!mGetInfoOnly) {
+        if (mSampleRate == 0) {
+            mFloatSamples = floatSamples;
+            mSampleRate = sampleRate;
+            int bufBytes = mBufSecs * sampleRate * 2.0f;
+            MILO_ASSERT(bufBytes % (2*kStreamBufSize) == 0, 0x13F);
+            bufBytes >>= 0xE;
+            SystemConfig("synth", "iop")->FindInt("max_slip");
+            for (int i = 0; i < numChannels; i++) {
+                if (unk158) {
+                    mChannels.push_back(
+                        new StreamReceiverFile(bufBytes, mChanParams[i]->mSlipEnabled)
+                    );
+                } else {
+                    mChannels.push_back(StreamReceiver::New(
+                        bufBytes, sampleRate, mChanParams[i]->mSlipEnabled, i
+                    ));
+                }
+            }
+            for (int i = 0; i < mVirtualChans; i++) {
+                void *buf = MemAlloc(
+                    mFloatSamples ? 0x1000 : 0x800, __FILE__, 0x159, "stream mVirtBufs"
+                );
+                mVirtBufs.push_back(buf);
+            }
+        } else {
+            MILO_ASSERT(numChannels == mChannels.size(), 0x161);
+            MILO_ASSERT(mSampleRate == sampleRate, 0x162);
+            MILO_ASSERT(mFloatSamples == floatSamples, 0x163);
+        }
+        if (mJumpSamplesInvalid) {
+            setJumpSamplesFromMs(mJumpFromMs, mJumpToMs);
+        }
+        MILO_ASSERT(mChanParams.size() >= numChannels, 0x16C);
+        int i;
+        for (i = 0; i < numChannels; i++) {
+            mChannels[i]->SetPan(mChanParams[i]->mPan);
+            UpdateSpeed(i);
+            mChannels[i]->SetADSR(mChanParams[i]->mADSR);
+        }
+        for (; i < mChanParams.size(); i++) {
+            delete mChanParams[i];
+        }
+        mChanParams.resize(numChannels);
+        mCurrentSamp = MsToSamp(mFileStartMs);
+        if (mCurrentSamp != 0) {
+            mRdr->Seek(mCurrentSamp);
+        }
+        mFaders->SetDirty();
+        UpdateFXSends();
+    }
+}
+
+void StandardStream::ClearJumpMarkers() {
+    mStartMarker.position = 0;
+    mStartMarker.name = "";
+    mEndMarker.position = 0;
+    mEndMarker.name = "";
+    mJumpInstances.clear();
+}
+
+void StandardStream::Destroy() {
+    RELEASE(mRdr);
+    DeleteAll(mChannels);
+}
+
+int StandardStream::MsToSamp(float ms) const {
+    MILO_ASSERT(mSampleRate, 0x459);
+    return mSampleRate * ms / 1000.0f;
+}
+
+float StandardStream::SampToMs(int samples) const {
+    MILO_ASSERT(mSampleRate, 0x460);
+    float ms = (float)samples / (float)mSampleRate;
+    return ms * 1000.0f;
+}
+
+void StandardStream::UpdateFXSends() {
+    for (int i = 0; i < mChannels.size(); i++) {
+        mChannels[i]->SetFXSend(mChanParams[i]->mFxSend);
+    }
+}
+
+void StandardStream::UpdateSpeed(int chn) {
+    MILO_ASSERT_RANGE(chn, 0, mChanParams.size(), 0x4A2);
+    mChannels[chn]->SetSpeed(mSpeed);
+    if (mChanParams[chn]->mSlipEnabled) {
+        mChannels[chn]->SetSlipSpeed((float)mSpeed * mChanParams[chn]->mSlipSpeed);
+    }
+}
+
+bool StandardStream::StuffChannels() {
+    bool ret = true;
+    for (int i = 0; i < mChannels.size(); i++) {
+        if (!mChannels[i]->Ready())
+            ret = false;
+    }
+    if (mRdr->Done() && mJumpFromSamples == 0) {
+        std::for_each(
+            mChannels.begin(), mChannels.end(), std::mem_fun(&StreamReceiver::EndData)
+        );
+    }
+    return ret;
+}
+
+float StandardStream::GetBufferAheadTime() const {
+    float time = 0;
+    if (mSampleRate != 0) {
+        time = SampToMs(mCurrentSamp);
+    }
+    return time;
+}
