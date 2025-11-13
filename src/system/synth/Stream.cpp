@@ -2,6 +2,8 @@
 #include "Synth.h"
 #include "synth/Faders.h"
 
+const int Stream::kStreamEndSamples = -1;
+
 Stream::Stream() {
     static Symbol _default("_default");
     mFaders = new FaderGroup(nullptr);

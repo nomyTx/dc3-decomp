@@ -811,7 +811,7 @@
             "system/synth/Sfx.cpp": "MISSING",
             "system/synth/SfxMap.cpp": "MISSING",
             "system/synth/Sound.cpp": "NonMatching",
-            "system/synth/StandardStream.cpp": "MISSING",
+            "system/synth/StandardStream.cpp": "NonMatching",
             "system/synth/Stream.cpp": "NonMatching",
             "system/synth/StreamNull.cpp": "NonMatching",
             "system/synth/StreamReceiver.cpp": "NonMatching",

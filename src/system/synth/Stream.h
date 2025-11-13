@@ -9,8 +9,18 @@ enum FXCore {
     kFXCoreNone = -1
 };
 
-struct Marker {};
-struct JumpInstance {};
+struct Marker {
+    Marker(const String &str = String()) : name(str), position(0), posMS(0) {}
+    String name; // 0x0
+    int position; // 0x8
+    float posMS; // 0xc
+};
+struct JumpInstance {
+    int unk0;
+    int unk4;
+    int unk8;
+    int unkc;
+};
 
 class Stream {
 public:
@@ -70,6 +80,7 @@ public:
     FaderGroup *Faders() const { return mFaders; }
 
     static const float kStreamEndMs;
+    static const int kStreamEndSamples;
 
 protected:
     Stream();
