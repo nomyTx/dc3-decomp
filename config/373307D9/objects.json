@@ -793,7 +793,7 @@
             "system/synth/FxSendSynapse.cpp": "NonMatching",
             "system/synth/FxSendWah.cpp": "NonMatching",
             "system/synth/MetaMusic.cpp": "NonMatching",
-            "system/synth/MeterEffectMonitor.cpp": "MISSING",
+            "system/synth/MeterEffectMonitor.cpp": "NonMatching",
             "system/synth/Mic.cpp": "NonMatching",
             "system/synth/MicClientMapper.cpp": "NonMatching",
             "system/synth/MicNull.cpp": "NonMatching",

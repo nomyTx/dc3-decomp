@@ -11,6 +11,7 @@
 #include "FxSendSynapse.h"
 #include "FxSendWah.h"
 #include "KeyChain.h"
+#include "MeterEffectMonitor.h"
 #include "MoggClip.h"
 #include "Sound.h"
 #include "ThreeDSound.h"
@@ -156,9 +157,7 @@ void Synth::Init() {
     REGISTER_OBJ_FACTORY(FxSendSynapse)
     REGISTER_OBJ_FACTORY(FxSendWah)
     REGISTER_OBJ_FACTORY(MoggClip)
-    //   SVar2 = MeterEffectMonitor::StaticClassName();
-    //                     /* WARNING: Load size is inaccurate */
-    //   Hmx::Object::RegisterFactory(*SVar2.mStr,MeterEffectMonitor::NewObject);
+    REGISTER_OBJ_FACTORY(MeterEffectMonitor)
     REGISTER_OBJ_FACTORY(Sound)
     REGISTER_OBJ_FACTORY(ADSR)
     REGISTER_OBJ_FACTORY(ThreeDSound)
