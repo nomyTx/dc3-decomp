@@ -1,5 +1,8 @@
 #pragma once
 #include "beatmatch/HxMaster.h"
+#include "meta/DataArraySongInfo.h"
+#include "obj/Data.h"
+#include "obj/Dir.h"
 #include "obj/Object.h"
 #include "synth/Faders.h"
 #include "synth/Stream.h"
@@ -8,44 +11,7 @@
 #include "utl/MemMgr.h"
 #include "utl/Loader.h"
 
-class MetaMusicLoader;
-
-class MetaMusicLoader : public Loader {
-public:
-    typedef void (MetaMusicLoader::*MetaMusicLoaderStateFunc)(void);
-
-    void DoneLoading(void);
-    void LoadFile(void);
-    void OpenFile(void);
-
-    MetaMusicLoader(File *f, int &bytes, unsigned char *buf, int size);
-    virtual ~MetaMusicLoader() {}
-    virtual bool IsLoaded() const { return mState == &MetaMusicLoader::DoneLoading; }
-    virtual void PollLoading() {
-        // while (!TheLoadMgr.CheckSplit() && TheLoadMgr.GetFirstLoading() == this
-        //        && !IsLoaded()) {
-        //     (this->*mState)();
-        // }
-    }
-    virtual const char *DebugText() { return "MetaMusicLoader"; }
-    virtual const char *StateName() const { return "MetaMusicLoader"; }
-
-    File *mFile; // 0x18
-    int &mBytesRead; // 0x1c
-    unsigned char *mBuf; // 0x20
-    int mBufSize; // 0x24
-    MetaMusicLoaderStateFunc mState; // 0x28
-};
-
 class MetaMusic : public Hmx::Object {
-private:
-    Stream *GetStream() const;
-    int NumChans() const;
-    int ChooseStartMs() const;
-    void LoadStreamFx();
-    void UnloadStreamFx();
-    void UpdateMix();
-
 public:
     MetaMusic(HxMaster *, const char *);
     virtual ~MetaMusic();
@@ -59,36 +25,44 @@ public:
     void Stop();
     void Start();
     void AddFader(Fader *);
-    void SetScene(MetaMusicScene *);
-    void Load(const char *, float, bool, bool);
+    void Load(float, bool, bool);
     void Poll();
+    bool IsActive() const;
+    void SetQuietVolume(float);
+    bool IsStarted() const;
 
-    float SomeMinusFunc() { return 1.0f - (float)unk84 / 90.0f; }
-    float SomePlusFunc() { return (float)unk84 / 90.0f; }
+    // float SomeMinusFunc() { return 1.0f - (float)unk84 / 90.0f; }
+    // float SomePlusFunc() { return (float)unk84 / 90.0f; }
 
-    Stream *mStream; // 0x1c
-    bool mLoop; // 0x20
-    float mFadeTime; // 0x24
-    float mVolume; // 0x28
-    bool mPlayFromBuffer; // 0x2c
-    bool mRndHeap; // 0x2d
-    String mFilename; // 0x30
-    class MemHandle *mBufferH; // 0x3c
-    unsigned char *mBuf; // 0x40
-    File *mFile; // 0x44
-    Symbol mExt; // 0x48
-    int mBufSize; // 0x4c
-    int mBytesRead; // 0x50
-    Fader *mFader; // 0x54
-    Fader *mFaderMute; // 0x58
-    ObjPtrList<Fader> mExtraFaders; // 0x5c
-    MetaMusicLoader *mLoader; // 0x6c
-    ObjDirPtr<ObjectDir> mShellFx; // 0x70
-    bool unk78; // 0x78
-    DataArray *m_CurrentFxConfig; // 0x7c
-    DataArray *unk80; // 0x80
-    int unk84; // 0x84
-    const char *unk88; // 0x88
-    bool unk8c; // 0x8c
-    std::vector<int> mStartTimes; // 0x90 - basing this off of the ChooseStartMs function
+private:
+    Stream *GetStream() const;
+    int NumChans() const;
+    int ChooseStartMs() const;
+    void LoadStreamFx();
+    void UnloadStreamFx();
+    void UpdateMix();
+
+    bool unk2c; // 0x2c
+    bool unk2d; // 0x2d - loop?
+    float unk30; // 0x30
+    float mFadeTime; // 0x34
+    float mMuteFadeTime; // 0x38
+    float mVolume; // 0x3c
+    Symbol unk40; // 0x40
+    Fader *mFader; // 0x44
+    Fader *mFaderMute; // 0x48
+    ObjPtrList<Fader> mExtraFaders; // 0x4c
+    FilePath unk60; // 0x60
+    ObjDirPtr<ObjectDir> mShellFx; // 0x68
+    std::vector<ObjectDir *> mStreamChanFx; // 0x7c
+    bool mStarted; // 0x88
+    DataArray *unk8c; // 0x8c - pre?
+    DataArray *unk90; // 0x90 - post?
+    int unk94; // 0x94
+    bool unk98; // 0x98
+    std::vector<int> mStartTimes; // 0x9c
+    bool unka8; // 0xa8
+    bool unka9; // 0xa9
+    DataArraySongInfo *mSongInfo; // 0xac
+    HxMaster *unkb0; // 0xb0
 };
