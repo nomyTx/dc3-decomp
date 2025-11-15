@@ -13,6 +13,10 @@ class SampleMarker {
 public:
     SampleMarker() : name(""), sample(-1) {}
     SampleMarker(const String &str, int i) : name(str), sample(i) {}
+    void Save(BinStream &bs) const {
+        bs << name;
+        bs << sample;
+    }
     void Load(BinStream &bs) {
         bs >> name;
         bs >> sample;

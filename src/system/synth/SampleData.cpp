@@ -1,8 +1,19 @@
 #include "synth/SampleData.h"
+#include "synth/WavMgr.h"
+#include "utl/BinStream.h"
+#include "utl/ChunkStream.h"
 
-int SampleData::NumMarkers() const { return mMarkers.size(); }
+SampleDataAllocFunc SampleData::sAlloc = nullptr;
+SampleDataFreeFunc SampleData::sFree = nullptr;
 
+SampleData::SampleData() : mData(0), mMarkers() { Reset(); }
 SampleData::~SampleData() { Dealloc(); }
+
+void SampleData::SetAllocator(SampleDataAllocFunc a, SampleDataFreeFunc f) {
+    sAlloc = a;
+    sFree = f;
+    TheWavMgr->SetAllocator((WavMgrAllocFunc)a, (WavMgrFreeFunc)f);
+}
 
 void SampleData::Reset() {
     Dealloc();
@@ -14,4 +25,27 @@ void SampleData::Reset() {
     mMarkers.clear();
 }
 
-SampleData::SampleData() : mData(0), mMarkers() { Reset(); }
+int SampleData::NumMarkers() const { return mMarkers.size(); }
+
+const SampleMarker &SampleData::GetMarker(int idx) const { return mMarkers[idx]; }
+
+BinStream &operator<<(BinStream &bs, const SampleMarker &s) {
+    s.Save(bs);
+    return bs;
+}
+
+void SampleData::Save(BinStream &bs) const {
+    SAVE_REVS(0x10, 0);
+    bs << mCRC;
+    bs << mFormat;
+    bs << mNumSamples;
+    bs << mSampleRate;
+    bs << mSizeBytes;
+    bool hasData = mData;
+    bs << hasData;
+    if (hasData) {
+        WriteChunks(bs, mData, mSizeBytes, 0x8000);
+    }
+    bs << mMarkers;
+    bs << mNumChannels;
+}
