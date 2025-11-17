@@ -48,9 +48,8 @@ BEGIN_SAVES(FlowNode)
     }
     ObjPtrVec<FlowNode> flowNodes(this);
     FOREACH (it, mChildNodes) {
-        FlowNode *cur = *it;
-        if (cur->Dir() == Dir()) {
-            flowNodes.push_back(cur);
+        if ((*it)->Dir() == Dir()) {
+            flowNodes.push_back(*it);
         }
     }
     bs << flowNodes;
@@ -68,8 +67,10 @@ BEGIN_COPYS(FlowNode)
     BEGIN_COPYING_MEMBERS
         if (!dynamic_cast<Flow *>(this)) {
             FOREACH (it, c->mChildNodes) {
-                FlowNode *duplicated = DuplicateChild(*it);
-                delete duplicated;
+                FlowNode *n = DuplicateChild(*it);
+                if (n) {
+                    n->SetParent(this, true);
+                }
             }
         }
         COPY_MEMBER(mDrivenPropEntries)

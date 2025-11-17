@@ -260,7 +260,12 @@ public:
         Node &operator*() const { return *it; }
         Node *operator->() const { return &(*it); }
 
-        iterator &operator++() {
+        iterator operator+(int idx) {
+            it += idx;
+            return *this;
+        }
+
+        iterator operator++() {
             ++it;
             return *this;
         }
@@ -280,7 +285,12 @@ public:
         const Node &operator*() const { return *it; }
         const Node *operator->() const { return &(*it); }
 
-        const_iterator &operator++() {
+        const_iterator operator+(int idx) {
+            it += idx;
+            return *this;
+        }
+
+        const_iterator operator++() {
             ++it;
             return *this;
         }
@@ -292,17 +302,11 @@ public:
     ObjPtrVec(const ObjPtrVec &);
     virtual ~ObjPtrVec();
 
-    // i now have the suspicion these might be wrong but idk how to fix it yet
-    iterator begin() { return empty() ? nullptr : &mNodes[0]; }
-    iterator end() {
-        int vecSize = size();
-        return vecSize == 0 ? nullptr : &mNodes[vecSize];
-    }
-    const_iterator begin() const { return empty() ? nullptr : &mNodes[0]; }
-    const_iterator end() const {
-        int vecSize = size();
-        return vecSize == 0 ? nullptr : &mNodes[vecSize];
-    }
+    iterator begin() { return empty() ? nullptr : mNodes.begin(); }
+    // regswapped and i have no idea why
+    iterator end() { return begin() + size(); }
+    const_iterator begin() const { return empty() ? nullptr : mNodes.begin(); }
+    const_iterator end() const { return begin() + size(); }
 
     iterator erase(iterator);
     iterator insert(const_iterator, T1 *);
