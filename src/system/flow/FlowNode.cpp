@@ -22,9 +22,9 @@ FlowNode::~FlowNode() {
     if (!mRunningNodes.empty()) {
         Deactivate(true);
     }
-    for (ObjPtrVec<FlowNode>::iterator it = mChildNodes.begin(); it != mChildNodes.end();
-         ++it) {
-        delete *it;
+    while (!mChildNodes.empty()) {
+        FlowNode *cur = mChildNodes.front();
+        delete cur;
     }
 }
 

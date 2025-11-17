@@ -313,7 +313,7 @@ public:
     const_iterator find(const Hmx::Object *) const;
     int size() const { return mNodes.size(); }
     bool empty() const { return mNodes.empty(); }
-    T1 *front() const { return mNodes.front(); }
+    T1 *front() const { return *begin(); }
     T1 *operator[](int idx) { return mNodes[idx].Obj(); }
     const T1 *operator[](int idx) const { return mNodes[idx].Obj(); }
 

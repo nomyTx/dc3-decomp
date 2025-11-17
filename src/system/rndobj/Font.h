@@ -3,6 +3,7 @@
 #include "obj/Object.h"
 #include "rndobj/Bitmap.h"
 #include "rndobj/FontBase.h"
+#include "rndobj/Mat.h"
 #include "rndobj/Tex.h"
 #include "utl/BinStream.h"
 #include "utl/MemMgr.h"
@@ -64,7 +65,7 @@ public:
     virtual float AspectRatio() const { return mCellSize.y / mCellSize.x; }
     virtual RndMat *Mat() const {
         if (mMats.size() > 0)
-            return mMats.front();
+            return (RndMat *)mMats[0];
         else
             return nullptr;
     }
