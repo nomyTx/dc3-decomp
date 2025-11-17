@@ -56,5 +56,5 @@ bool FlowMultiSetProperty::Activate() {
 }
 
 BEGIN_HANDLERS(FlowMultiSetProperty)
-    HANDLE_SUPERCLASS(FlowMultiSetProperty)
+    HANDLE_SUPERCLASS(FlowNode)
 END_HANDLERS

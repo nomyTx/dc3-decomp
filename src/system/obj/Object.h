@@ -1,7 +1,6 @@
 #pragma once
 #include "obj/Data.h" /* IWYU pragma: keep */
 #include "obj/DataUtl.h"
-#include "obj/PropSync.h" /* IWYU pragma: keep */
 #include "obj/MessageTimer.h" /* IWYU pragma: keep */
 #include "utl/BinStream.h" /* IWYU pragma: keep */
 #include "utl/MemMgr.h" /* IWYU pragma: keep */
@@ -468,6 +467,38 @@ template <class T1>
 BinStream &operator>>(BinStream &bs, ObjPtrList<T1, ObjectDir> &list);
 
 #pragma endregion
+#pragma region DataNodeObjTrack
+
+// DataNodeObjTrack
+class DataNodeObjTrack {
+public:
+    DataNodeObjTrack(const DataNode &node) : unk0(nullptr, nullptr) {
+        unk14 = node.Evaluate();
+        if (unk14.Type() == kDataObject) {
+            unk0 = unk14.GetObj();
+        }
+    }
+    DataNode Node() const {
+        if (unk14.Type() == kDataObject) {
+            return unk0.Ptr();
+        } else
+            return unk14;
+    }
+    DataNodeObjTrack &operator=(const DataNode &node) {
+        unk14 = node.Evaluate();
+        if (unk14.Type() == kDataObject) {
+            unk0 = unk14.GetObj();
+        }
+        return *this;
+    }
+    // DataNodeObjTrack& operator=(const DataNodeObjTrack&);
+
+protected:
+    ObjPtr<Hmx::Object> unk0; // 0x0
+    DataNode unk14; // 0x14
+};
+
+#pragma endregion
 #pragma region Object Macros
 
 // Hmx::Object-centric macros
@@ -902,6 +933,7 @@ typedef Hmx::Object *ObjectFunc(void);
 
 #pragma endregion
 #pragma region Hmx::Object
+#include "obj/PropSync.h" /* IWYU pragma: keep */
 
 // Hmx::Object implementation
 namespace Hmx {
@@ -1060,38 +1092,6 @@ inline TextStream &operator<<(TextStream &ts, const Hmx::Object *obj) {
         ts << "<null>";
     return ts;
 }
-
-#pragma endregion
-#pragma region DataNodeObjTrack
-
-// DataNodeObjTrack
-class DataNodeObjTrack {
-public:
-    DataNodeObjTrack(const DataNode &node) : unk0(nullptr, nullptr) {
-        unk14 = node.Evaluate();
-        if (unk14.Type() == kDataObject) {
-            unk0 = unk14.GetObj();
-        }
-    }
-    DataNode Node() const {
-        if (unk14.Type() == kDataObject) {
-            return unk0.Ptr();
-        } else
-            return unk14;
-    }
-    DataNodeObjTrack &operator=(const DataNode &node) {
-        unk14 = node.Evaluate();
-        if (unk14.Type() == kDataObject) {
-            unk0 = unk14.GetObj();
-        }
-        return *this;
-    }
-    // DataNodeObjTrack& operator=(const DataNodeObjTrack&);
-
-protected:
-    ObjPtr<Hmx::Object> unk0; // 0x0
-    DataNode unk14; // 0x14
-};
 
 #pragma endregion
 #pragma region ObjVector

@@ -49,13 +49,10 @@ PropSync(DataNodeObjTrack &objTrack, DataNode &node, DataArray *prop, int i, Pro
         return false;
     else {
         MILO_ASSERT(i == prop->Size() && op <= kPropInsert, 0x25);
-        // lol, yet another circular dependency moment
-        // DataNodeObjTrack is in Object.h,
-        // which depends on PropSync.h for the PropOp enum
         if (op == kPropGet) {
-            // node = objTrack.Node();
+            node = objTrack.Node();
         } else {
-            // objTrack = node;
+            objTrack = node;
         }
         return true;
     }
