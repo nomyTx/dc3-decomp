@@ -17,13 +17,10 @@ public:
     // FlowNode
     virtual bool Activate();
     virtual void Deactivate(bool);
-    virtual void ChildFinished(FlowNode *);
     virtual void RequestStop();
     virtual void RequestStopCancel();
     virtual bool IsRunning();
     virtual void MiloPreRun();
-    // PropertyEventListener
-    virtual void GenerateAutoNames(FlowNode *, bool);
 
     OBJ_MEM_OVERLOAD(0x1F)
     NEW_OBJ(FlowWhile)
@@ -31,7 +28,11 @@ public:
 protected:
     FlowWhile();
 
+    virtual void ChildFinished(FlowNode *);
+    // PropertyEventListener
+    virtual void GenerateAutoNames(FlowNode *, bool);
+
     void ReActivate();
 
-    bool unk88; // 0x88
+    unsigned char mEntryCount; // 0x88
 };

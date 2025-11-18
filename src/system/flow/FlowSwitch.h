@@ -25,6 +25,8 @@ protected:
     FlowSwitch();
 
     void VerifyTypes();
+    void ActivateValueCases(DataNode &, DataNode &);
+    bool ActivateTransitionCases(DataNode &, DataNode &);
 
     /** "The left hand side value of the comparison" */
     DataNode mValue; // 0x5c
