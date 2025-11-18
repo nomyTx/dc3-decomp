@@ -1,7 +1,7 @@
 #pragma once
 #include "obj/Data.h"
 #include "obj/Object.h"
-#include "flow/FlowMathOp.h"
+#include "flow/DrivenPropertyMathOps.h"
 #include "utl/BinStream.h"
 
 class FlowNode;
@@ -15,6 +15,7 @@ public:
 
     bool Empty() { return mMathOps.empty(); }
     const DataNode &Node() const { return unk0; }
+    const ObjVector<FlowMathOp> &MathOps() const { return mMathOps; }
 
 protected:
     DataNode unk0; // 0x0

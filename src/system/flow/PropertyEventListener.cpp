@@ -1,13 +1,14 @@
 #include "flow/PropertyEventListener.h"
 #include "flow/FlowNode.h"
+#include "flow/DrivenPropertyEntry.h"
 #include "obj/Object.h"
 
 PropertyEventListener::PropertyEventListener(Hmx::Object *owner)
-    : mAutoPropEntries(owner), unk14(0) {}
+    : mAutoPropEntries(owner), mEventsRegistered(0) {}
 
 void PropertyEventListener::RegisterEvents(FlowNode *node) {
     static Symbol reactivate("reactivate");
-    if (!unk14) {
+    if (!mEventsRegistered) {
         if (!mAutoPropEntries.empty()) {
             for (ObjVector<AutoPropEntry>::iterator it = mAutoPropEntries.begin();
                  it != mAutoPropEntries.end();
@@ -18,11 +19,11 @@ void PropertyEventListener::RegisterEvents(FlowNode *node) {
             }
         }
     }
-    unk14 = true;
+    mEventsRegistered = true;
 }
 
 void PropertyEventListener::UnregisterEvents(FlowNode *node) {
-    if (unk14) {
+    if (mEventsRegistered) {
         if (!mAutoPropEntries.empty()) {
             for (ObjVector<AutoPropEntry>::iterator it = mAutoPropEntries.begin();
                  it != mAutoPropEntries.end();
@@ -33,10 +34,16 @@ void PropertyEventListener::UnregisterEvents(FlowNode *node) {
             }
         }
     }
-    unk14 = false;
+    mEventsRegistered = false;
 }
 
 void PropertyEventListener::GenerateAutoNames(FlowNode *node, bool clear) {
     if (clear)
         mAutoPropEntries.clear();
+    FOREACH (it, node->DrivenPropEntries()) {
+        FOREACH (op, it->MathOps()) {
+            AutoPropEntry entry(node);
+            mAutoPropEntries.push_back(entry);
+        }
+    }
 }

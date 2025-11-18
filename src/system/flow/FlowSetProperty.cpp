@@ -16,17 +16,8 @@ FlowSetProperty::FlowSetProperty()
       mPersistent(0), mRate(0), mBlendTime(0), mChangePerUnit(0), unk_0xCC(this, nullptr),
       mEase(0), mEasePower(2), unk_0xE8(0), mStopMode(1) {}
 
-PropertyTask::PropertyTask(
-    Hmx::Object *,
-    DataNode &,
-    DataNode &,
-    TaskUnits,
-    float,
-    EaseType t,
-    float,
-    bool,
-    Hmx::Object *
-) {
+PropertyTask::
+    PropertyTask(Hmx::Object *, DataNode &, DataNode &, TaskUnits, float, EaseType t, float, bool, Hmx::Object *) {
     mEaseFunc = GetEaseFunction(t);
 }
 
@@ -121,7 +112,7 @@ bool FlowSetProperty::Activate() {
     unk58 = false;
     if (mTarget != nullptr) {
         if (unk_0x98.Type() == kDataArray && unk_0x98.Array()->Size() > 0) {
-            if (mPersistent && !unk14) {
+            if (mPersistent && !mEventsRegistered) {
                 RegisterEvents(this);
             }
             const auto *value = GetDrivenEntry("value");
@@ -133,7 +124,7 @@ bool FlowSetProperty::Activate() {
             if (mBlendTime == 0.0f && mChangePerUnit == 0.0f) {
                 FLOW_LOG("Setting Value on %s\n", mTarget->Name())
                 mTarget->SetProperty(unk_0x98.Array(), mValue.Node());
-                return unk14 - 0;
+                return mEventsRegistered - 0;
             }
             if (mTarget->Property(unk_0x98.Array(), true)->Evaluate()
                 != mValue.Node().Evaluate()) {
@@ -144,7 +135,7 @@ bool FlowSetProperty::Activate() {
         }
     }
 
-    return unk14;
+    return mEventsRegistered;
 }
 
 void FlowSetProperty::ReActivate() {
@@ -232,7 +223,7 @@ void FlowSetProperty::Deactivate(bool b) {
 }
 
 bool FlowSetProperty::IsRunning() {
-    if (!unk14) {
+    if (!mEventsRegistered) {
         if (mRunningNodes.size() == 0) {
             return unk_0xCC.Ptr();
         }

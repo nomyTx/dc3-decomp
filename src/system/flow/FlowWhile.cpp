@@ -52,7 +52,7 @@ bool FlowWhile::Activate() {
     } else if (mDrivenPropEntries.empty())
         return false;
     else {
-        if (!unk14) {
+        if (!mEventsRegistered) {
             RegisterEvents(this);
         }
         PushDrivenProperties();
@@ -68,10 +68,10 @@ bool FlowWhile::Activate() {
         DataNode n(unk64);
         unk64 = mValue;
         ActivateValueCases(mValue, n);
-        if (unk14) {
+        if (mEventsRegistered) {
             return true;
         } else {
-            return !mRunningNodes.empty();
+            return FlowNode::IsRunning();
         }
     }
 }
@@ -79,13 +79,13 @@ bool FlowWhile::Activate() {
 void FlowWhile::Deactivate(bool b) {
     if (!b)
         PropertyEventListener::UnregisterEvents(this);
-    unk14 = false;
+    mEventsRegistered = false;
     FlowNode::Deactivate(b);
 }
 
 void FlowWhile::ChildFinished(FlowNode *n) {
     FLOW_LOG("Child Finished of class:%s\n", n->ClassName());
-    if (!unk14) {
+    if (!mEventsRegistered) {
         FlowNode::ChildFinished(n);
     } else {
         PushDrivenProperties();
@@ -114,8 +114,8 @@ void FlowWhile::ChildFinished(FlowNode *n) {
 
 void FlowWhile::RequestStop() {
     UnregisterEvents(this);
-    unk14 = false;
-    if (mRunningNodes.empty()) {
+    mEventsRegistered = false;
+    if (!FlowNode::IsRunning()) {
         mFlowParent->ChildFinished(this);
     } else {
         FlowNode::RequestStop();
@@ -124,11 +124,13 @@ void FlowWhile::RequestStop() {
 
 void FlowWhile::RequestStopCancel() {
     FlowNode::RequestStopCancel();
-    if (!unk14)
+    if (!mEventsRegistered)
         PropertyEventListener::RegisterEvents(this);
 }
 
-bool FlowWhile::IsRunning() { return (unk14 || !mRunningNodes.empty()) ? true : false; }
+bool FlowWhile::IsRunning() {
+    return (mEventsRegistered || FlowNode::IsRunning()) ? true : false;
+}
 
 void FlowWhile::MiloPreRun() {
     if (!IsRunning()) {

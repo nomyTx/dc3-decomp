@@ -24,6 +24,8 @@ public:
 
     OBJ_MEM_OVERLOAD(0x24)
     NEW_OBJ(FlowSwitchCase)
+    OperatorType Op() const { return mOperator; }
+    bool IsValidCase(FlowNode *, DataNode *, const DataNode *, bool);
 
 protected:
     FlowSwitchCase();

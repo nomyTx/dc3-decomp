@@ -36,13 +36,13 @@ public:
         kReleaseAndContinue = 4
     };
     enum OperatorType {
-        kEqual,
-        kNotEqual,
-        kGreaterThan,
-        kGreaterThanOrEqual,
-        kLessThan,
-        kLessThanOrEqual,
-        kTransition
+        kEqual = 0,
+        kNotEqual = 1,
+        kGreaterThan = 2,
+        kGreaterThanOrEqual = 3,
+        kLessThan = 4,
+        kLessThanOrEqual = 5,
+        kTransition = 6
     };
     // Hmx::Object
     virtual ~FlowNode();
@@ -79,6 +79,9 @@ public:
     DrivenPropertyEntry *GetDrivenEntry(Symbol);
     DrivenPropertyEntry *GetDrivenEntry(DataArray *);
     Flow *GetTopFlow();
+    const ObjVector<DrivenPropertyEntry> &DrivenPropEntries() const {
+        return mDrivenPropEntries;
+    }
 
 protected:
     FlowNode();

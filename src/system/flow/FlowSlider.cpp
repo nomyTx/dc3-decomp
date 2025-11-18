@@ -61,14 +61,14 @@ void FlowSlider::RequestStopCancel() {
 void FlowSlider::UpdateEase() { mEaseFunc = GetEaseFunction(mEaseType); }
 
 bool FlowSlider::IsRunning() {
-    if (unk14)
+    if (mEventsRegistered)
         return true;
-    return !mRunningNodes.empty();
+    return FlowNode::IsRunning();
 }
 
 void FlowSlider::Deactivate(bool b) {
     FLOW_LOG("Deactivated\n");
-    if (unk14)
+    if (mEventsRegistered)
         PropertyEventListener::UnregisterEvents(this);
     FlowNode::Deactivate(b);
 }

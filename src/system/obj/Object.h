@@ -489,7 +489,13 @@ public:
         }
         return *this;
     }
-    DataNodeObjTrack &operator=(const DataNodeObjTrack &);
+    DataNodeObjTrack &operator=(const DataNodeObjTrack &other) {
+        unk14 = other.Node().Evaluate();
+        if (unk14.Type() == kDataObject) {
+            unk0 = unk14.GetObj();
+        }
+        return *this;
+    }
 
 protected:
     ObjPtr<Hmx::Object> unk0; // 0x0

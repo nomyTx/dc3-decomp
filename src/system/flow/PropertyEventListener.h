@@ -21,5 +21,5 @@ protected:
     void UnregisterEvents(FlowNode *);
 
     ObjVector<AutoPropEntry> mAutoPropEntries; // 0x4
-    bool unk14; // 0x14
+    bool mEventsRegistered; // 0x14
 };

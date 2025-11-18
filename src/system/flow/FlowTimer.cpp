@@ -88,7 +88,7 @@ void FlowTimer::Execute(FlowNode::QueueState state) {
     OnTimerEnd();
 }
 
-bool FlowTimer::IsRunning() { return unk60 || !mRunningNodes.empty(); }
+bool FlowTimer::IsRunning() { return unk60 || FlowNode::IsRunning(); }
 
 void FlowTimer::OnKeyframe(FlowNode *node) {
     if (!node->HasRunningNode(node))
@@ -96,7 +96,7 @@ void FlowTimer::OnKeyframe(FlowNode *node) {
 }
 
 void FlowTimer::OnTimerEnd() {
-    if (mRunningNodes.empty()) {
+    if (!FlowNode::IsRunning()) {
         MILO_ASSERT(mFlowParent->HasRunningNode(this), 0x10d);
 
         FLOW_LOG("Timed Release From Parent \n");
