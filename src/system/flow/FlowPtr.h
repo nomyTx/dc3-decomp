@@ -93,6 +93,9 @@ private:
 template <typename T>
 BinStream &operator<<(BinStream &, const FlowPtr<T> &);
 
+template <typename T>
+BinStream &operator>>(BinStream &, FlowPtr<T> &);
+
 template <class T>
 bool PropSync(FlowPtr<T> &ptr, DataNode &node, DataArray *prop, int i, PropOp op) {
     if (op == kPropSet) {

@@ -489,7 +489,7 @@ public:
         }
         return *this;
     }
-    // DataNodeObjTrack& operator=(const DataNodeObjTrack&);
+    DataNodeObjTrack &operator=(const DataNodeObjTrack &);
 
 protected:
     ObjPtr<Hmx::Object> unk0; // 0x0

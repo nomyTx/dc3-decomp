@@ -10,7 +10,7 @@
 DataNode *TypeProps::KeyValue(Symbol key, bool fail) const {
     if (mMap) {
         for (int i = mMap->Size() - 2; i >= 0; i -= 2) {
-            if (mMap->Node(i).UncheckedStr() == key.Str()) {
+            if ((int)mMap->Node(i).UncheckedStr() == (int)key.Str()) {
                 return &mMap->Node(i + 1);
             }
         }

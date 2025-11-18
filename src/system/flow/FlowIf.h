@@ -1,6 +1,7 @@
 #pragma once
 #include "flow/FlowNode.h"
 
+/** "a single case decision node" */
 class FlowIf : public FlowNode {
 public:
     // Hmx::Object
@@ -21,7 +22,10 @@ public:
 protected:
     FlowIf();
 
+    /** "left hand value in comparison" */
     DataNodeObjTrack mValue1; // 0x5c
+    /** "right hand value in comparison" */
     DataNodeObjTrack mValue2; // 0x78
+    /** "equality case to use for comparison" */
     OperatorType mOperator; // 0x94
 };
