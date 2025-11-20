@@ -41,9 +41,9 @@ private:
     void SetSkeletonTrackingID(int);
 
 protected:
-    String unk2c; // 0x2c
-    std::vector<String> unk34; // 0x34
-    int unk40; // 0x40
+    String unk2c; // 0x2c - current dancer?
+    std::vector<String> unk34; // 0x34 - dancers?
+    int unk40; // 0x40 - character index in the big char array?
     Symbol mChar; // 0x44
     Symbol unk48; // 0x48
     Symbol mPreferredOutfit; // 0x4c

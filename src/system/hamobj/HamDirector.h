@@ -106,6 +106,7 @@ public:
     bool InPracticeMode();
     void MoveKeys(Difficulty, class MoveDir *, std::vector<HamMoveKey> &);
     bool IsMoveMergerFinished() const;
+    void HandleDifficultyChange();
     ObjectDir *ClipDir() const { return mClipDir; }
     bool NoTransitions() const { return mNoTransitions; }
     MoveDir *GetMoveDir() const { return static_cast<MoveDir *>(mMoveDir.Ptr()); }

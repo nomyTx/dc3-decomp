@@ -1,5 +1,6 @@
 #include "hamobj/HamPlayerData.h"
 #include "gesture/BaseSkeleton.h"
+#include "hamobj/HamDirector.h"
 #include "hamobj/HamGameData.h"
 #include "gesture/GestureMgr.h"
 #include "gesture/Skeleton.h"
@@ -10,6 +11,7 @@
 #include "obj/Object.h"
 #include "obj/Task.h"
 #include "os/Debug.h"
+#include "utl/Loader.h"
 #include "utl/Symbol.h"
 
 HamPlayerData::HamPlayerData(int i)
@@ -89,9 +91,10 @@ const Skeleton *HamPlayerData::GetSkeleton(const Skeleton *const (&skeletons)[6]
 
 void HamPlayerData::SetCharacterOutfit(Symbol outfit) {
     if (!outfit.Null()) {
-        mChar = GetOutfitCharacter(outfit, true);
+        Symbol charOutfit = GetOutfitCharacter(outfit, true);
         mOutfit = outfit;
-        mCrew = GetCrewForCharacter(mChar, true);
+        mChar = charOutfit;
+        mCrew = GetCrewForCharacter(charOutfit, true);
     } else {
         mChar = gNullStr;
         mOutfit = gNullStr;
@@ -100,27 +103,21 @@ void HamPlayerData::SetCharacterOutfit(Symbol outfit) {
 }
 
 void HamPlayerData::SetPreferredOutfit(Symbol outfit) {
-    if (outfit.Null()) {
-        mPreferredOutfit = Symbol();
-    } else
-        mPreferredOutfit = GetOutfitRemap(outfit, true);
+    mPreferredOutfit = outfit.Null() ? outfit : GetOutfitRemap(outfit, true);
 }
 
 void HamPlayerData::SetOutfit(Symbol outfit) {
-    if (outfit.Null()) {
-        mOutfit = Symbol();
-    } else
-        mOutfit = GetOutfitRemap(outfit, true);
+    mOutfit = outfit.Null() ? outfit : GetOutfitRemap(outfit, true);
 }
 
 Symbol HamPlayerData::CharacterOutfit(Symbol crew) const {
-    if (mOutfit.Null()) {
+    Symbol outfit = mOutfit;
+    if (outfit.Null()) {
         MILO_ASSERT(!crew.Null(), 0x4D);
         Symbol crewChar = GetCrewCharacter(crew, unk40);
-        return GetCharacterOutfit(crewChar, 0, true);
-    } else {
-        return mOutfit;
+        outfit = GetCharacterOutfit(crewChar, 0, true);
     }
+    return outfit;
 }
 
 String HamPlayerData::GetPlayerName() const {
@@ -170,7 +167,11 @@ void HamPlayerData::SetCrew(Symbol crewSym) {
 void HamPlayerData::SetDifficulty(Difficulty d) {
     mDifficulty = d;
     static Symbol difficulty("difficulty");
-    mProvider->SetProperty(difficulty, DifficultyToSym(d));
+    Symbol diffSym = DifficultyToSym(d);
+    mProvider->SetProperty(difficulty, diffSym);
+    if (TheHamDirector) {
+        TheHamDirector->HandleDifficultyChange();
+    }
 }
 
 float HamPlayerData::TrackingAgeSeconds() const {
@@ -178,4 +179,12 @@ float HamPlayerData::TrackingAgeSeconds() const {
         return -1;
     else
         return TheTaskMgr.UISeconds() - unk5c;
+}
+
+bool HamPlayerData::IsPlaying() const {
+    if (!TheLoadMgr.EditMode() && mAutoplay.Null()) {
+        return mSkeletonTrackingID > 0;
+    } else {
+        return true;
+    }
 }

@@ -16,11 +16,13 @@
 HamGameData *TheGameData;
 
 namespace {
+    /** Gets the CREWS macro defined in config/macros.dta. */
     DataArray *GetCrews() {
         static Symbol CREWS("CREWS");
         return DataGetMacro(CREWS);
     }
 
+    /** Gets the CHARACTERS macro defined in config/macros.dta. */
     DataArray *GetCharacters() {
         static Symbol CHARACTERS("CHARACTERS");
         return DataGetMacro(CHARACTERS);
@@ -186,18 +188,24 @@ bool GetEntriesForOutfit(
     static Symbol outfits("outfits");
     DataArray *chars = GetCharacters();
     if (chars) {
+        // for each defined character...
         for (int i = 0; i < chars->Size(); i++) {
-            DataArray *arr = chars->Array(i);
-            if (arr) {
-                DataArray *arr2 = arr->FindArray(outfits, false);
-                if (arr2) {
+            // emilia, bodie, etc
+            DataArray *curCharArray = chars->Array(i);
+            if (curCharArray) {
+                // get the character's outfit data
+                DataArray *outfitsArray = curCharArray->FindArray(outfits, false);
+                if (outfitsArray) {
                     static Symbol OUTFIT_REMAP("OUTFIT_REMAP");
                     Symbol remap = GetOutfitRemap(outfit, fail);
+                    // if the outfit has a remapped counterpart...
                     if (!remap.Null()) {
-                        DataArray *remapArr = arr2->FindArray(remap, false);
+                        // get the remapped outfit array
+                        // in the character's main outfits array
+                        DataArray *remapArr = outfitsArray->FindArray(remap, false);
                         if (remapArr) {
                             if (charEntry)
-                                *charEntry = arr;
+                                *charEntry = curCharArray;
                             if (outfitEntry)
                                 *outfitEntry = remapArr;
                             return true;
