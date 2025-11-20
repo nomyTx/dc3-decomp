@@ -1,6 +1,7 @@
 #include "hamobj/HamGameData.h"
 #include "HamGameData.h"
 #include "gesture/GestureMgr.h"
+#include "gesture/Skeleton.h"
 #include "hamobj/HamPlayerData.h"
 #include "obj/Data.h"
 #include "obj/DataFunc.h"
@@ -502,5 +503,31 @@ void HamGameData::UpdateAssociatedPads() {
         HamPlayerData *pPlayer = mPlayers[i];
         MILO_ASSERT(pPlayer, 0x2C4);
         SetAssociatedPadNum(i, pPlayer->PadNum());
+    }
+}
+
+void HamGameData::AutoAssignSkeletons(const SkeletonUpdateData *data) {
+    MILO_ASSERT(data, 0x259);
+    for (int i = 0; i < 2; i++) {
+        if (!(int)data->unk0[i]) {
+            for (int j = 0; j < 6; j++) {
+                Skeleton *cur = data->unk4[j];
+                if (cur->IsValid()) {
+                    int id = cur->TrackingID();
+                    bool b1;
+                    for (int k = 0; k < 2; k++) {
+                        if (mPlayers[k]->GetSkeletonTrackingID() == id) {
+                            b1 = true;
+                            goto next;
+                        }
+                    }
+                    b1 = false;
+                next:
+                    if (!b1) {
+                        AssignSkeleton(i, id);
+                    }
+                }
+            }
+        }
     }
 }
