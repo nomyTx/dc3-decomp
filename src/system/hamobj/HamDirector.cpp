@@ -44,9 +44,15 @@
 #include <cctype>
 
 HamDirector *TheHamDirector;
+OfflineCallback gOfflineCallback;
 
 float FrameToBeat(float frame) { return SecondsToBeat(frame * 0.033333335f); }
 float BeatToFrame(float beat) { return BeatToSeconds(beat) * 30.0f; }
+
+ObjectDir *OfflineCallback::SongMainDir() {
+    MILO_ASSERT(TheHamDirector, 0x1137);
+    return TheHamDirector->GetWorld();
+}
 
 HamDirector::HamDirector()
     : mMasterClipAnim(this), mPlayer1RoutineBuilderAnim(this),
@@ -72,6 +78,7 @@ HamDirector::HamDirector()
 }
 
 HamDirector::~HamDirector() {
+    delete mOfflineSong;
     MILO_ASSERT(TheGameData, 0xC5);
     TheGameData->Clear();
     if (TheHamDirector == this) {
@@ -245,6 +252,110 @@ BEGIN_COPYS(HamDirector)
     END_COPYING_MEMBERS
 END_COPYS
 
+BEGIN_LOADS(HamDirector)
+    LOAD_REVS(bs)
+    ASSERT_REVS(9, 0)
+    Hmx::Object::Load(bs);
+    RndPollable::Load(bs);
+    RndDrawable::Load(bs);
+    if (d.rev < 7) {
+        Symbol s;
+        d >> s;
+    }
+    if (d.rev < 8) {
+        int x;
+        d >> x;
+    }
+    if (d.rev > 2) {
+        d >> mPracticeStart;
+        d >> mPracticeEnd;
+    }
+    if (d.rev > 3) {
+        d >> mBlendDebug;
+    }
+    if (d.rev > 4) {
+        d >> mNoTransitions;
+    }
+    if (d.rev > 8) {
+        d >> mCollisionChecks;
+    }
+    if (d.rev > 5) {
+        d >> mStartLoopMargin;
+        d >> mEndLoopMargin;
+    }
+END_LOADS
+
+void HamDirector::Enter() {
+    RndPollable::Enter();
+    if (mMerger) {
+        mExcitement = 3;
+        mNumPlayersFailed = 0;
+        unk29c = -kHugeFloat;
+        unk2a8 = -kHugeFloat;
+        mShot = "";
+        mCurShot = nullptr;
+        unk14c = true;
+        unk33d = false;
+        mWorldPostProc = GetWorld()->Find<RndPostProc>("world.pp", true);
+        RndPostProc *start = GetWorld()->Find<RndPostProc>("world_start.pp", true);
+        if (start) {
+            mWorldPostProc->Copy(start, kCopyDeep);
+        }
+        mWorldPostProc->Select();
+        unk1a8 = mWorldPostProc;
+        unk1bc = mWorldPostProc;
+        unk1d0 = 0;
+        mCamPostProc = nullptr;
+        mForcePostProc = nullptr;
+        mForcePostProcBlend = 0;
+        mForcePostProcBlendRate = 1;
+        unk1d8 = nullptr;
+        mVisualizerPostProc =
+            mVisualizer ? mVisualizer->Find<RndPostProc>("viz_start.pp", false) : nullptr;
+        unk2e4 = -kHugeFloat;
+        mDisabled = false;
+        unk368 = false;
+        static Message msg("set_force_postproc_no_blend", "performance_high");
+        HandleType(msg);
+        if (TheHamWardrobe) {
+            TheHamWardrobe->ClearCrowd();
+        }
+        if (mVenue) {
+            VenueEnter(mVenue);
+        }
+        Initialize();
+        RndPropAnim *anim = SongAnim(0);
+        if (anim) {
+            anim->StartAnim();
+            anim->SetFrame(-kHugeFloat, 1);
+        }
+        mDisablePicking = false;
+        mNextShot = nullptr;
+        mPlayerFreestyle = false;
+        SyncScene();
+        PlayIntroShot();
+        unk1d4 = 0;
+        mPlayerFreestylePaused = false;
+        if (mVisualizer) {
+            mVisualizer->SetShowing(false);
+        }
+        if (TheHamWardrobe) {
+            TheHamWardrobe->PlayCrowdAnimation("realtime_idle", 2, true);
+        }
+    }
+}
+
+void HamDirector::Exit() {
+    RndPollable::Exit();
+    RndPropAnim *anim = SongAnim(0);
+    if (anim) {
+        anim->EndAnim();
+    }
+    if (mVenue) {
+        mVenue->Exit();
+    }
+}
+
 void HamDirector::ListPollChildren(std::list<RndPollable *> &polls) const {
     if (mVenue) {
         polls.push_back(mVenue);
@@ -281,9 +392,10 @@ void HamDirector::ForceScene(Symbol s) {
     unk138 = gNullStr;
 }
 
-void HamDirector::ForceMiniVenue(Symbol s) {
-    unk138 = s;
+__forceinline void HamDirector::ForceMiniVenue(Symbol s) {
     Symbol idk(gNullStr);
+    unk138 = idk;
+    unk138 = s;
 }
 
 void HamDirector::DrawDebug() {
@@ -1314,4 +1426,9 @@ Symbol HamDirector::ClosestMove() {
         }
     }
     return out;
+}
+
+bool HamDirector::IsWorldLoaded() const {
+    return mVenue && mMerger && !mMerger->HasPendingFiles() && mMoveMerger
+        && !mMoveMerger->HasPendingFiles();
 }

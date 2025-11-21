@@ -21,11 +21,24 @@
 #include "rndobj/PropKeys.h"
 #include "rndobj/TexRenderer.h"
 #include "utl/MemMgr.h"
+#include "utl/Song.h"
 #include "utl/Symbol.h"
 #include "world/CameraManager.h"
 #include "world/Dir.h"
 
 class AnimPtr;
+
+class OfflineCallback : public SongCallback {
+public:
+    OfflineCallback() {}
+    virtual ~OfflineCallback() {}
+    virtual void SongSetFrame(class Song *, float) {}
+    virtual ObjectDir *SongMainDir();
+    virtual void SongPlay(bool) {}
+    virtual void UpdateObject(const Hmx::Object *, DataArray *) {}
+    virtual void Preload() {}
+    virtual void ProcessBookmarks(DataNode) {}
+};
 
 /** "Hammer Director, sits in each song file and manages camera + scene changes" */
 class HamDirector : public RndPollable, public RndDrawable {
@@ -254,7 +267,7 @@ protected:
     /** "In practice mode, measures after practice_end until loop".
         Ranges from 1 to 100. */
     int mEndLoopMargin; // 0x2e0
-    int unk2e4; // 0x2e4
+    float unk2e4; // 0x2e4
     /** "If > 0, is which clip to show by itself rather than doing full blending" */
     int mBlendDebug; // 0x2e8
     int unk2ec; // 0x2ec
@@ -277,7 +290,7 @@ protected:
     ObjPtr<RndTexRenderer> mIconManTex; // 0x354
     bool unk368; // 0x368
     bool unk369; // 0x369
-    int mOfflineSong; // 0x36c - Song*
+    Song *mOfflineSong; // 0x36c
     std::set<Hmx::Object *> unk370; // 0x370
 };
 
