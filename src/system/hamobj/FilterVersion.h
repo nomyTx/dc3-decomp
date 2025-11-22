@@ -1,8 +1,13 @@
 #pragma once
 #include "hamobj/ErrorNode.h"
-#include "hamobj/HamMove.h"
 #include "obj/Data.h"
 #include "utl/MemMgr.h"
+
+enum MoveMode {
+    // 0 - perform it mode
+    // 1 - practice mode
+    kNumMoveModes = 2
+};
 
 enum FilterVersionType {
     kFilterVersionHam1 = 0,
@@ -50,7 +55,7 @@ public:
     // Displacement (12): l_shoulder_disp, l_elbow_disp, l_hand_disp, r_shoulder_disp,
     // r_elbow_disp, r_hand_disp, l_knee_disp, l_foot_disp, r_knee_disp, r_foot_disp,
     // hip_disp, head_disp
-    virtual int NumNodes() const { return MoveFrame::kNumHam1Nodes; }
+    virtual int NumNodes() const { return 16; } // MoveFrame::kNumHam1Nodes;
 };
 
 // Ham2FilterVersion size: 0x9c

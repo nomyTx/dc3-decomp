@@ -25,6 +25,8 @@ inline BinStream &operator<<(BinStream &bs, const Hmx::CRC &crc) {
 }
 
 inline BinStream &operator>>(BinStream &bs, Hmx::CRC &crc) {
-    bs >> crc.mCRC;
+    int hash = 0;
+    bs >> hash;
+    crc.mCRC = hash;
     return bs;
 }

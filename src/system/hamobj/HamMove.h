@@ -2,6 +2,7 @@
 #include "hamobj/DancerSequence.h"
 #include "hamobj/Difficulty.h"
 #include "hamobj/ErrorNode.h"
+#include "hamobj/FilterVersion.h"
 #include "hamobj/ScoreUtl.h"
 #include "math/Vec.h"
 #include "obj/Object.h"
@@ -9,12 +10,6 @@
 #include "rndobj/Tex.h"
 #include "utl/BinStream.h"
 #include "utl/MemMgr.h"
-
-enum MoveMode {
-    // 0 - perform it mode
-    // 1 - practice mode
-    kNumMoveModes = 2
-};
 
 enum MoveMirrored {
     kMirroredNo = 0,
@@ -36,6 +31,10 @@ public:
     const Vector3 &NodeInverseScale(int, MoveMirrored) const;
     void SetNodeScale(int, MoveMirrored, const Vector3 &);
     float QuantizedSeconds(float) const;
+    FilterVersionType Version() const {
+        int filterMask = (unk4 & 0x300000) >> 5;
+        return filterMask ? kFilterVersionHam1 : kFilterVersionHam2;
+    }
 
 private:
     float mBeat; // 0x0
@@ -46,8 +45,6 @@ private:
     Vector3 mNodesInverseScale[kNumMoveMirrored][kMaxNumErrorNodes]; // 0xd48
     Ham2FrameWeight mFrameWeights[kNumMoveMirrored]; // 0x1168
 };
-
-class FilterVersion;
 
 /** "Data associated with a ham Move" */
 class HamMove : public RndPropAnim {
@@ -99,6 +96,8 @@ public:
     const FilterVersion *FilterVer() const;
     const std::vector<float> *RatingOverride() const;
     float PSNRThreshold(MoveRating) const;
+    FilterVersionType Version() const;
+    float PSNRToDetectFrac(float) const;
 
     bool Scored() const { return mScored; }
     DancerSequence *GetDancerSequence() const { return mDancerSeq; }
