@@ -130,6 +130,7 @@ public:
     void PoseIconMan(const BaseSkeleton *, RndTex *);
     void CleanOriginalMoveData();
     float BeatFromTag(Symbol);
+    void UnloadMergers();
 
     ObjectDir *ClipDir() const { return mClipDir; }
     bool NoTransitions() const { return mNoTransitions; }
@@ -172,6 +173,7 @@ protected:
     void AddNumPlayers(std::vector<CameraManager::PropertyFilter> &, DataArray *);
     void ReactToCollision_InsertRealShot(Symbol, float);
     void ReactToCollision_MoveShot(int, float);
+    bool ReactToCollision(float);
     bool ShouldDoCollisionPrevention() const;
     void StartStopVisualizer();
     void SendCurWorldMsg(Symbol, bool);

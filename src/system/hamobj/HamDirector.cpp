@@ -40,6 +40,7 @@
 #include "math/Vec.h"
 #include "obj/Data.h"
 #include "obj/DataFile.h"
+#include "obj/DataUtl.h"
 #include "obj/Dir.h"
 #include "obj/Msg.h"
 #include "obj/Object.h"
@@ -47,6 +48,7 @@
 #include "obj/Utl.h"
 #include "os/Debug.h"
 #include "os/File.h"
+#include "os/Timer.h"
 #include "rndobj/Anim.h"
 #include "rndobj/Draw.h"
 #include "rndobj/Overlay.h"
@@ -690,7 +692,8 @@ RndPropAnim *HamDirector::SongAnimByDifficulty(Difficulty diff) {
 }
 
 RndPropAnim *HamDirector::DancerFaceAnimByPlayer(int player) {
-    return mDancerFaceAnims[LegacyDifficulty(TheGameData->Player(player)->GetDifficulty())];
+    return mDancerFaceAnims[LegacyDifficulty(TheGameData->Player(player)->GetDifficulty()
+    )];
 }
 
 void HamDirector::AddNumPlayers(
@@ -2127,4 +2130,106 @@ void HamDirector::Reteleport() {
         // GetClipStartAndEndBeats
     }
     Vector3 v = Vector3::ZeroVec();
+}
+
+bool HamDirector::ReactToCollision(float frame) {
+    if (TheLoadMgr.EditMode()) {
+        return false;
+    }
+    float beat = FrameToBeat(frame);
+    if (!mCurShot)
+        return false;
+    Symbol cat = mCurShot->Category();
+    if (strncmp(cat.Str(), "Area", 4) != 0) {
+        return false;
+    }
+    static Symbol shot("shot");
+    PropKeys *propKeys = GetPropKeysByPlayer(0, shot);
+    Symbol symAt;
+    if (!propKeys)
+        return false;
+    int keyIdx = propKeys->SymbolAt(frame, symAt);
+    if (keyIdx >= 0 && strncmp(symAt.Str(), "Area", 4) == 0) {
+        cat = symAt;
+    }
+    float frame2;
+    bool idxExists = propKeys->FrameFromIndex(keyIdx, frame2);
+    Symbol symAt2;
+    if (!idxExists)
+        return false;
+    int keyIdx2 = propKeys->SymbolAt(frame, symAt2);
+    if (keyIdx2 == -1 || keyIdx2 == propKeys->NumKeys() - 1
+        || strncmp(symAt2.Str(), "Area", 4) != 0) {
+        mShot = cat;
+        unk140 = true;
+        return true;
+    }
+    float beat2 = FrameToBeat(frame2);
+    static float sSongCollisionUseShotWithinXBeats =
+        DataGetMacro("SONG_COLLISION_USE_SHOT_WITHIN_X_BEATS")->Float(0);
+    if (beat2 < sSongCollisionUseShotWithinXBeats + beat) {
+        ReactToCollision_MoveShot(keyIdx2, beat);
+        return true;
+    } else {
+        static float sSongCollisionForXBeatsSuppressNextShot =
+            DataGetMacro("SONG_COLLISION_FOR_X_BEATS_SUPPRESS_NEXT_SHOT")->Float(0);
+        float beatSum = sSongCollisionForXBeatsSuppressNextShot + beat;
+        if (beat2 < beatSum) {
+            ReactToCollision_InsertRealShot(cat, beat);
+        } else {
+            static bool sSongCollisionRoundUpSuppressedShotToMeasure =
+                DataGetMacro("SONG_COLLISION_ROUND_UP_SUPPRESSED_SHOT_TO_MEASURE")->Int(0);
+            if (sSongCollisionRoundUpSuppressedShotToMeasure) {
+                beatSum = ceil(beatSum / 4.0f);
+            }
+            float frame3;
+            if (!propKeys->FrameFromIndex(keyIdx2 + 1, frame3)) {
+                return false;
+            }
+            float beat3 = FrameToBeat(frame3);
+            static float sSongCollisionAbortSuppressedShotIfAnotherWithinXBeats =
+                DataGetMacro(
+                    "SONG_COLLISION_ABORT_SUPPRESSED_SHOT_IF_ANOTHER_WITHIN_X_BEATS"
+                )
+                    ->Float(0);
+            if (beatSum
+                < beat3 - sSongCollisionAbortSuppressedShotIfAnotherWithinXBeats) {
+                ReactToCollision_MoveShot(keyIdx2, beat3);
+            } else {
+                ReactToCollision_MoveShot(keyIdx2, beat2);
+            }
+        }
+    }
+    return true;
+}
+
+void HamDirector::UnloadMergers() {
+    if (mMerger) {
+        mMerger->Clear();
+        mMoveMerger->Clear();
+        if (TheHamWardrobe) {
+            for (int i = 0; i < 2; i++) {
+                HamCharacter *hc = TheHamWardrobe->GetCharacter(i);
+                if (hc) {
+                    hc->UnloadAll();
+                }
+            }
+            int i = 0;
+            while (true) {
+                HamCharacter *hc = TheHamWardrobe->GetBackup(i);
+                i++;
+                if (!hc)
+                    break;
+                hc->UnloadAll();
+            }
+            TheHamWardrobe->ClearCrowdClips();
+        }
+        unk370.clear();
+    }
+}
+
+void HamDirector::UnloadAll() {
+    AutoGlitchReport report(50, "HamDirector::UnloadAll");
+    TheMoveMgr->Clear();
+    UnloadMergers();
 }
