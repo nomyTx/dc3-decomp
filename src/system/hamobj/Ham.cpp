@@ -8,6 +8,7 @@
 #include "MoveGraph.h"
 #include "PoseFatalities.h"
 #include "SongCollision.h"
+#include "gesture/Gesture.h"
 #include "hamobj/BustAMoveData.h"
 #include "hamobj/CamShotCatVO.h"
 #include "hamobj/CrazeHollaback.h"
@@ -57,12 +58,12 @@ void HamTerminate() {
     DataArray *dataMacro = DataGetMacro("INIT_HAM");
     if (dataMacro) {
         ObjectDir::Terminate();
-        // GestureTerminate();
+        GestureTerminate();
     }
 }
 
 void HamInit() {
-    // GestureInit();
+    GestureInit();
     DataArray *dataMacro = DataGetMacro("INIT_HAM");
     if (dataMacro) {
         REGISTER_OBJ_FACTORY(CharFeedback);

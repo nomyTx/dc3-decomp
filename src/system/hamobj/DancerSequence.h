@@ -2,6 +2,7 @@
 #include "hamobj/DancerSkeleton.h"
 #include "obj/Object.h"
 #include "rndobj/Anim.h"
+#include "utl/MemMgr.h"
 
 // size 0x2dc
 struct DancerFrame {
@@ -26,6 +27,7 @@ public:
     virtual float StartFrame() { return 0; }
     virtual float EndFrame();
 
+    OBJ_MEM_OVERLOAD(0x1E);
     NEW_OBJ(DancerSequence);
 
     const std::vector<DancerFrame> &GetDancerFrames() const;
