@@ -18,6 +18,265 @@ const float CharClip::kBeatAccuracy = 0.02;
 CharClip::FacingSet::FacingBones CharClip::FacingSet::sFacingPos;
 CharClip::FacingSet::FacingBones CharClip::FacingSet::sFacingRotAndPos;
 
+#pragma region Transitions
+
+bool CharClip::Transitions::Replace(ObjRef *from, Hmx::Object *to) {
+    NodeVector *vector = reinterpret_cast<NodeVector *>(from); // i guess?
+    if (!vector->clip.SetObj(to)) {
+        RemoveNodes(vector);
+    }
+    return true;
+}
+
+void CharClip::Transitions::Clear() {
+    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
+        it->clip->~CharClip(); // scalar deleting dtor gets called here
+    }
+    Resize(0, nullptr);
+}
+
+int CharClip::Transitions::Size() const {
+    int size = 0;
+    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
+        size++;
+    }
+    return size;
+}
+
+CharClip::NodeVector *CharClip::Transitions::Resize(int size, const NodeVector *old) {
+    static int _x = MemFindHeap("char");
+    MemHeapTracker temp(_x);
+    int n = (int)old - (int)mNodeStart;
+    MILO_ASSERT((old == NULL) || (n >= 0), 0x9B);
+    if (size != BytesInMemory()) {
+        if (size == 0) {
+            MemFree(mNodeStart);
+            mNodeStart = nullptr;
+            MILO_ASSERT(old == NULL, 0xA8);
+        } else if (size < BytesInMemory()) {
+            mNodeStart = (NodeVector *)MemTruncate(mNodeStart, size);
+        } else {
+            mNodeStart = (NodeVector *)MemRealloc(
+                mNodeStart, size, __FILE__, 0xB0, "CharGraphNode", 0
+            );
+        }
+    }
+    mNodeEnd = mNodeStart + size;
+    return mNodeStart + n;
+}
+
+CharClip::NodeVector *CharClip::Transitions::GetNodes(int idx) const {
+    NodeVector *ret = mNodeStart;
+    for (; idx > 0; idx--)
+        ret = ret->Next();
+    return ret;
+}
+
+CharClip::NodeVector *CharClip::Transitions::FindNodes(CharClip *clip) const {
+    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
+        if (it->clip == clip)
+            return it;
+    }
+    return nullptr;
+}
+
+void CharClip::Transitions::RemoveClip(CharClip *clip) {
+    NodeVector *it;
+    for (it = mNodeStart; it < mNodeEnd; it = it->Next()) {
+        if (it->clip == clip) {
+            goto uhm_ackshually;
+        }
+    }
+    it = nullptr;
+uhm_ackshually:
+    if (it)
+        RemoveNodes(it);
+}
+
+void CharClip::Transitions::RemoveNodes(NodeVector *n) {
+    MILO_ASSERT(n, 0xEC);
+    NodeVector *next = n->Next();
+    memmove(n, next, (int)mNodeEnd - (int)next);
+    Resize(BytesInMemory() - ((int)next - (int)n), nullptr);
+    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
+        it->clip->Release(nullptr);
+    }
+}
+
+void CharClip::Transitions::Save(BinStream &bs) {
+    int num_nodes = 0;
+    int num_node_vectors = 0;
+    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
+        num_node_vectors++;
+        num_nodes += it->size;
+    }
+    bs << num_nodes;
+    bs << num_node_vectors;
+    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
+        bs << it->clip->Name();
+        bs << it->size;
+        for (int i = 0; i < it->size; i++) {
+            bs << it->nodes[i].curBeat;
+            bs << it->nodes[i].nextBeat;
+        }
+    }
+}
+
+void CharClip::Transitions::Load(BinStreamRev &d, int oldRev) {
+    Clear();
+    static ObjectDir *sDir;
+    if (oldRev < 8) {
+        int num;
+        d >> num;
+        if (num > 0 && mOwner->Dir() != sDir) {
+            MILO_LOG(
+                "NOTIFY: %s has old clip format, should resave\n", PathName(mOwner->Dir())
+            );
+            sDir = mOwner->Dir();
+        }
+        for (int i = 0; i < num; i++) {
+            char buf[0x100];
+            d.stream.ReadString(buf, 0x100);
+            CharClip *clip = mOwner->Dir()->Find<CharClip>(buf, false);
+            int num2;
+            d >> num2;
+            for (int j = 0; j < num2; j++) {
+                CharGraphNode node;
+                d >> node.curBeat;
+                d >> node.nextBeat;
+                if (clip) {
+                    AddNode(clip, node);
+                }
+            }
+        }
+    } else {
+        int temp, numNodes;
+        d >> temp;
+        d >> numNodes;
+        if (d.rev < 0x14) {
+            temp /= 8;
+        }
+        NodeVector *start =
+            (NodeVector *)_MemAllocTemp(temp, __FILE__, 0x4CB, "CharGraphNode", 0);
+        NodeVector *it = start;
+
+        for (int i = 0; i < numNodes; i++) {
+            char buf[0x100];
+            d.stream.ReadString(buf, 0x100);
+            CharClip *clip = mOwner->Dir()->Find<CharClip>(buf, false);
+            if (clip) {
+                it->clip = clip;
+                d >> it->size;
+                for (int j = 0; j < it->size; j++) {
+                    d >> it->nodes[j].curBeat;
+                    d >> it->nodes[j].nextBeat;
+                }
+                it = it->Next();
+            } else {
+                int count;
+                d >> count;
+                for (int j = 0; j < count; j++) {
+                    int x, y;
+                    d >> x;
+                    d >> y;
+                }
+            }
+        }
+        Resize((int)it - (int)start, nullptr);
+        memcpy(mNodeStart, start, BytesInMemory());
+        for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
+            it->clip->Release(nullptr);
+        }
+        MemFree(start);
+    }
+}
+
+#pragma endregion
+#pragma region FacingSet
+
+void CharClip::FacingSet::Init() {
+    sFacingPos.Set(false);
+    sFacingRotAndPos.Set(true);
+}
+
+void CharClip::FacingSet::Set(CharBonesSamples &samples) {
+    mFacingBones = nullptr;
+    mFullRot = -1;
+    mFullPos = samples.FindOffset("bone_facing.pos");
+    if (mFullPos != -1) {
+        mFullRot = samples.FindOffset("bone_facing.rotz");
+        mFacingBones = mFullRot == -1 ? &sFacingPos : &sFacingRotAndPos;
+    }
+}
+
+void CharClip::FacingSet::ListBones(std::list<CharBones::Bone> &bones) {
+    if (mFacingBones) {
+        mFacingBones->SetWeights(mWeight);
+        mFacingBones->ListBones(bones);
+    }
+}
+
+void CharClip::FacingSet::ScaleAddSample(
+    CharBonesSamples &samples,
+    CharBones &bones,
+    float f1,
+    int i1,
+    float f2,
+    int i2,
+    float f3
+) {
+    if (mFacingBones) {
+        Vector3 v;
+        samples.EvaluateChannel(&v, mFullPos, i1, f2);
+        samples.EvaluateChannel(&mFacingBones->mDeltaPos, mFullPos, i2, f3);
+        Subtract(v, mFacingBones->mDeltaPos, mFacingBones->mDeltaPos);
+        if (mFullRot != -1) {
+            float f64, f68;
+            samples.EvaluateChannel(&f64, mFullRot, i1, f2);
+            samples.EvaluateChannel(&f68, mFullRot, i2, f3);
+            mFacingBones->mDeltaAng = LimitAng(f64 - f68);
+            RotateAboutZ(mFacingBones->mDeltaPos, -f68, mFacingBones->mDeltaPos);
+        }
+        mFacingBones->SetWeights(f1);
+        mFacingBones->ScaleAdd(bones, f1);
+    }
+}
+
+void CharClip::FacingSet::ScaleDown(CharBones &bones, float f) {
+    if (mFacingBones)
+        mFacingBones->ScaleDown(bones, f);
+}
+
+void CharClip::FacingSet::FacingBones::ReallocateInternal() {
+    mStart = (char *)&mDeltaPos;
+}
+
+void CharClip::FacingSet::FacingBones::Set(bool b) {
+    ClearBones();
+    std::list<CharBones::Bone> bones;
+    bones.push_back(CharBones::Bone("bone_facing_delta.pos", 1));
+    if (b) {
+        bones.push_back(CharBones::Bone("bone_facing_delta.rotz", 1));
+    }
+    AddBones(bones);
+}
+
+#pragma endregion
+#pragma region BeatEvent
+
+void CharClip::BeatEvent::Save(BinStream &bs) {
+    bs << event;
+    bs << beat;
+}
+
+void CharClip::BeatEvent::Load(BinStream &bs) {
+    bs >> event;
+    bs >> beat;
+}
+
+#pragma endregion
+#pragma region CharClip
+
 CharClip::CharClip()
     : mTransitions(this), mFramesPerSec(30), mFlags(0), mPlayFlags(0), mRange(0),
       mRelative(this), mDirty(true), mOldVer(-1), mDoNotCompress(false), mSyncAnim(this),
@@ -223,185 +482,6 @@ void CharClip::Print() {
 void CharClip::SetTypeDef(DataArray *def) {
     Hmx::Object::SetTypeDef(def);
     mDirty = true;
-}
-
-void CharClip::Transitions::Clear() {
-    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
-        it->clip->~CharClip(); // scalar deleting dtor gets called here
-    }
-    Resize(0, nullptr);
-}
-
-int CharClip::Transitions::Size() const {
-    int size = 0;
-    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
-        size++;
-    }
-    return size;
-}
-
-CharClip::NodeVector *CharClip::Transitions::Resize(int size, const NodeVector *old) {
-    static int _x = MemFindHeap("char");
-    MemHeapTracker temp(_x);
-    int n = (int)old - (int)mNodeStart;
-    MILO_ASSERT((old == NULL) || (n >= 0), 0x9B);
-    if (size != BytesInMemory()) {
-        if (size == 0) {
-            MemFree(mNodeStart);
-            mNodeStart = nullptr;
-            MILO_ASSERT(old == NULL, 0xA8);
-        } else if (size < BytesInMemory()) {
-            mNodeStart = (NodeVector *)MemTruncate(mNodeStart, size);
-        } else {
-            mNodeStart = (NodeVector *)MemRealloc(
-                mNodeStart, size, __FILE__, 0xB0, "CharGraphNode", 0
-            );
-        }
-    }
-    mNodeEnd = mNodeStart + size;
-    return mNodeStart + n;
-}
-
-CharClip::NodeVector *CharClip::Transitions::GetNodes(int idx) const {
-    NodeVector *ret = mNodeStart;
-    for (; idx > 0; idx--)
-        ret = ret->Next();
-    return ret;
-}
-
-CharClip::NodeVector *CharClip::Transitions::FindNodes(CharClip *clip) const {
-    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
-        if (it->clip == clip)
-            return it;
-    }
-    return nullptr;
-}
-
-void CharClip::Transitions::RemoveClip(CharClip *clip) {
-    NodeVector *it;
-    for (it = mNodeStart; it < mNodeEnd; it = it->Next()) {
-        if (it->clip == clip) {
-            goto uhm_ackshually;
-        }
-    }
-    it = nullptr;
-uhm_ackshually:
-    if (it)
-        RemoveNodes(it);
-}
-
-bool CharClip::Transitions::Replace(ObjRef *ref, Hmx::Object *obj) {
-    NodeVector *vector = reinterpret_cast<NodeVector *>(ref); // i guess?
-    if (!vector->clip.SetObj(obj)) {
-        RemoveNodes(vector);
-    }
-    return true;
-}
-
-void CharClip::Transitions::RemoveNodes(NodeVector *n) {
-    MILO_ASSERT(n, 0xEC);
-    NodeVector *next = n->Next();
-    memmove(n, next, (int)mNodeEnd - (int)next);
-    Resize(BytesInMemory() - ((int)next - (int)n), nullptr);
-    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
-        it->clip->Release(nullptr);
-    }
-}
-
-void CharClip::Transitions::Save(BinStream &bs) {
-    int num_nodes = 0;
-    int num_node_vectors = 0;
-    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
-        num_node_vectors++;
-        num_nodes += it->size;
-    }
-    bs << num_nodes;
-    bs << num_node_vectors;
-    for (NodeVector *it = mNodeStart; it < mNodeEnd; it = it->Next()) {
-        bs << it->clip->Name();
-        bs << it->size;
-        for (int i = 0; i < it->size; i++) {
-            bs << it->nodes[i].curBeat;
-            bs << it->nodes[i].nextBeat;
-        }
-    }
-}
-
-void CharClip::FacingSet::Init() {
-    sFacingPos.Set(false);
-    sFacingRotAndPos.Set(true);
-}
-
-void CharClip::FacingSet::Set(CharBonesSamples &samples) {
-    mFacingBones = nullptr;
-    mFullRot = -1;
-    mFullPos = samples.FindOffset("bone_facing.pos");
-    if (mFullPos != -1) {
-        mFullRot = samples.FindOffset("bone_facing.rotz");
-        mFacingBones = mFullRot == -1 ? &sFacingPos : &sFacingRotAndPos;
-    }
-}
-
-void CharClip::FacingSet::ListBones(std::list<CharBones::Bone> &bones) {
-    if (mFacingBones) {
-        mFacingBones->SetWeights(mWeight);
-        mFacingBones->ListBones(bones);
-    }
-}
-
-void CharClip::FacingSet::ScaleAddSample(
-    CharBonesSamples &samples,
-    CharBones &bones,
-    float f1,
-    int i1,
-    float f2,
-    int i2,
-    float f3
-) {
-    if (mFacingBones) {
-        Vector3 v;
-        samples.EvaluateChannel(&v, mFullPos, i1, f2);
-        samples.EvaluateChannel(&mFacingBones->mDeltaPos, mFullPos, i2, f3);
-        Subtract(v, mFacingBones->mDeltaPos, mFacingBones->mDeltaPos);
-        if (mFullRot != -1) {
-            float f64, f68;
-            samples.EvaluateChannel(&f64, mFullRot, i1, f2);
-            samples.EvaluateChannel(&f68, mFullRot, i2, f3);
-            mFacingBones->mDeltaAng = LimitAng(f64 - f68);
-            RotateAboutZ(mFacingBones->mDeltaPos, -f68, mFacingBones->mDeltaPos);
-        }
-        mFacingBones->SetWeights(f1);
-        mFacingBones->ScaleAdd(bones, f1);
-    }
-}
-
-void CharClip::FacingSet::FacingBones::Set(bool b) {
-    ClearBones();
-    std::list<CharBones::Bone> bones;
-    bones.push_back(CharBones::Bone("bone_facing_delta.pos", 1));
-    if (b) {
-        bones.push_back(CharBones::Bone("bone_facing_delta.rotz", 1));
-    }
-    AddBones(bones);
-}
-
-void CharClip::FacingSet::ScaleDown(CharBones &bones, float f) {
-    if (mFacingBones)
-        mFacingBones->ScaleDown(bones, f);
-}
-
-void CharClip::FacingSet::FacingBones::ReallocateInternal() {
-    mStart = (char *)&mDeltaPos;
-}
-
-void CharClip::BeatEvent::Save(BinStream &bs) {
-    bs << event;
-    bs << beat;
-}
-
-void CharClip::BeatEvent::Load(BinStream &bs) {
-    bs >> event;
-    bs >> beat;
 }
 
 void CharClip::Init() {
@@ -725,20 +805,19 @@ void CharClip::ApplyBlendedSkeletons(
     float f7 = 0;
     std::map<int, float> &curMap = unk18c[sample];
     float f6 = 1;
-    for (std::map<int, float>::iterator it = curMap.begin(); it != curMap.end(); ++it) {
+    FOREACH (it, curMap) {
         clips[it->first]->ScaleAdd(bones, (f6 - f60) * it->second * f2, f7, f7);
     }
     if (f7 < f60) {
         std::map<int, float> &nextMap = unk18c[sample + 1];
-        for (std::map<int, float>::iterator it = nextMap.begin(); it != nextMap.end();
-             ++it) {
+        FOREACH (it, nextMap) {
             clips[it->first]->ScaleAdd(bones, f60 * it->second * f2, f7, f7);
         }
     }
 }
 
 bool CharClip::SharesGroups(CharClip *clip) {
-    for (ObjRef::iterator it = mRefs.begin(); it != mRefs.end(); ++it) {
+    FOREACH (it, mRefs) {
         Hmx::Object *owner = it->RefOwner();
         CharClipGroup *group = dynamic_cast<CharClipGroup *>(owner);
         if (group && group->HasClip(clip))
@@ -749,7 +828,7 @@ bool CharClip::SharesGroups(CharClip *clip) {
 
 int CharClip::InGroups() {
     int num = 0;
-    for (ObjRef::iterator it = mRefs.begin(); it != mRefs.end(); ++it) {
+    FOREACH (it, mRefs) {
         Hmx::Object *owner = it->RefOwner();
         CharClipGroup *group = dynamic_cast<CharClipGroup *>(owner);
         if (group)
@@ -760,7 +839,7 @@ int CharClip::InGroups() {
 
 DataNode CharClip::OnGroups(DataArray *) {
     DataArray *groups = new DataArray(0);
-    for (ObjRef::iterator it = mRefs.begin(); it != mRefs.end(); ++it) {
+    FOREACH (it, mRefs) {
         Hmx::Object *owner = it->RefOwner();
         CharClipGroup *group = dynamic_cast<CharClipGroup *>(owner);
         if (group) {
@@ -774,7 +853,7 @@ DataNode CharClip::OnGroups(DataArray *) {
 
 DataNode CharClip::OnHasGroup(DataArray *arr) {
     const char *str = arr->Str(2);
-    for (ObjRef::iterator it = mRefs.begin(); it != mRefs.end(); ++it) {
+    FOREACH (it, mRefs) {
         Hmx::Object *owner = it->RefOwner();
         CharClipGroup *group = dynamic_cast<CharClipGroup *>(owner);
         if (group && streq(group->Name(), str))
@@ -795,4 +874,8 @@ CharBoneDir *CharClip::GetResource() const {
         MILO_NOTIFY("%s has no resource", PathName(this));
     }
     return dir;
+}
+
+void CharClip::LockAndDelete(CharClip **const clips, int i2, int remaining) {
+    MILO_ASSERT(remaining >= 0, 0x42A);
 }

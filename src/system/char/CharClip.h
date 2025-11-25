@@ -48,7 +48,9 @@ public:
         void Save(BinStream &);
         void Load(BinStreamRev &, int);
         void RemoveClip(CharClip *);
+        void AddNode(CharClip *, const CharGraphNode &);
 
+    private:
         NodeVector *mNodeStart; // 0x4
         NodeVector *mNodeEnd; // 0x8
         Hmx::Object *mOwner; // 0xc
@@ -214,7 +216,7 @@ public:
 
     static const float kBeatAccuracy;
     static DataNode GetClipEvents();
-    static void LockAndDelete(const CharClip **, int, int);
+    static void LockAndDelete(CharClip **const, int, int);
 
     static void SetDefaultBlendFlag(int &mask, int blendFlag) {
         mask = mask & 0xfffffff0 | blendFlag;
