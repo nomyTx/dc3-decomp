@@ -26,7 +26,8 @@ public:
         };
 
         Merger(Hmx::Object *o)
-            : mProxy(0), mPreClear(0), mSubdirs(MergeFilter::kSubdir4), mDir(o),
+            : mProxy(0), mPreClear(0),
+              mSubdirs(MergeFilter::kMergeInlinedMoveSharedSubdirs), mDir(o),
               mLoadedObjects(o), mLoadedSubdirs(o) {}
         Merger(const Merger &m)
             : mDir(m.mDir.Owner()), mLoadedObjects(m.mLoadedObjects.Owner()),
@@ -71,17 +72,26 @@ public:
 
         bool IsProxy() const { return mProxy; }
 
+        /** "Name of the merger, just for identification" */
         Symbol mName; // 0x0
         Symbol filler; // 0x4
+        /** "The file you want to merge" */
         FilePath mSelected; // 0x8
         FilePath loading; // 0x10
+        /** "currently loaded file" */
         FilePath mLoaded; // 0x18
+        /** "If true, merges the Dir in as a proxy, rather than the individual objects" */
         bool mProxy; // 0x20
         bool unk21; // 0x21
+        /** "Delete the old objects right at StartLoad time" */
         bool mPreClear; // 0x22
+        /** "How to treat subdirs in the source" */
         MergeFilter::Subdirs mSubdirs; // 0x24
+        /** "Dir to merge into, proxy, for instance" */
         ObjPtr<ObjectDir> mDir; // 0x28
+        /** "loaded objects that will be deleted when file changes" */
         ObjPtrList<Hmx::Object> mLoadedObjects; // 0x3c
+        /** "moved subdirs that will be removed when file changes" */
         ObjPtrList<ObjectDir> mLoadedSubdirs; // 0x50
     };
     // Hmx::Object

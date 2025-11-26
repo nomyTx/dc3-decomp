@@ -22,13 +22,13 @@ MergeFilter::DefaultSubdirAction(ObjectDir *dir, Subdirs subdirs) {
         return kMergeKeep;
     case kAllSubdirs:
         return kMergeMerge;
-    case kSubdir3:
+    case kMoveAllSubdirs:
         return kMergeReplace;
     case kInlineSubdirs:
         if (dir->InlineSubDirType() == kInlineNever
             || dir->InlineSubDirType() == kInlineCachedShared)
             return kMergeKeep;
-    case kSubdir4:
+    case kMergeInlinedMoveSharedSubdirs:
         if (dir->InlineSubDirType() == kInlineNever
             || dir->InlineSubDirType() == kInlineCachedShared)
             return kMergeReplace;

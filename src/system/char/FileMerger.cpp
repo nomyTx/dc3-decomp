@@ -23,15 +23,25 @@ class NullLoader : public Loader {
 public:
     NullLoader(const FilePath &fp, LoaderPos pos, Loader::Callback *cb)
         : Loader(fp, pos), mCallback(cb) {}
-    virtual ~NullLoader();
-    virtual const char *DebugText();
+    virtual ~NullLoader() {
+        if (mCallback)
+            mCallback->FailedLoading(this);
+    }
+    virtual const char *DebugText() {
+        return MakeString("NullLoader: %s", mFile.c_str());
+    }
     virtual bool IsLoaded() const { return false; }
-    virtual const char *StateName() const;
-    virtual void PollLoading();
+    virtual const char *StateName() const { return "NullLoader"; }
 
     POOL_OVERLOAD(NullLoader, 0x1F);
 
-private:
+protected:
+    virtual void PollLoading() {
+        mCallback->FinishLoading(this);
+        mCallback = nullptr;
+        delete this;
+    }
+
     Loader::Callback *mCallback; // 0x18
 };
 
@@ -144,7 +154,22 @@ END_LOADS
 void FileMerger::PreSave(BinStream &) { Clear(); }
 void FileMerger::PostSave(BinStream &) { StartLoadInternal(false, false); }
 
-BinStreamRev &operator>>(BinStreamRev &, FileMerger::Merger &);
+BinStreamRev &operator>>(BinStreamRev &d, FileMerger::Merger &fm) {
+    d >> fm.mName;
+    d >> fm.mSelected;
+    d >> fm.mLoaded;
+    d >> fm.mDir;
+    if (d.rev > 0) {
+        if (d.rev != 4) {
+            d >> fm.mProxy;
+        }
+        d >> (int &)fm.mSubdirs;
+        if (d.rev > 2) {
+            d >> fm.mPreClear;
+        }
+    }
+    return d;
+}
 
 void FileMerger::PreLoad(BinStream &bs) {
     LOAD_REVS(bs)
@@ -243,8 +268,8 @@ void FileMerger::Clear() {
 
 bool FileMerger::StartLoad(bool b) { return StartLoadInternal(b, false); }
 
-FileMerger::Merger *FileMerger::FindMerger(Symbol s, bool b) {
-    int idx = FindMergerIndex(s, b);
+FileMerger::Merger *FileMerger::FindMerger(Symbol name, bool warn) {
+    int idx = FindMergerIndex(name, warn);
     if (idx != -1) {
         return &mMergers[idx];
     } else {
@@ -376,8 +401,8 @@ next:
     }
 }
 
-void FileMerger::Select(Symbol s, const FilePath &fp, bool b3) {
-    Merger *merger = FindMerger(s, true);
+void FileMerger::Select(Symbol name, const FilePath &fp, bool b3) {
+    Merger *merger = FindMerger(name, true);
     if (merger) {
         merger->SetSelected(fp, b3);
     }
@@ -387,12 +412,12 @@ struct FileMergerSort {
     bool operator()(const FileMerger::Merger *, const FileMerger::Merger *) const;
 };
 
-bool FileMerger::StartLoadInternal(bool b1, bool b2) {
-    mAsyncLoad = b1;
-    mLoadingLoad = b2;
+bool FileMerger::StartLoadInternal(bool async, bool loading) {
+    mAsyncLoad = async;
+    mLoadingLoad = loading;
     static Message msg("change_files", 0, 0);
-    msg[0] = b1;
-    msg[1] = b2;
+    msg[0] = async;
+    msg[1] = loading;
     HandleType(msg);
     for (int i = 0; i < mMergers.size(); i++) {
         Merger &cur = mMergers[i];
@@ -411,7 +436,7 @@ bool FileMerger::StartLoadInternal(bool b1, bool b2) {
     if (mFilesPending.empty() || mCurLoader || mOrganizer != this)
         return false;
     else {
-        if (b1) {
+        if (async) {
             // TheFileMergerOrganizer->AddFileMerger(this);
         } else {
             LaunchNextLoader();

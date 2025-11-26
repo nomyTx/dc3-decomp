@@ -150,11 +150,16 @@ public:
         kMergeIgnore
     };
     enum Subdirs {
+        /** "don't merge subdir contents over" */
         kNoSubdirs,
+        /** "merge all subdir contents" */
         kAllSubdirs,
+        /** "merge only inlined subdir contents, ignore shared subdirs" */
         kInlineSubdirs,
-        kSubdir3,
-        kSubdir4
+        /** "move all subdirs over into the dst" */
+        kMoveAllSubdirs,
+        /** "merge contents of inlined subdirs, move shared ones." */
+        kMergeInlinedMoveSharedSubdirs
     };
 
     MergeFilter() : mAction((Action)0), mSubdirs(kNoSubdirs) {}
