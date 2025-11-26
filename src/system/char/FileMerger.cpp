@@ -1,15 +1,39 @@
 #include "char/FileMerger.h"
+#include "CharClipGroup.h"
+#include "char/CharPollGroup.h"
 #include "obj/Dir.h"
 #include "obj/DirLoader.h"
 #include "obj/Msg.h"
 #include "obj/Object.h"
 #include "obj/Utl.h"
 #include "os/Debug.h"
+#include "rndobj/Group.h"
+#include "rndobj/Mat.h"
 #include "rndobj/Rnd.h"
+#include "rndobj/Tex.h"
 #include "utl/BinStream.h"
 #include "utl/FilePath.h"
+#include "utl/Loader.h"
+#include "utl/MemMgr.h"
+#include "utl/PoolAlloc.h"
 
 FileMerger *FileMerger::sFmDeleting;
+
+class NullLoader : public Loader {
+public:
+    NullLoader(const FilePath &fp, LoaderPos pos, Loader::Callback *cb)
+        : Loader(fp, pos), mCallback(cb) {}
+    virtual ~NullLoader();
+    virtual const char *DebugText();
+    virtual bool IsLoaded() const { return false; }
+    virtual const char *StateName() const;
+    virtual void PollLoading();
+
+    POOL_OVERLOAD(NullLoader, 0x1F);
+
+private:
+    Loader::Callback *mCallback; // 0x18
+};
 
 void FileMerger::Merger::Clear(bool b1) {
     mLoaded.Set(FilePath::Root().c_str(), "");
@@ -269,4 +293,234 @@ void FileMerger::DeleteCurLoader() {
         //     d->unk99 = true;
         delete mCurLoader;
     }
+}
+
+MergeFilter::Action
+FileMerger::MergeAction(Hmx::Object *o1, Hmx::Object *o2, ObjectDir *dir) {
+    if (!o2) {
+        return (Action)1;
+    }
+    const char *name = o1->Name();
+    DirLoader *dl = static_cast<DirLoader *>(mCurLoader);
+    ObjectDir *dlDir = dl->GetDir();
+    if (o1 == dlDir) {
+        o2->MergeSinks(dlDir);
+        return (Action)2;
+    } else {
+        if (strnicmp("spot_", name, 5) == 0 || strnicmp("bone_", name, 5) == 0
+            || dynamic_cast<RndGroup *>(o2) || dynamic_cast<CharClipGroup *>(o2)
+            || dynamic_cast<CharPollGroup *>(o2)) {
+            return (Action)0;
+        }
+        if (!dynamic_cast<RndMat *>(o2)) {
+            RndTex *tex = dynamic_cast<RndTex *>(o2);
+            if (tex && !tex->File().empty()) {
+                MILO_LOG(
+                    "%s replacing texture %s with %s\n",
+                    PathName(this),
+                    PathName(o2),
+                    PathName(o1)
+                );
+            } else {
+                if (o2->Dir() != dir) {
+                    MILO_NOTIFY(
+                        "%s trying to replace subdir'd object %s with %s, bad because subdirs are shared",
+                        PathName(this),
+                        PathName(o2),
+                        PathName(o1)
+                    );
+                    return (Action)2;
+                }
+            }
+            return (Action)1;
+        }
+    }
+    return (Action)2;
+}
+
+bool FileMerger::NeedsLoading(FileMerger::Merger &merger) {
+    FOREACH (it, mFilesPending) {
+        if (*it == &merger) {
+            return merger.mSelected != merger.loading || merger.unk21;
+        }
+    }
+    return merger.mLoaded != merger.mSelected || merger.unk21;
+}
+
+void FileMerger::LaunchNextLoader() {
+    MILO_ASSERT(!mFilesPending.empty(), 0x182);
+    MILO_ASSERT(!mCurLoader, 0x183);
+    bool b1 = false;
+    if (Dir()->Loader() && !Dir()->Loader()->IsLoaded()) {
+        if (Dir()->Loader()->GetPos() != kLoadStayBack) {
+            if (Dir()->Loader()->GetPos() != kLoadFrontStayBack)
+                goto next;
+        }
+        b1 = true;
+    }
+
+next:
+    int pos = 0;
+    if (b1)
+        pos = 2;
+    FilePath &fp = mFilesPending.front()->loading;
+    MemHeapTracker tmp(mHeap);
+    if (fp.empty()) {
+        mCurLoader = new NullLoader(fp, (LoaderPos)pos, mOrganizer);
+    } else if (DirLoader::ShouldBlockSubdirLoad(fp)) {
+        mCurLoader = new NullLoader(fp, (LoaderPos)pos, mOrganizer);
+    } else {
+        mCurLoader = new DirLoader(
+            fp, (LoaderPos)pos, mOrganizer, nullptr, nullptr, false, nullptr
+        );
+    }
+}
+
+void FileMerger::Select(Symbol s, const FilePath &fp, bool b3) {
+    Merger *merger = FindMerger(s, true);
+    if (merger) {
+        merger->SetSelected(fp, b3);
+    }
+}
+
+struct FileMergerSort {
+    bool operator()(const FileMerger::Merger *, const FileMerger::Merger *) const;
+};
+
+bool FileMerger::StartLoadInternal(bool b1, bool b2) {
+    mAsyncLoad = b1;
+    mLoadingLoad = b2;
+    static Message msg("change_files", 0, 0);
+    msg[0] = b1;
+    msg[1] = b2;
+    HandleType(msg);
+    for (int i = 0; i < mMergers.size(); i++) {
+        Merger &cur = mMergers[i];
+        if (NeedsLoading(cur)) {
+            AppendLoader(cur);
+        }
+    }
+    Merger *tmp = nullptr;
+    if (mCurLoader) {
+        tmp = mFilesPending.front();
+        mFilesPending.pop_front();
+    }
+    mFilesPending.sort(FileMergerSort());
+    if (mCurLoader)
+        mFilesPending.push_front(tmp);
+    if (mFilesPending.empty() || mCurLoader || mOrganizer != this)
+        return false;
+    else {
+        if (b1) {
+            // TheFileMergerOrganizer->AddFileMerger(this);
+        } else {
+            LaunchNextLoader();
+            while (!mFilesPending.empty()) {
+                TheLoadMgr.Poll();
+            }
+        }
+        return true;
+    }
+}
+
+FileMerger::Merger *FileMerger::NotifyFileLoaded(Loader *l, DirLoader *dl) {
+    MILO_ASSERT_FMT(
+        l->LoaderFile() == mFilesPending.front()->loading,
+        "%s != %s",
+        l->LoaderFile(),
+        mFilesPending.front()->loading
+    );
+    MILO_ASSERT(l == mCurLoader, 0x217);
+    Merger *m = mFilesPending.front();
+    m->Clear(false);
+    if (!sDisableAll) {
+        static Message msg("on_pre_merge", 0, 0, 0);
+        msg[0] = m->mName;
+        ObjectDir *dir = dl ? dl->GetDir() : nullptr;
+        msg[1] = dir;
+        msg[2] = m->MergerDir();
+        HandleType(msg);
+        m->mLoaded = m->loading;
+        m->loading.SetRoot("");
+    }
+    return m;
+}
+
+void FileMerger::AppendLoader(FileMerger::Merger &merger) {
+    merger.unk21 = false;
+    FOREACH (it, mFilesPending) {
+        if (*it == &merger) {
+            if (mCurLoader) {
+                if (it == mFilesPending.begin()) {
+                    DeleteCurLoader();
+                    break;
+                }
+            }
+            mFilesPending.erase(it);
+            break;
+        }
+    }
+    merger.loading = merger.mSelected;
+    if (merger.mPreClear)
+        merger.Clear(!mAsyncLoad);
+    mFilesPending.push_back(&merger);
+    if (TheLoadMgr.EditMode()) {
+        static Message checkSync("check_sync", "", "");
+        checkSync[0] = merger.loading;
+        checkSync[1] = merger.mName;
+        HandleType(checkSync);
+    }
+}
+
+void FileMerger::PostMerge(FileMerger::Merger *merger, DirLoader *dl, bool b3) {
+    mCurLoader = nullptr;
+    mFilesPending.pop_front();
+    mFilter = nullptr;
+    if (b3) {
+        {
+            static Message msg("on_post_merge", 0, 0, 0);
+            msg[0] = merger->mName;
+            ObjectDir *dir = dl ? dl->GetDir() : nullptr;
+            msg[1] = dir;
+            msg[2] = merger->MergerDir();
+            HandleType(msg);
+        }
+        if (dl) {
+            if (!merger->mProxy) {
+                ObjectDir *dir = dl->GetDir();
+                if (dir) {
+                    delete dir;
+                }
+            } else {
+                delete dl;
+            }
+        }
+        {
+            static Message msg("on_post_delete", 0, 0, 0);
+            msg[0] = merger->mName;
+            msg[1] = merger->MergerDir();
+            msg[2] = mFilesPending.empty();
+            HandleType(msg);
+        }
+    }
+    if (b3 || mOrganizer == this) {
+        if (mFilesPending.empty()) {
+            MILO_ASSERT(!mCurLoader, 0x290);
+        } else if (!mCurLoader)
+            LaunchNextLoader();
+    }
+    if (!b3 && dl && !dl->IsLoaded()) {
+        dl->SetDeleteSelf(true);
+    }
+}
+
+DataNode FileMerger::OnSelect(const DataArray *a) {
+    FilePath fp(a->Str(3));
+    Select(a->Sym(2), fp, false);
+    return 0;
+}
+
+DataNode FileMerger::OnStartLoad(const DataArray *a) {
+    StartLoadInternal(a->Size() == 3 ? a->Int(2) : true, false);
+    return 0;
 }

@@ -130,6 +130,9 @@ protected:
     bool StartLoadInternal(bool, bool);
     Merger *NotifyFileLoaded(Loader *, DirLoader *);
     void PostMerge(Merger *, DirLoader *, bool);
+    bool NeedsLoading(Merger &);
+    void LaunchNextLoader();
+    void AppendLoader(Merger &);
 
     DataNode OnSelect(const DataArray *);
     DataNode OnStartLoad(const DataArray *);
