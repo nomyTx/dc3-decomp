@@ -336,8 +336,10 @@ void Hmx::Object::ChainSource(Hmx::Object *source, Hmx::Object *o2) {
     MILO_ASSERT(source, 0x29D);
     if (!o2)
         o2 = this;
-    if (mSinks) {
-        source->GetOrAddSinks()->AddSink(this, gNullStr);
+    if (mSinks && !mSinks->Sinks().empty()) {
+        source->GetOrAddSinks()->AddSink(this, Symbol());
+    } else if (o2->mSinks) {
+        o2->mSinks->ChainEventSinks(source, this);
     }
 }
 
@@ -352,18 +354,14 @@ void Hmx::Object::ExportPropertyChange(DataArray *a, Symbol s) {
 }
 
 void Hmx::Object::BroadcastPropertyChange(DataArray *a) {
-    Symbol s;
-    if (mSinks) {
-        s = mSinks->GetPropSyncHandler(a);
-    }
-    ExportPropertyChange(a, s);
+    ExportPropertyChange(a, mSinks ? mSinks->GetPropSyncHandler(a) : Symbol());
 }
 
 #pragma endregion
 #pragma region Property Methods
 
 DataArray *GetNextPropPath() {
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < DIM(gPropPaths); i++) {
         if (gPropPaths[i]->RefCount() == 1) {
             return gPropPaths[i];
         }
@@ -572,13 +570,7 @@ void Hmx::Object::RemoveFromDir() {
     }
 }
 
-__declspec(noinline) bool Hmx::Object::HasTypeProps() const {
-    if (mTypeProps) {
-        DataArray *tpMap = mTypeProps->Map();
-        return tpMap && tpMap->Size() != 0;
-    }
-    return false;
-}
+bool Hmx::Object::HasTypeProps() const { return mTypeProps && mTypeProps->HasProps(); }
 
 DataNode Hmx::Object::HandleType(DataArray *msg) {
     Symbol t = msg->Sym(1);
@@ -619,7 +611,7 @@ DataNode Hmx::Object::OnGetTypeList(const DataArray *a) {
         b6 = nullArr->ExecuteScript(1, this, nullptr, 1).Int();
     }
     if (b6) {
-        ptr->Insert(ptr->Size(), gNullStr);
+        ptr->Insert(ptr->Size(), Symbol());
     }
     DataArray *typesArr = def->FindArray("types", false);
     if (typesArr) {

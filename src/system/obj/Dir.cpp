@@ -8,12 +8,10 @@
 #include "obj/DataUtl.h"
 #include "obj/DirLoader.h"
 #include "obj/DirUnloader.h"
-
 #include "obj/Object.h"
 #include "os/Debug.h"
 #include "os/File.h"
 #include "os/System.h"
-#include "stl/_pair.h"
 #include "utl/FilePath.h"
 #include "utl/Loader.h"
 #include "utl/MemMgr.h"
@@ -21,11 +19,233 @@
 #include "utl/Std.h"
 #include "utl/Symbol.h"
 #include "utl/BinStream.h"
+#include <utility>
 
 const char *kNotObjectMsg = "Could not find %s in dir \"%s\"";
 ObjectDir *ObjectDir::sMainDir;
 ObjectDir *gDir;
 std::map<std::pair<Symbol, Symbol>, bool> ObjectDir::sSuperClassMap;
+
+#pragma region Virtual Methods
+
+ObjectDir::ObjectDir()
+    : mHashTable(0, Entry(), Entry(), 0), mStringTable(0), mProxyOverride(false),
+      mInlineProxyType(kInlineCached), mLoader(nullptr), mIsSubDir(false),
+      mInlineSubDirType(kInlineNever), mPathName(gNullStr), mViewports(7),
+      mCurViewportID((ViewportId)0), unk8c(nullptr), mCurCam(nullptr), mAlwaysInlined(0),
+      mAlwaysInlineHash(gNullStr) {
+    ResetViewports();
+}
+
+ObjectDir::~ObjectDir() {
+    mSubDirs.clear();
+    delete mLoader;
+    if (TheLoadMgr.AsyncUnload()) {
+        new DirUnloader(this);
+    } else {
+        DeleteObjects();
+        DeleteSubDirs();
+    }
+    if (!IsProxy()) {
+        SetName(nullptr, nullptr);
+    }
+    if (mPathName != gNullStr) {
+        MemOrPoolFree(strlen(mPathName) + 1, (void *)mPathName);
+    }
+    if (mAlwaysInlineHash != gNullStr) {
+        MemOrPoolFree(strlen(mAlwaysInlineHash) + 1, (void *)mAlwaysInlineHash);
+    }
+}
+
+BEGIN_HANDLERS(ObjectDir)
+    HANDLE_ACTION(iterate, Iterate(_msg, true))
+    HANDLE_ACTION(iterate_self, Iterate(_msg, false))
+    HANDLE_ACTION(save_objects, DirLoader::SaveObjects(_msg->Str(2), this, false))
+    HANDLE(find, OnFind)
+    HANDLE_EXPR(exists, FindObject(_msg->Str(2), false, true) != nullptr)
+    HANDLE_ACTION(sync_objects, SyncObjects())
+    HANDLE_EXPR(is_proxy, IsProxy())
+    HANDLE_EXPR(proxy_dir, mLoader ? mLoader->ProxyDir() : NULL_OBJ)
+    HANDLE_EXPR(
+        proxy_name, mLoader ? (mLoader->ProxyName() ? mLoader->ProxyName() : "") : ""
+    )
+    HANDLE_ACTION(
+        add_names,
+        Reserve(
+            mHashTable.Size() + _msg->Int(2) * 2,
+            mStringTable.Size() + _msg->Int(2) * 0x14
+        )
+    )
+    HANDLE_ACTION(override_proxy, SetProxyFile(_msg->Str(2), true))
+    HANDLE_ACTION(delete_loader, RELEASE(mLoader))
+    HANDLE_ACTION(reset_editor_state, ResetEditorState())
+    HANDLE_EXPR(get_path_name, mPathName)
+    HANDLE_EXPR(get_file_name, FileGetName(mPathName))
+    // "get_file_name"
+    HANDLE_SUPERCLASS(Hmx::Object)
+END_HANDLERS
+
+bool PropSyncSubDirs(
+    std::vector<ObjDirPtr<ObjectDir> > &, DataNode &, DataArray *, int, PropOp
+);
+
+BEGIN_PROPSYNCS(ObjectDir)
+    gDir = this;
+    {
+        static Symbol _s("subdirs");
+        if (sym == _s) {
+            PropSyncSubDirs(mSubDirs, _val, _prop, _i + 1, _op);
+            return true;
+        }
+    }
+    SYNC_PROP_SET(
+        proxy_file,
+        FileRelativePath(FilePath::Root().c_str(), ProxyFile().c_str()),
+        SetProxyFile(_val.Str(), false)
+    )
+    SYNC_PROP(inline_proxy, (int &)mInlineProxyType)
+    SYNC_PROP_SET(path_name, mPathName, )
+    SYNC_SUPERCLASS(Hmx::Object)
+END_PROPSYNCS
+
+inline BinStream &operator<<(BinStream &bs, const ObjectDir::Viewport &v) {
+    bs << v.mXfm;
+    return bs;
+}
+
+void ObjectDir::Save(BinStream &bs) {
+    bs << 0x1C;
+    SaveType(bs);
+    bs << mAlwaysInlined;
+    if (mAlwaysInlineHash && !bs.Cached()) {
+        int len = strlen(mAlwaysInlineHash);
+        bs << len;
+        bs.Write(mAlwaysInlineHash, len);
+    } else {
+        bs << 0;
+    }
+    bs << mViewports;
+    bs << mCurViewportID;
+    bs << mIsSubDir;
+    bs << FileRelativePath(FilePath::Root().c_str(), mProxyFile.c_str());
+    std::vector<ObjDirPtr<ObjectDir> > inlinedSubDirs;
+    std::vector<ObjDirPtr<ObjectDir> > notInlinedSubDirs;
+    if (SaveSubdirs()) {
+        for (int i = 0; i < mSubDirs.size(); i++) {
+            if (mSubDirs[i]) {
+                std::vector<ObjDirPtr<ObjectDir> > &vec =
+                    mSubDirs[i]->InlineSubDirType() ? inlinedSubDirs : notInlinedSubDirs;
+                vec.push_back(mSubDirs[i]);
+            }
+        }
+    }
+    bs << notInlinedSubDirs;
+    bs << mInlineSubDirType;
+    bs << inlinedSubDirs;
+
+    for (int i = 0; i < inlinedSubDirs.size(); i++) {
+        unsigned char iType = inlinedSubDirs[i]->InlineSubDirType();
+        bs << iType;
+    }
+
+    std::vector<bool> boolVec;
+    boolVec.resize(mInlinedDirs.size(), false);
+}
+
+BEGIN_COPYS(ObjectDir)
+    COPY_SUPERCLASS(Hmx::Object)
+    if (ty != kCopyFromMax) {
+        CREATE_COPY(ObjectDir)
+        BEGIN_COPYING_MEMBERS
+            if (!IsProxy()) {
+                COPY_MEMBER(mViewports)
+                COPY_MEMBER(mCurViewportID)
+                for (int i = 0; i < mSubDirs.size(); i++) {
+                    RemovingSubDir(mSubDirs[i]);
+                }
+                COPY_MEMBER(mSubDirs)
+                for (int i = 0; i < mSubDirs.size(); i++) {
+                    AddedSubDir(mSubDirs[i]);
+                }
+            }
+            COPY_MEMBER(mInlineProxyType)
+            COPY_MEMBER(mInlineSubDirType)
+        END_COPYING_MEMBERS
+    }
+END_COPYS
+
+void ObjectDir::Load(BinStream &bs) {
+    PreLoad(bs);
+    PostLoad(bs);
+    if (IsProxy() && mLoader && !mLoader->IsLoaded()) {
+        TheLoadMgr.PollUntilLoaded(mLoader, nullptr);
+    }
+}
+
+void ObjectDir::PostSave(BinStream &) { SyncObjects(); }
+
+void ObjectDir::SetProxyFile(const FilePath &fp, bool b) {
+    if (!IsProxy()) {
+        MILO_NOTIFY("Can't set proxy file if own dir");
+    } else {
+        mProxyFile = fp;
+        mProxyOverride = b;
+        if (!b) {
+            DeleteObjects();
+            DeleteSubDirs();
+            if (!mProxyFile.empty()) {
+                DirLoader *dl = new DirLoader(
+                    mProxyFile, kLoadFront, nullptr, nullptr, this, false, nullptr
+                );
+                TheLoadMgr.PollUntilLoaded(dl, nullptr);
+            }
+        }
+    }
+}
+
+void ObjectDir::SetSubDir(bool b1) {
+    if (b1) {
+        mIsSubDir = true;
+        SetName(nullptr, nullptr);
+        SetTypeDef(nullptr);
+    }
+}
+
+void ObjectDir::SyncObjects() {
+    static Message sync_objects("sync_objects");
+    HandleType(sync_objects);
+}
+
+void ObjectDir::ResetEditorState() {
+    mViewports.resize(7);
+    unk8c = 0;
+    mCurCam = 0;
+    mAlwaysInlined = 0;
+    ResetViewports();
+}
+
+void ObjectDir::AddedObject(Hmx::Object *) {}
+
+void ObjectDir::RemovingObject(Hmx::Object *obj) {
+    if (obj == unk8c) {
+        unk8c = nullptr;
+    }
+    if (obj == mCurCam) {
+        mCurCam = nullptr;
+        if (mCurViewportID == 7) {
+            mCurViewportID = (ViewportId)0;
+        }
+    }
+}
+
+void ObjectDir::OldLoadProxies(BinStream &bs, int i) {
+    int x;
+    bs >> x;
+    if (x != 0)
+        MILO_FAIL("Proxies not allowed here");
+}
+
+#pragma endregion
 
 BinStream &operator>>(BinStream &bs, InlineDirType &ty) {
     unsigned char uc;
@@ -45,21 +265,6 @@ bool ObjectDir::ShouldSaveProxy(BinStream &bs) {
 void ObjectDir::SetInlineProxyType(InlineDirType t) {
     MILO_ASSERT(t != kInlineCachedShared, 0x198);
     mInlineProxyType = t;
-}
-
-void ObjectDir::Load(BinStream &bs) {
-    PreLoad(bs);
-    PostLoad(bs);
-    if (IsProxy() && mLoader && !mLoader->IsLoaded()) {
-        TheLoadMgr.PollUntilLoaded(mLoader, nullptr);
-    }
-}
-
-void ObjectDir::OldLoadProxies(BinStream &bs, int i) {
-    int x;
-    bs >> x;
-    if (x != 0)
-        MILO_FAIL("Proxies not allowed here");
 }
 
 BinStreamRev &operator>>(BinStreamRev &bs, ObjectDir::Viewport &v) {
@@ -158,11 +363,6 @@ void ObjectDir::Reserve(int hashSize, int stringSize) {
         mHashTable.Resize(hashSize, 0);
     }
     mStringTable.Reserve(stringSize);
-}
-
-void ObjectDir::SyncObjects() {
-    static Message sync_objects("sync_objects");
-    HandleType(sync_objects);
 }
 
 ObjectDir::InlinedDir::InlinedDir() : dir(), file() {}
@@ -359,54 +559,6 @@ ObjDirPtr<ObjectDir> ObjectDir::PostLoadInlined() {
     return iDir.dir;
 }
 
-void ObjectDir::SetProxyFile(const FilePath &fp, bool b) {
-    if (!IsProxy()) {
-        MILO_NOTIFY("Can't set proxy file if own dir");
-    } else {
-        mProxyFile = fp;
-        mProxyOverride = b;
-        if (!b) {
-            DeleteObjects();
-            DeleteSubDirs();
-            if (!mProxyFile.empty()) {
-                DirLoader *dl = new DirLoader(
-                    mProxyFile, kLoadFront, nullptr, nullptr, this, false, nullptr
-                );
-                TheLoadMgr.PollUntilLoaded(dl, nullptr);
-            }
-        }
-    }
-}
-
-ObjectDir::ObjectDir()
-    : mHashTable(0, Entry(), Entry(), 0), mStringTable(0), mProxyOverride(false),
-      mInlineProxyType(kInlineCached), mLoader(nullptr), mIsSubDir(false),
-      mInlineSubDirType(kInlineNever), mPathName(gNullStr), mViewports(7),
-      mCurViewportID((ViewportId)0), unk8c(nullptr), mCurCam(nullptr), mAlwaysInlined(0),
-      mAlwaysInlineHash(gNullStr) {
-    ResetViewports();
-}
-
-ObjectDir::~ObjectDir() {
-    mSubDirs.clear();
-    delete mLoader;
-    if (TheLoadMgr.AsyncUnload()) {
-        new DirUnloader(this);
-    } else {
-        DeleteObjects();
-        DeleteSubDirs();
-    }
-    if (!IsProxy()) {
-        SetName(nullptr, nullptr);
-    }
-    if (mPathName != gNullStr) {
-        MemOrPoolFree(strlen(mPathName) + 1, (void *)mPathName);
-    }
-    if (mAlwaysInlineHash != gNullStr) {
-        MemOrPoolFree(strlen(mAlwaysInlineHash) + 1, (void *)mAlwaysInlineHash);
-    }
-}
-
 ObjectDir::Entry *ObjectDir::FindEntry(const char *name, bool add) {
     if (name == 0 || *name == '\0')
         return 0;
@@ -506,29 +658,6 @@ DataNode ObjectDir::OnFind(DataArray *da) {
     return found;
 }
 
-bool PropSyncSubDirs(
-    std::vector<ObjDirPtr<ObjectDir> > &, DataNode &, DataArray *, int, PropOp
-);
-
-BEGIN_PROPSYNCS(ObjectDir)
-    gDir = this;
-    {
-        static Symbol _s("subdirs");
-        if (sym == _s) {
-            PropSyncSubDirs(mSubDirs, _val, _prop, _i + 1, _op);
-            return true;
-        }
-    }
-    SYNC_PROP_SET(
-        proxy_file,
-        FileRelativePath(FilePath::Root().c_str(), ProxyFile().c_str()),
-        SetProxyFile(_val.Str(), false)
-    )
-    SYNC_PROP(inline_proxy, (int &)mInlineProxyType)
-    SYNC_PROP_SET(path_name, mPathName, )
-    SYNC_SUPERCLASS(Hmx::Object)
-END_PROPSYNCS
-
 void ObjectDir::PreInit(int hashSize, int stringSize) {
     REGISTER_OBJ_FACTORY(Hmx::Object);
     REGISTER_OBJ_FACTORY(ObjectDir);
@@ -541,34 +670,6 @@ void ObjectDir::PreInit(int hashSize, int stringSize) {
         DirLoader::SetCacheMode(true);
     }
 }
-
-BEGIN_HANDLERS(ObjectDir)
-    HANDLE_ACTION(iterate, Iterate(_msg, true))
-    HANDLE_ACTION(iterate_self, Iterate(_msg, false))
-    HANDLE_ACTION(save_objects, DirLoader::SaveObjects(_msg->Str(2), this, false))
-    HANDLE(find, OnFind)
-    HANDLE_EXPR(exists, FindObject(_msg->Str(2), false, true) != nullptr)
-    HANDLE_ACTION(sync_objects, SyncObjects())
-    HANDLE_EXPR(is_proxy, IsProxy())
-    HANDLE_EXPR(proxy_dir, mLoader ? mLoader->ProxyDir() : NULL_OBJ)
-    HANDLE_EXPR(
-        proxy_name, mLoader ? (mLoader->ProxyName() ? mLoader->ProxyName() : "") : ""
-    )
-    HANDLE_ACTION(
-        add_names,
-        Reserve(
-            mHashTable.Size() + _msg->Int(2) * 2,
-            mStringTable.Size() + _msg->Int(2) * 0x14
-        )
-    )
-    HANDLE_ACTION(override_proxy, SetProxyFile(_msg->Str(2), true))
-    HANDLE_ACTION(delete_loader, RELEASE(mLoader))
-    HANDLE_ACTION(reset_editor_state, ResetEditorState())
-    HANDLE_EXPR(get_path_name, mPathName)
-    HANDLE_EXPR(get_file_name, FileGetName(mPathName))
-    // "get_file_name"
-    HANDLE_SUPERCLASS(Hmx::Object)
-END_HANDLERS
 
 void ObjectDir::SaveInlined(const FilePath &fp, bool share, InlineDirType type) {
     MILO_ASSERT(type != kInlineNever, 0x26A);
@@ -595,57 +696,3 @@ void ObjectDir::PreLoadInlined(const FilePath &fp, bool share, InlineDirType typ
     dir.inlineDirType = type;
     mInlinedDirs.push_back(dir);
 }
-
-void ObjectDir::ResetEditorState() {
-    mViewports.resize(7);
-    unk8c = 0;
-    mCurCam = 0;
-    mAlwaysInlined = 0;
-    ResetViewports();
-}
-
-inline BinStream &operator<<(BinStream &bs, const ObjectDir::Viewport &v) {
-    bs << v.mXfm;
-    return bs;
-}
-
-void ObjectDir::Save(BinStream &bs) {
-    bs << 0x1C;
-    SaveType(bs);
-    bs << mAlwaysInlined;
-    if (mAlwaysInlineHash && !bs.Cached()) {
-        int len = strlen(mAlwaysInlineHash);
-        bs << len;
-        bs.Write(mAlwaysInlineHash, len);
-    } else {
-        bs << 0;
-    }
-    bs << mViewports;
-    bs << mCurViewportID;
-    bs << mIsSubDir;
-    bs << FileRelativePath(FilePath::Root().c_str(), mProxyFile.c_str());
-    std::vector<ObjDirPtr<ObjectDir> > inlinedSubDirs;
-    std::vector<ObjDirPtr<ObjectDir> > notInlinedSubDirs;
-    if (SaveSubdirs()) {
-        for (int i = 0; i < mSubDirs.size(); i++) {
-            if (mSubDirs[i]) {
-                std::vector<ObjDirPtr<ObjectDir> > &vec =
-                    mSubDirs[i]->InlineSubDirType() ? inlinedSubDirs : notInlinedSubDirs;
-                vec.push_back(mSubDirs[i]);
-            }
-        }
-    }
-    bs << notInlinedSubDirs;
-    bs << mInlineSubDirType;
-    bs << inlinedSubDirs;
-
-    for (int i = 0; i < inlinedSubDirs.size(); i++) {
-        unsigned char iType = inlinedSubDirs[i]->InlineSubDirType();
-        bs << iType;
-    }
-
-    std::vector<bool> boolVec;
-    boolVec.resize(mInlinedDirs.size(), false);
-}
-
-void ObjectDir::AddedObject(Hmx::Object *) {}
