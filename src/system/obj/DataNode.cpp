@@ -33,47 +33,47 @@ bool DataNode::CompatibleType(DataType ty) const {
 
 const char *DataNode::DataTypeString(DataType ty) {
     switch (ty) {
-    case 0:
+    case kDataInt:
         return "kDataInt";
-    case 1:
+    case kDataFloat:
         return "kDataFloat";
-    case 2:
+    case kDataVar:
         return "kDataVar";
-    case 3:
+    case kDataFunc:
         return "kDataFunc";
-    case 4:
+    case kDataObject:
         return "kDataObject";
-    case 5:
+    case kDataSymbol:
         return "kDataSymbol";
-    case 6:
+    case kDataUnhandled:
         return "kDataUnhandled";
-    case 0x10:
+    case kDataArray:
         return "kDataArray";
-    case 0x11:
+    case kDataCommand:
         return "kDataCommand";
-    case 0x12:
+    case kDataString:
         return "kDataString";
-    case 0x13:
+    case kDataProperty:
         return "kDataProperty";
-    case 0x14:
+    case kDataGlob:
         return "kDataGlob";
-    case 7:
+    case kDataIfdef:
         return "kDataIfdef";
-    case 8:
+    case kDataElse:
         return "kDataElse";
-    case 9:
+    case kDataEndif:
         return "kDataEndif";
-    case 0x20:
+    case kDataDefine:
         return "kDataDefine";
-    case 0x21:
+    case kDataInclude:
         return "kDataInclude";
-    case 0x22:
+    case kDataMerge:
         return "kDataMerge";
-    case 0x23:
+    case kDataIfndef:
         return "kDataIfndef";
-    case 0x24:
+    case kDataAutorun:
         return "kDataAutorun";
-    case 0x25:
+    case kDataUndef:
         return "kDataUndef";
     default:
         return "Unknown data type";
@@ -159,11 +159,9 @@ bool DataNode::NotNull() const {
 
 bool DataVarExists(Symbol s) { return gDataVars.find(s) != gDataVars.end(); }
 
-const char *DataVarName(const DataNode *node) {
-    for (std::map<Symbol, DataNode>::iterator it = gDataVars.begin();
-         it != gDataVars.end();
-         it++) {
-        if ((&it->second) == node) {
+const char *DataVarName(const DataNode *var) {
+    FOREACH (it, gDataVars) {
+        if ((&it->second) == var) {
             return it->first.Str();
         }
     }
@@ -282,7 +280,7 @@ void DataNode::Save(BinStream &d) const {
         break;
     case kDataString:
     case kDataGlob:
-        mValue.array->SaveGlob(d, (mType - kDataString) == 0);
+        mValue.array->SaveGlob(d, mType == kDataString);
         break;
     case kDataArray:
     case kDataCommand:
@@ -719,7 +717,8 @@ void DataNode::Load(BinStream &d) {
     case kDataVar: {
         Symbol sym;
         d >> sym;
-        mValue.var = &gDataVars[sym];
+        Symbol key = sym;
+        mValue.var = &gDataVars[key];
         break;
     }
     case kDataUnhandled:

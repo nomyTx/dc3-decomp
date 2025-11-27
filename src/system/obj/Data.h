@@ -497,9 +497,10 @@ public:
      * If the value is a DataFunc, call it directly.
      * Else, if the value is not a number,
      * retrieve the corresponding Object and call its handler.
+     * @param [in] fail If true, fail the program if there is an error in execution.
      * @returns The return value of whatever code was executed.
      */
-    DataNode Execute(bool);
+    DataNode Execute(bool fail = true);
 
     /** Execute each Command in this DataArray, starting at the given index.
      * The final DataNode in the DataArray will be evaluated separately,
@@ -554,10 +555,10 @@ inline DataNode::~DataNode() {
         mValue.array->Release();
 }
 
-DataNode &DataVariable(Symbol);
-bool DataVarExists(Symbol);
+DataNode &DataVariable(Symbol name);
+bool DataVarExists(Symbol name);
 bool DataArrayDefined();
-const char *DataVarName(const DataNode *);
+const char *DataVarName(const DataNode *var);
 void DataAppendStackTrace(FixedString &);
 
 // to properly generate DataArray::Node const vs non-const

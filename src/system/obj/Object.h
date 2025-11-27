@@ -26,7 +26,7 @@ public:
     ObjRefOwner() {}
     virtual ~ObjRefOwner() {}
     virtual Hmx::Object *RefOwner() const = 0;
-    virtual bool Replace(ObjRef *, Hmx::Object *) = 0;
+    virtual bool Replace(ObjRef *from, Hmx::Object *to) = 0;
 };
 
 // ObjRef size: 0xc
@@ -54,10 +54,10 @@ protected:
 
 public:
     ObjRef() {}
-    ObjRef(const ObjRef &other) : next(other.next), prev(other.prev) {
-        prev->next = this;
-        next->prev = this;
-    }
+    // ObjRef(const ObjRef &other) : next(other.next), prev(other.prev) {
+    //     prev->next = this;
+    //     next->prev = this;
+    // }
     virtual ~ObjRef() {}
     virtual Hmx::Object *RefOwner() const { return nullptr; }
     virtual bool IsDirPtr() { return false; }
@@ -107,13 +107,6 @@ public:
                 MILO_FAIL("ReplaceList stuck in infinite loop");
             }
         }
-    }
-    int RefCount() const {
-        int count = 0;
-        for (ObjRef::iterator it = begin(); it != end(); ++it) {
-            count++;
-        }
-        return count;
     }
 
     // per ObjectDir::HasDirPtrs, this is the way to iterate across refs
@@ -946,34 +939,76 @@ typedef Hmx::Object *ObjectFunc(void);
 // Hmx::Object implementation
 namespace Hmx {
 
+    /**
+     * @brief: The base class from which all major Objects used in-game build upon.
+     * Original _objects description:
+     * "The Object class is the root of the class hierarchy. Every
+     * class has Object as a superclass."
+     */
     class Object : public ObjRefOwner {
     private:
+        /** Remove this Object from its associated ObjectDir. */
         void RemoveFromDir();
 
-        DataNode OnIterateRefs(const DataArray *);
-        DataNode OnSet(const DataArray *);
+        /** Handler to execute dta for each of this Object's refs.
+         * @param [in] arr The supplied DataArray.
+         * Expected DataArray contents:
+         *     Node 2: The variable representing the current ObjRef's owner.
+         *     Node 3+: Any commands to execute.
+         * Example usage: {$this iterate_refs $ref {$ref set 0}}
+         */
+        DataNode OnIterateRefs(const DataArray *arr);
+        /** Handler to set this Object's properties.
+         * @param [in] arr The supplied DataArray.
+         * Expected DataArray contents:
+         *     Node 2+: The property key to set. Must be either a Symbol or a DataArray.
+         *     Node 3+: The corresponding property value to set.
+         * Example usage: {$this set key1 val1 key2 val2 key3 val3}
+         */
+        DataNode OnSet(const DataArray *arr);
         DataNode OnPropertyAppend(const DataArray *);
         DataNode OnGetTypeList(const DataArray *);
         DataNode OnAddSink(DataArray *);
         DataNode OnRemoveSink(DataArray *);
         void ExportPropertyChange(DataArray *, Symbol);
 
+        /** A collection of Object class names and their corresponding instantiators. */
         static std::map<Symbol, ObjectFunc *> sFactories;
 
     protected:
+        /** A collection of object instances which reference this Object. */
         ObjRef mRefs; // 0x4
+        /** An array of properties this Object can have. */
         TypeProps *mTypeProps; // 0x10
     private: // these were marked private in RB2
+        /** A collection of handler methods this Object can have.
+         *  More specifically, this is an array of arrays, with each array
+         *  housing a name, followed by a handler script.
+         *  Formatted in the style of:
+         *  ( (name1 {handler1}) (name2 {handler2}) (name3 {handler3}) )
+         */
         DataArray *mTypeDef; // 0x14
+        /** A note about this Object, useful for debugging. */
         String mNote; // 0x18
+        /** This Object's name. */
         const char *mName; // 0x20
+        /** The ObjectDir in which this Object resides. */
         ObjectDir *mDir; // 0x24
         MsgSinks *mSinks; // 0x28
     protected:
+        /** An Object in the process of being deleted. */
         static Object *sDeleting;
 
         MsgSinks *GetOrAddSinks();
-        DataNode OnGet(const DataArray *);
+        /** Handler to get the value of a given Object property.
+         * @param [in] arr The supplied DataArray.
+         * @returns The property value.
+         * Expected DataArray contents:
+         *     Node 2: The property to search for, either as a Symbol or DataArray.
+         *     Node 3: The fallback value if no property is found.
+         * Example usage: {$this get some_value 69}
+         */
+        DataNode OnGet(const DataArray *arr);
         void BroadcastPropertyChange(DataArray *);
         void BroadcastPropertyChange(Symbol);
 
@@ -1001,24 +1036,67 @@ namespace Hmx {
         virtual ~Object();
         virtual Object *RefOwner() const { return const_cast<Object *>(this); }
         virtual bool Replace(ObjRef *from, Hmx::Object *to);
+        /** This Object's class name. */
         OBJ_CLASSNAME(Object);
+        /** Set this Object's mTypeDef array based this Object's types entry in
+         * SystemConfig. */
         OBJ_SET_TYPE(Object);
-        virtual DataNode Handle(DataArray *, bool);
-        virtual bool SyncProperty(DataNode &, DataArray *, int, PropOp);
+        /** Execute code based on the contents of a received message.
+         * @param [in] _msg The received message.
+         * @param [in] _warn If true, and the message goes unhandled, print to console.
+         * @returns The return value of whatever code was executed.
+         */
+        virtual DataNode Handle(DataArray *_msg, bool _warn = true);
+        /** Syncs an Object's property to or from a supplied DataNode.
+         * @param [out] _val A DataNode to either place the property val into, or set the
+         * property val with.
+         * @param [in] _prop The DataArray containing the symbol representing the property
+         * to sync.
+         * @param [in] _i The index in _prop containing the symbol of the property to
+         * sync.
+         * @param [in] _op The operation to be performed with the property.
+         * @returns Returns true if a property was synced, or if the desired index == the
+         * prop array size.
+         */
+        virtual bool SyncProperty(DataNode &_val, DataArray *_prop, int _i, PropOp _op);
         virtual void InitObject();
+        /** Saves this Object into a BinStream. */
         virtual void Save(BinStream &);
-        virtual void Copy(const Hmx::Object *, CopyType);
+        /** Copy the contents of another Object into this Object based on the CopyType.
+         * @param [in] o The other Object to copy from.
+         * @param [in] ty The copy type.
+         */
+        virtual void Copy(const Hmx::Object *o, Hmx::Object::CopyType ty);
+        /** Loads this Object from a BinStream. */
         virtual void Load(BinStream &);
+        /** Any routines to write relevant data to a BinStream before the main Save method
+         * executes. */
         virtual void PreSave(BinStream &) {}
+        /** Any routines to write relevant data to a BinStream after the main Save method
+         * executes. */
         virtual void PostSave(BinStream &) {}
+        /** Prints relevant info about this Object to the debug console. */
         virtual void Print() {}
-        virtual void Export(DataArray *, bool);
-        virtual void SetTypeDef(DataArray *);
+        virtual void Export(DataArray *msg, bool);
+        /** Set this Object's mTypeDef array.
+         * @param [in] data The array to set.
+         */
+        virtual void SetTypeDef(DataArray *data);
         virtual DataArray *ObjectDef(Symbol);
-        virtual void SetName(const char *, ObjectDir *);
+        /** Sets this Object's name and updates the ObjectDir this Object resides in.
+         * @param [in] name The name to give this Object.
+         * @param [in] dir The ObjectDir to place this Object in. If name is null, this
+         * Object won't have a set ObjectDir.
+         */
+        virtual void SetName(const char *name, ObjectDir *dir);
         virtual ObjectDir *DataDir();
+        /** Any routines to read relevant data from a BinStream before the main Load
+         * method executes. */
         virtual void PreLoad(BinStream &bs) { Load(bs); }
+        /** Any routines to read relevant data from a BinStream after the main Load method
+         * executes. */
         virtual void PostLoad(BinStream &) {}
+        /** Get this Object's path name. */
         virtual const char *FindPathName();
 
         Symbol Type() const {
@@ -1036,15 +1114,18 @@ namespace Hmx {
         const String &Note() const { return mNote; }
         const char *AllocHeapName() { return MemHeapName(MemFindAddrHeap(this)); }
         void AddRef(ObjRef *ref) { ref->AddRef(&mRefs); }
-        void Release(ObjRef *ref) { ref->Release(&mRefs); }
+        void Release(ObjRef *ref) { ref->Release(0); }
         MsgSinks *Sinks() const { return mSinks; }
 
         void ReplaceRefs(Hmx::Object *);
-        void ReplaceRefsFrom(Hmx::Object *, Hmx::Object *);
+        void ReplaceRefsFrom(Hmx::Object *from, Hmx::Object *);
+        /** How many other objects reference this Object? */
         int RefCount() const;
+
         void RemovePropertySink(Hmx::Object *, DataArray *);
         bool HasPropertySink(Hmx::Object *, DataArray *);
         void RemoveSink(Hmx::Object *, Symbol = Symbol());
+
         void SaveType(BinStream &);
         void SaveRest(BinStream &);
         void ClearAllTypeProps();
@@ -1063,20 +1144,62 @@ namespace Hmx {
         void InsertProperty(DataArray *, const DataNode &);
         void RemoveProperty(DataArray *);
         void PropertyClear(DataArray *);
-        const DataNode *Property(DataArray *, bool) const;
-        const DataNode *Property(Symbol, bool) const;
+
+        /** Search for a key in this Object's properties, and return the corresponding
+         * value.
+         * @param [in] prop: The property to search for, in DataArray form. The first node
+         * must be a Symbol.
+         * @param [in] fail: If true, print a message to the console if no property value
+         * was found.
+         * @returns The corresponding property's value as a DataNode pointer.
+         */
+        const DataNode *Property(DataArray *prop, bool fail = true) const;
+
+        /** Search for a key in this Object's properties, and return the corresponding
+         * value.
+         * @param [in] prop: The property to search for, in Symbol form.
+         * @param [in] fail: If true, print a message to the console if no property value
+         * was found.
+         * @returns The corresponding property's value as a DataNode pointer.
+         */
+        const DataNode *Property(Symbol prop, bool fail = true) const;
+
         DataNode HandleProperty(DataArray *, DataArray *, bool);
-        DataNode HandleType(DataArray *);
+
+        /** Execute script in this Object's TypeDef,
+         * based on the contents of a received message.
+         * @param [in] _msg The received message.
+         * @returns The return value of whatever script was executed.
+         */
+        DataNode HandleType(DataArray *msg);
+
         void ChainSource(Hmx::Object *, Hmx::Object *);
         void LoadType(BinStream &);
         void LoadRest(BinStream &);
-        void SetProperty(DataArray *, const DataNode &);
-        void SetProperty(Symbol, const DataNode &);
+
+        /** Either adds or updates the key/value pair in the properties.
+         * @param [in] prop The key to either add or update
+         * @param [in] val The corresponding value associated with the key.
+         */
+        void SetProperty(Symbol prop, const DataNode &val);
+
+        /** Either adds or updates the key/value pair in the properties.
+         * @param [in] prop The key to either add or update. The first node must be a
+         * Symbol.
+         * @param [in] val The corresponding value associated with the key.
+         */
+        void SetProperty(DataArray *prop, const DataNode &val);
 
         NEW_OBJ(Hmx::Object);
-        static Object *NewObject(Symbol);
-        static bool RegisteredFactory(Symbol);
-        static void RegisterFactory(Symbol, ObjectFunc *);
+        /** Given an Object derivative's class name, construct a new instance of the
+         * Object. */
+        static Object *NewObject(Symbol name);
+        /** Given an Object derivative's class name, check if its ctor is in our factory
+         * list. */
+        static bool RegisteredFactory(Symbol name);
+        /** Add a new Object derivative to the factory list via class name and factory
+         * func. */
+        static void RegisterFactory(Symbol name, ObjectFunc *func);
 
         /** Create a new Object derivative based on its entry in the factory list. */
         template <class T>
