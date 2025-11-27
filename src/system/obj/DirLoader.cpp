@@ -7,6 +7,7 @@
 #include "os/File.h"
 #include "os/Platform.h"
 #include "os/System.h"
+#include "os/Timer.h"
 #include "utl/BinStream.h"
 #include "utl/ChunkStream.h"
 #include "utl/FilePath.h"
@@ -22,6 +23,100 @@ ObjectDir *DirLoader::sTopSaveDir;
 TextFileStream *DirLoader::sObjectMemDumpFile;
 TextFileStream *DirLoader::sTypeMemDumpFile;
 std::map<String, MemPointDelta> DirLoader::sMemPointMap;
+
+DirLoader::DirLoader(
+    const FilePath &fp,
+    LoaderPos pos,
+    Loader::Callback *cb,
+    BinStream *stream,
+    ObjectDir *dir,
+    bool bbb,
+    ObjectDir *dir2
+)
+    : Loader(fp, pos), mOwnStream(false), mStream(stream), mRev(0), mCounter(0),
+      mObjects(nullptr, kObjListAllowNull), mCallback(cb), mDir(dir), mPostLoad(false),
+      mLoadDir(true), mDeleteSelf(false), mProxyName(nullptr), unk98(0), unk99(0),
+      unk9a(0), unk9b(bbb), unk9c(dir2), mProxyDir(this) {
+    if (dir) {
+        mDeleteSelf = true;
+        mProxyName = dir->Name();
+        mProxyDir = dir->Dir();
+        mDir->SetLoader(this);
+    }
+    if (!stream && !dir && !bbb) {
+        DataArray *arr = SystemConfig()->FindArray("force_milo_inline", false);
+        if (arr) {
+            for (int i = 1; i < arr->Size(); i++) {
+                const char *str = arr->Str(i);
+                if (FileMatch(fp.c_str(), str)) {
+                    MILO_FAIL("Can't dynamically load milo files matching %s", str);
+                }
+            }
+        }
+    }
+    if (fp.empty()) {
+        mRoot = FilePath::Root();
+    } else {
+        const char *filePath = FileGetPath(mFile.c_str());
+        char buf[256];
+        strcpy(buf, filePath);
+        int bufLen = strlen(buf);
+        if (bufLen - 4 > 0 && streq("/gen", buf)) {
+            buf[bufLen] = 0;
+        }
+        mRoot = FileMakePath(FileRoot(), buf);
+    }
+    mState = &DirLoader::OpenFile;
+}
+
+DirLoader::~DirLoader() {
+    mDeleteSelf = false;
+    if (!IsLoaded()) {
+        Cleanup(nullptr);
+    } else if (mDir) {
+        mDir->SetLoader(nullptr);
+        if (!unk98 && !mProxyName) {
+            RELEASE(mDir);
+        }
+    }
+    mProxyDir = nullptr;
+    if (mCallback && unk99) {
+        mCallback->FailedLoading(this);
+        mCallback = 0;
+    }
+}
+
+bool DirLoader::Replace(ObjRef *from, Hmx::Object *to) {
+    if (from == &mProxyDir) {
+        mProxyDir = nullptr;
+        mProxyName = nullptr;
+        delete this; // uhhh.
+        return true;
+    } else
+        return false;
+}
+
+const char *DirLoader::DebugText() { return MakeString("DL: %s", mFile.c_str()); }
+bool DirLoader::IsLoaded() const { return mState == &DirLoader::DoneLoading; }
+
+const char *DirLoader::StateName() const {
+    if (mState == &DirLoader::OpenFile)
+        return "OpenFile";
+    else if (mState == &DirLoader::LoadHeader)
+        return "LoadHeader";
+    else if (mState == &DirLoader::LoadDir)
+        return "LoadDir";
+    else if (mState == &DirLoader::LoadResources)
+        return "LoadResources";
+    else if (mState == &DirLoader::CreateObjects)
+        return "CreateObjects";
+    else if (mState == &DirLoader::LoadObjs)
+        return "LoadObjs";
+    else if (mState == &DirLoader::DoneLoading)
+        return "DoneLoading";
+    else
+        return "INVALID";
+}
 
 void DirLoader::SetCacheMode(bool mode) { sCacheMode = mode; }
 
@@ -63,8 +158,6 @@ const char *DirLoader::CachedPath(const char *cc, bool b) {
     }
     return cc;
 }
-
-bool DirLoader::IsLoaded() const { return mState == &DirLoader::DoneLoading; }
 
 bool DirLoader::ShouldBlockSubdirLoad(const FilePath &fp) {
     return fp.c_str() && sPathEval ? sPathEval(fp.c_str()) : false;
@@ -286,27 +379,6 @@ bool DirLoader::ClassAndNameSort::operator()(Hmx::Object *o1, Hmx::Object *o2) {
     return false;
 }
 
-bool DirLoader::Replace(ObjRef *ref, Hmx::Object *obj) {
-    //   if (param_1 == this + 0x84) {
-    //     if (*(this + 0x90) != 0) {
-    //       *(*(this + 0x8c) + 4) = *(this + 0x88);
-    //       *(*(this + 0x88) + 8) = *(this + 0x8c);
-    //     }
-    //     pDVar2 = this + -0x1c;
-    //     *(this + 0x90) = 0;
-    //     *(this + 0x44) = 0;
-    //     if (pDVar2 != 0x0) {
-    //       (***pDVar2)(pDVar2,1,param_2);
-    //     }
-    //     bVar1 = true;
-    //   }
-    //   else {
-    //     bVar1 = false;
-    //   }
-    //   return bVar1;
-    return false;
-}
-
 DirLoader *DirLoader::FindLast(const FilePath &fp) {
     if (!fp.empty()) {
         const std::list<Loader *> &ldrs = TheLoadMgr.Loaders();
@@ -356,17 +428,23 @@ void DirLoader::Cleanup(const char *str) {
             }
         }
         if (IsLoaded() && mDir) {
-            //   AutoGlitchReport::AutoGlitchReport(aAStack_1090,50.0,p_Var6,SyncObjectsGlitchCB);
+            AutoGlitchReport report(50.0f, SyncObjectsGlitchCB, mDir);
             mDir->SetSubDirFlag(unk9b);
             mDir->SyncObjects();
             mDir->SetSubDirFlag(false);
-            //   AutoGlitchReport::~AutoGlitchReport(aAStack_1090);
         }
     }
     mState = &DirLoader::DoneLoading;
     mTimer.Stop();
     if (sPrintTimes) {
         MILO_LOG("%s: %f ms\n", mFile, mTimer.Ms());
+    }
+    if (mCallback && (str || unk99)) {
+        mCallback->FailedLoading(this);
+        mCallback = nullptr;
+    }
+    if (mDeleteSelf) {
+        delete this;
     }
 }
 
@@ -386,36 +464,14 @@ void DirLoader::AddTypeObjectMemDelta(
     }
 }
 
-DirLoader::~DirLoader() {
-    mDeleteSelf = 0;
-    if (!IsLoaded()) {
-        Cleanup(nullptr);
-    } else if (mDir) {
-        mDir->SetLoader(nullptr);
-        if (!unk98 && !mProxyName) {
-            RELEASE(mDir);
-        }
-    }
-    if (mProxyDir) {
-        mProxyDir->Release(nullptr);
-        // mProxyDir = nullptr;
-    }
-    if (mCallback && unk99) {
-        mCallback->FailedLoading(this);
-        mCallback = 0;
-    }
-}
-
-const char *DirLoader::DebugText() { return MakeString("DL: %s", mFile.c_str()); }
-
 void DirLoader::SaveObjects(BinStream &bs, ObjectDir *dir) {
-    char buf[256];
+    char name[256];
     MILO_ASSERT(sTopSaveDir != dir, 0x10C);
     if (!sTopSaveDir)
         sTopSaveDir = dir;
-    ObjectDir *dirdir = dir->Dir();
-    strcpy(buf, dir->Name());
-    if (dirdir != dir) {
+    ObjectDir *parentDir = dir->Dir();
+    strcpy(name, dir->Name());
+    if (parentDir != dir) {
         dir->SetName(NextName(dir->Name(), dir), dir);
     }
     int hashSize = dir->HashTableUsedSize();
@@ -465,106 +521,43 @@ void DirLoader::SaveObjects(BinStream &bs, ObjectDir *dir) {
             (*it)->PostSave(bs);
         }
     }
-    if (dirdir != dir) {
-        dir->SetName(buf, dir);
+    if (parentDir != dir) {
+        dir->SetName(name, dir);
     }
     if (sTopSaveDir == dir) {
         sTopSaveDir = nullptr;
     }
 }
 
-bool DirLoader::SaveObjects(const char *cc, ObjectDir *dir, bool b3) {
+bool DirLoader::SaveObjects(const char *file, ObjectDir *dir, bool) {
     if (sCacheMode && dir->InlineSubDirType() != kInlineNever) {
-        MILO_LOG("Not caching %s because it is an inlined subdir.\n", cc);
+        MILO_LOG("Not caching %s because it is an inlined subdir.\n", file);
         return false;
     } else {
-        FilePathTracker tracker(FileGetPath(cc));
-        cc = CachedPath(cc, false);
+        FilePathTracker tracker(FileGetPath(file));
+        file = CachedPath(file, false);
         if (sCacheMode) {
-            FileMkDir(FileGetPath(cc));
+            FileMkDir(FileGetPath(file));
         }
         Platform p = sCacheMode ? TheLoadMgr.GetPlatform() : kPlatformPC;
         MILO_ASSERT(p != kPlatformNone, 0x1B3);
+        bool noNulls = !gNullFiles;
         ChunkStream cs(
-            cc,
+            file,
             ChunkStream::kWrite,
             p == kPlatformWii ? 0x10000 : 0x20000,
-            gNullFiles,
+            noNulls,
             p,
             sCacheMode
         );
         if (cs.Fail()) {
-            MILO_NOTIFY("Could not open file: %s", cc);
+            MILO_NOTIFY("Could not open file: %s", file);
             return false;
         } else {
             SaveObjects(cs, dir);
             return true;
         }
     }
-}
-
-DirLoader::DirLoader(
-    const FilePath &fp,
-    LoaderPos pos,
-    Loader::Callback *cb,
-    BinStream *stream,
-    class ObjectDir *dir,
-    bool bbb,
-    class ObjectDir *dir2
-)
-    : Loader(fp, pos), mOwnStream(false), mStream(stream), mRev(0), mCounter(0),
-      mObjects(nullptr, kObjListAllowNull), mCallback(cb), mDir(dir), mPostLoad(false),
-      mLoadDir(false), mDeleteSelf(false), mProxyName(nullptr), unk98(0), unk99(0),
-      unk9a(0), unk9b(bbb), unk9c(dir2), mProxyDir(this, nullptr) {
-    if (mDir) {
-        mDeleteSelf = true;
-        mProxyName = mDir->Name();
-        mProxyDir.SetObjConcrete(mDir);
-        mDir->SetLoader(this);
-    }
-    if (!stream && !dir && !bbb) {
-        DataArray *arr = SystemConfig()->FindArray("force_milo_inline", false);
-        if (arr) {
-            for (int i = 1; i < arr->Size(); i++) {
-                const char *str = arr->Str(i);
-                if (FileMatch(fp.c_str(), str)) {
-                    MILO_FAIL("Can't dynamically load milo files matching %s", str);
-                }
-            }
-        }
-    }
-    if (fp.empty()) {
-        mRoot = FilePath::Root();
-    } else {
-        const char *filePath = FileGetPath(mFile.c_str());
-        char buf[256];
-        strcpy(buf, filePath);
-        if (strlen(buf) - 4 > 0) {
-            // strcpy(&buf[strlen(buf)], "/gen");
-            strcat(buf, "/gen");
-        }
-        mRoot = FileMakePath(FileRoot(), buf);
-    }
-    mState = &DirLoader::OpenFile;
-}
-
-const char *DirLoader::StateName() const {
-    if (mState == &DirLoader::OpenFile)
-        return "OpenFile";
-    else if (mState == &DirLoader::LoadHeader)
-        return "LoadHeader";
-    else if (mState == &DirLoader::LoadDir)
-        return "LoadDir";
-    else if (mState == &DirLoader::LoadResources)
-        return "LoadResources";
-    else if (mState == &DirLoader::CreateObjects)
-        return "CreateObjects";
-    else if (mState == &DirLoader::LoadObjs)
-        return "LoadObjs";
-    else if (mState == &DirLoader::DoneLoading)
-        return "DoneLoading";
-    else
-        return "INVALID";
 }
 
 ObjectDir *DirLoader::LoadObjects(const FilePath &fp, Callback *cb, BinStream *bs) {

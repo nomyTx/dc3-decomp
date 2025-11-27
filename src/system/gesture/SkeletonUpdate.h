@@ -49,6 +49,7 @@ private:
     SkeletonUpdate();
 
     void SetCameraInput(CameraInput *);
+    void PostUpdate();
 
     static SkeletonUpdate *sInstance;
     static void *sNewSkeletonEvent;

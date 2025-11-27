@@ -4,6 +4,8 @@
 #include "gesture/Skeleton.h"
 #include "os/CritSec.h"
 #include "os/Debug.h"
+#include "os/OSFuncs.h"
+#include "os/Timer.h"
 #include "utl/Std.h"
 
 CriticalSection SkeletonUpdateHandle::sCritSec;
@@ -74,3 +76,9 @@ void SkeletonUpdate::CreateInstance() {
 void SkeletonUpdate::Terminate() { RELEASE(sInstance); }
 bool SkeletonUpdate::HasInstance() { return sInstance; }
 void *SkeletonUpdate::NewSkeletonEvent() { return sNewSkeletonEvent; }
+
+void SkeletonUpdate::PostUpdate() {
+    MILO_ASSERT(MainThread(), 0x26F);
+    MILO_ASSERT(mCameraInput, 0x273);
+    AutoGlitchReport report(50.0f, nullptr, nullptr);
+}

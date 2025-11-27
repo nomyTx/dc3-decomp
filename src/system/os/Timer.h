@@ -156,11 +156,15 @@ public:
 class AutoGlitchReport {
 public:
     AutoGlitchReport(float, const char *);
+    AutoGlitchReport(float, AutoTimerCallback, void *);
     ~AutoGlitchReport();
     static void EnableCallback();
     static void EndExternal(float, float, const char *, AutoTimerCallback, void *);
     static void SendCallback(float, float, const char *, AutoTimerCallback, void *);
     static int sDepth;
+
+private:
+    Timer unk0;
 };
 
 class AutoTimer {

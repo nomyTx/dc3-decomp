@@ -438,6 +438,10 @@ private:
     std::list<ObjectDir *> mSubDirs; // 0x8
 
 public:
+    /** Create an ObjDirItr (ObjectDir iterator).
+     @param [in] dir The ObjectDir we're iterating inside.
+     @param [in] recurse If true, we want to iterate through the ObjectDir's subdirs too.
+     */
     ObjDirItr(ObjectDir *dir, bool recurse) {
         if (dir) {
             if (recurse) {
