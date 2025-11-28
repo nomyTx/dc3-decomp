@@ -1,4 +1,7 @@
 #include "char/ClipDistMap.h"
+#include "char/CharClip.h"
+#include "macros.h"
+#include "math/Utl.h"
 
 void FindWeights(
     std::vector<RndTransformable *> &transes,
@@ -25,6 +28,133 @@ void FindWeights(
 ClipDistMap::ClipDistMap(
     CharClip *clip1, CharClip *clip2, float f1, float f2, int i, const DataArray *a
 )
-    : mClipA(clip1), mClipB(clip2), mWeightData(a), mSamplesPerBeat(0),
+    : mClipA(clip1), mClipB(clip2), mWeightData(a), mSamplesPerBeat(8),
       mLastMinErr(kHugeFloat), mBeatAlign(f1), mBeatAlignOffset(0), mBlendWidth(f2),
-      mNumSamples(i) {}
+      mNumSamples(i) {
+    int h = CalcHeight();
+    int w = CalcWidth();
+    mDists.Resize(w, h);
+
+    mBeatAlignPeriod = mBeatAlign * mSamplesPerBeat + 0.5;
+
+    int temp;
+    if (mBeatAlignPeriod != 0) {
+        temp = mAStart * mSamplesPerBeat - mBStart * mSamplesPerBeat;
+        mBeatAlignOffset = temp - (temp / mBeatAlignPeriod) * mBeatAlignPeriod;
+
+        if (mBeatAlignOffset < 0) {
+            mBeatAlignOffset += mBeatAlignPeriod;
+        }
+    }
+}
+
+bool ClipDistMap::BeatAligned(int i1, int i2) {
+    int l1;
+    int l2 = mBeatAlignPeriod;
+
+    if (l2 == 0) {
+        l1 = 0;
+    } else {
+        l1 = (i1 - i2) % l2;
+        if (l1 < 0) {
+            l1 += l2;
+        }
+    }
+
+    return l1 == mBeatAlignOffset;
+}
+
+bool ClipDistMap::FindBestNode(float f1, float f2, float f3, ClipDistMap::Node &node) {
+    int temp1;
+    int temp2;
+    if (f2 < f3) {
+        temp1 = (f3 - mAStart) * mSamplesPerBeat;
+        temp2 = (f2 - mAStart) * mSamplesPerBeat;
+        temp2 = 0xffffffff - (temp2 >> 0x1f) & temp2;
+        if (temp1 <= mDists.mWidth) {
+            mDists.mWidth = temp1;
+        }
+        for (int i = 0; i < mDists.mWidth; i++) {
+        }
+    }
+    return false;
+}
+
+void ClipDistMap::FindNodes(float f1, float f2, float f3) {
+    std::vector<Node> nodes = mNodes;
+    mLastMinErr = f1;
+    float f5 = f2;
+    float f6;
+    float f4 = f2 * 0.44999998807907104;
+    if (f5 == 0.0) {
+        f4 = kHugeFloat;
+        f6 = f4;
+    } else if (f6 == 0.0) {
+        f6 = f4;
+    }
+
+    FindBestNodeRecurse(f1, f4, (f4 * 2.0 - f5), mAStart, mAEnd);
+    // finish later
+}
+
+int ClipDistMap::CalcWidth() {
+    float clipAStartBeat = mClipA->StartBeat();
+    float samplesDiv = (1.0 / mSamplesPerBeat);
+    float clipASamplesMod = Mod(clipAStartBeat, 1.0 / mSamplesPerBeat);
+    float f1 = clipAStartBeat - clipASamplesMod;
+    mAStart = f1;
+
+    if (f1 < mClipA->StartBeat()) {
+        mAStart = f1 + samplesDiv;
+    }
+
+    f1 = mClipA->EndBeat();
+    clipASamplesMod = Mod(f1, samplesDiv);
+    mAEnd = f1 - clipASamplesMod;
+    clipASamplesMod = (f1 - clipASamplesMod) + samplesDiv;
+
+    if (clipASamplesMod <= mClipA->EndBeat()) {
+        mAEnd = clipASamplesMod;
+    }
+
+    f1 = floor(mAEnd - mAStart * mSamplesPerBeat + 0.5);
+
+    uint val = f1;
+
+    return (((val != 0) - (val >> 0x1f) & val)) + 1;
+}
+
+int ClipDistMap::CalcHeight() {
+    float clipBStartBeat = mClipB->StartBeat();
+    float samplesDiv = 1.0 / mSamplesPerBeat;
+    float clipBSamplesMod = Mod(clipBStartBeat, samplesDiv);
+    float f1 = clipBStartBeat - clipBSamplesMod;
+    mBStart = f1;
+
+    if (mBStart < mClipB->StartBeat()) {
+        mBStart += samplesDiv;
+    }
+    // fVar5 = mClipB->EndBeat();
+    f1 = mClipB->EndBeat();
+    clipBSamplesMod = Mod(mClipB->EndBeat(), samplesDiv);
+    clipBStartBeat = (f1 - clipBSamplesMod) + samplesDiv;
+    f1 -= clipBSamplesMod;
+
+    if (clipBStartBeat <= mClipB->EndBeat()) {
+        f1 = clipBStartBeat;
+    }
+
+    f1 = floor(((f1 - mBStart) * mSamplesPerBeat) + 0.5); // how can i make this use
+                                                          // fmadds instead of 2 separate
+                                                          // insts?
+    uint val = f1;
+
+    return (((val != 0) - (val >> 0x1f) & val)) + 1;
+}
+
+void ClipDistMap::Array2d::Resize(int w, int h) {
+    delete this->mData;
+    this->mWidth = w;
+    this->mHeight = h;
+    this->mData = (float *)new uint[h * w];
+}
