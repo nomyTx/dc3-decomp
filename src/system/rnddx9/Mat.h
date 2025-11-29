@@ -5,8 +5,6 @@
 
 class DxMat : public NgMat {
 public:
-    u8 sizepad[0xC4]; // fakematch
-
     DxMat() {}
     virtual ~DxMat() {}
     OBJ_CLASSNAME(Mat)

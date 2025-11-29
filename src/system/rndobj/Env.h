@@ -57,6 +57,7 @@ public:
     void RemoveLight(RndLight *);
     void AddLight(RndLight *);
     bool IsValidRealLight(const RndLight *l) const;
+    const Hmx::Color &AmbientColor() const { return mAmbientFogOwner->mAmbientColor; }
 
 protected:
     RndEnviron();

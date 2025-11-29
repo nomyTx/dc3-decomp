@@ -16,6 +16,8 @@ public:
         kFloorSpot = 3,
         kShadowRef = 4,
     };
+    enum ProjectedBlend {
+    };
     OBJ_CLASSNAME(Light)
     OBJ_SET_TYPE(Light)
     virtual DataNode Handle(DataArray *, bool);
