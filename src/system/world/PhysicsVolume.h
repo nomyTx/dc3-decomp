@@ -74,6 +74,7 @@ public:
     NEW_OBJ(PhysicsVolume)
 
     void SetActiveState(bool);
+    void CreatePhysicsVolume(class PhysicsManager *);
 
     static bool sShowing;
 

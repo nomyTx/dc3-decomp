@@ -172,6 +172,7 @@ public:
     int GetMutable() const { return mGeomOwner->mMutable; }
     bool HasAOCalc() const { return mGeomOwner->mHasAOCalc; }
     void SetHasAOCalc(bool calc) { mGeomOwner->mHasAOCalc = calc; }
+    RndMesh *GetGeomOwner() const { return mGeomOwner; }
     void InstanceGeomOwnerBones();
     void DeleteBones(bool);
     void BurnXfm();

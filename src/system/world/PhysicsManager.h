@@ -105,6 +105,9 @@ private:
     void HarvestCollidables(ObjectDir *);
 
 protected:
+    DataNode OnGetVelocity(const DataArray *);
+    DataNode OnApplyForce(const DataArray *);
+
     RndDir *unk2c; // 0x2c
     float mPhysicsClampTime; // 0x30
     bool unk34; // 0x34
