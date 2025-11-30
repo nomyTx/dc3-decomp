@@ -5,14 +5,23 @@
 #include "obj/Data.h"
 #include "obj/Object.h"
 #include "rndobj/Dir.h"
+#include "rndobj/Mesh.h"
+#include "utl/MemMgr.h"
 #include "world/PhysicsVolume.h"
 
 struct RayCast;
-class RayCastContainer;
 class RayCastListener;
-class DetectionVolume;
 class DetectionVolumeListener;
 class ContactStateListener;
+
+class RayCastContainer {
+public:
+    virtual ~RayCastContainer() {}
+    virtual Hmx::Object *
+    FindNearest(const Segment &, float &, Vector3 &, Hmx::Object *&) = 0;
+
+    MEM_OVERLOAD(RayCastContainer, 0xB8);
+};
 
 enum PhysMotionState {
     /** "Things can collide with me, but I don't move." */
@@ -27,7 +36,7 @@ enum PhysMotionState {
 class PhysicsManager : public Hmx::Object {
 public:
     PhysicsManager(RndDir *);
-    virtual ~PhysicsManager() {}
+    virtual ~PhysicsManager();
     virtual DataNode Handle(DataArray *, bool);
     // there's a LOT of return void stubs here,
     // i can't verify their order
@@ -115,3 +124,5 @@ protected:
     float unk38; // 0x38
     int unk3c; // 0x3c
 };
+
+PhysicsManager *CreateDefaultPhysicsManager(RndDir *);

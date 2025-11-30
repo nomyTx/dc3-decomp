@@ -8,13 +8,6 @@
 #include "rndobj/Trans.h"
 #include "utl/MemMgr.h"
 
-class DetectionVolumeListener {
-public:
-    virtual ~DetectionVolumeListener() {}
-    virtual void OnCollidableEnter(Hmx::Object *, ObjectDir *) = 0;
-    virtual void OnCollidableExit(Hmx::Object *, ObjectDir *) = 0;
-};
-
 enum PhysicsVolumeType {
     kPhysicsVolumeBox = 0,
     kPhysicsVolumeSphere = 1
@@ -41,7 +34,29 @@ enum CollisionFilter {
     kCollideLightningFast = 17
 };
 
-#include "world/DetectionVolume.h"
+class DetectionVolumeListener {
+public:
+    virtual ~DetectionVolumeListener() {}
+    virtual void OnCollidableEnter(Hmx::Object *, ObjectDir *) = 0;
+    virtual void OnCollidableExit(Hmx::Object *, ObjectDir *) = 0;
+};
+
+class DetectionVolume : public Hmx::Object {
+public:
+    virtual ~DetectionVolume() {}
+    virtual void SetActiveState(bool) = 0;
+    virtual bool GetActiveState() const = 0;
+    virtual void Reset(const Transform &) = 0;
+    virtual void ApplyRadialForce(float) {} // 0x64 - tentative
+    virtual void ApplyRadialImpulse(float) {} // 0x68 - tentative
+    virtual void ApplyDirectionalForce(const Vector3 &) {} // 0x6c - tentative
+    virtual void ApplyDirectionalImpulse(const Vector3 &) {} // 0x70 - tentative
+    virtual void ApplyDirectionalLinearVelocity(const Vector3 &) {} // 0x74 - tentative
+    virtual void ApplyTangentialForce(Vector3) {} // 0x78 - tentative
+    virtual void SetCollisionFilter(CollisionFilter) {} // 0x7c
+    virtual void GetOverlaps(std::list<std::pair<Hmx::Object *, ObjectDir *> > &) {
+    } // 0x80 - tentative
+};
 
 /** "Physics Volume Trigger, fire events when things enter/exit me" */
 class PhysicsVolume : public RndDrawable,

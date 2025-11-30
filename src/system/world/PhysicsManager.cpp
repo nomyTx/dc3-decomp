@@ -8,6 +8,7 @@
 #include "rndobj/Group.h"
 #include "rndobj/Mesh.h"
 #include "rndobj/Trans.h"
+#include "world/DefaultPhysicsManager.h"
 #include "world/PhysicsVolume.h"
 
 namespace {
@@ -33,6 +34,8 @@ PhysicsManager::PhysicsManager(RndDir *dir)
         }
     }
 }
+
+PhysicsManager::~PhysicsManager() {}
 
 BEGIN_HANDLERS(PhysicsManager)
     HANDLE_EXPR(collidable_mass, GetMass(_msg->Obj<RndTransformable>(2)))
@@ -134,4 +137,8 @@ DataNode PhysicsManager::OnApplyForce(const DataArray *a) {
     Hmx::Object *obj = a->Obj<Hmx::Object>(2);
     ApplyForce(obj, Vector3(a->Float(3), a->Float(4), a->Float(5)));
     return 0;
+}
+
+PhysicsManager *CreateDefaultPhysicsManager(RndDir *d) {
+    return new DefaultPhysicsManager(d);
 }

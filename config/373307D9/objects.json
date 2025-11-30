@@ -958,7 +958,7 @@
             "system/world/ColorPalette.cpp": "NonMatching",
             "system/world/Crowd.cpp": "NonMatching",
             "system/world/Crowd3DCharHandle.cpp": "NonMatching",
-            "system/world/DefaultPhysicsManager.cpp": "MISSING",
+            "system/world/DefaultPhysicsManager.cpp": "NonMatching",
             "system/world/Dir.cpp": "NonMatching",
             "system/world/FreeCamera.cpp": "NonMatching",
             "system/world/Instance.cpp": "NonMatching",
