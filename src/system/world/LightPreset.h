@@ -150,6 +150,7 @@ public:
 
     int GetCurrentKeyframe(void) const;
     bool PlatformOk(void) const;
+    void SetSpotlight(Spotlight *, int);
 
 protected:
     LightPreset();

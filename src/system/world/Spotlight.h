@@ -5,12 +5,14 @@
 #include "rndobj/Draw.h"
 #include "rndobj/Env.h"
 #include "rndobj/Flare.h"
+#include "rndobj/Group.h"
 #include "rndobj/Lit.h"
 #include "rndobj/Mat.h"
 #include "rndobj/Mesh.h"
 #include "rndobj/Poll.h"
 #include "rndobj/Tex.h"
 #include "rndobj/Trans.h"
+#include "utl/BinStream.h"
 #include "utl/MemMgr.h"
 
 /** "Represents a beam and floorspot for venue modeling" */
@@ -26,8 +28,13 @@ public:
         };
 
         BeamDef(Hmx::Object *);
-        ~BeamDef() { RELEASE(mBeam); }
+        ~BeamDef();
         void OnSetMat(RndMat *);
+        Vector2 NGRadii() const;
+        void Save(BinStream &) const;
+        void Load(BinStreamRev &);
+        bool IsCone() const { return mIsCone; }
+        bool HasLength() const { return mLength > 0; }
 
         RndMesh *mBeam; // 0x0
         /** "Whether this is a beam or a cone" */
@@ -63,7 +70,7 @@ public:
         /** "cross section intensity override texture" */
         ObjPtr<RndTex> mXSection; // 0x40
         /** "Objects that create cutout shadow in the beam." */
-        ObjPtrList<RndDrawable> mCutouts; // 0x4c
+        ObjPtrList<RndDrawable> mCutouts; // 0x54
         /** "The material to use for the beam/cone" */
         ObjPtr<RndMat> mMat; // 0x68
     };
@@ -99,7 +106,7 @@ public:
     OBJ_MEM_OVERLOAD(0x22)
     NEW_OBJ(Spotlight)
 
-    Hmx::Color &Color() { return mColorOwner->mColor; }
+    const Hmx::Color &Color() const { return mColorOwner->mColor; }
     float Intensity() const { return mColorOwner->mIntensity; }
     BeamDef GetBeam() const { return mBeam; }
     RndFlare *GetFlare() const { return mFlare; }
@@ -107,6 +114,12 @@ public:
     void SetFlareIsBillboard(bool);
     void SetIntensity(float);
     void SetColorIntensity(const Hmx::Color &c, float f);
+    bool DoFloorSpot() const;
+    void CalculateDirection(RndTransformable *, Hmx::Matrix3 &);
+    RndTransformable *GetFloorSpotTarget() const {
+        return mSpotTarget ? mSpotTarget : mTarget;
+    }
+    void SetFlareEnabled(bool);
 
     static void RemoveFromLists(Spotlight *);
 
@@ -119,7 +132,19 @@ protected:
     void SetColor(int);
     void CloseSlaves();
     void PropogateToPresets(int);
+    void UpdateSlaves();
+    void CheckFloorSpotTransform();
+    void UpdateFloorSpotTransform(const Transform &);
+    void ConvertGroupToMesh(RndGroup *);
 
+    void BuildNGCone(BeamDef &, int);
+    void BuildNGSheet(BeamDef &);
+    void BuildNGQuad(BeamDef &, RndTransformable::Constraint);
+    void BuildNGShaft(BeamDef &);
+    void BuildCone(BeamDef &);
+    void BuildBeam(BeamDef &);
+
+    static RndMesh *sDiskMesh;
     static void BuildBoard();
 
     /** "Material to use for the floor spot" */
@@ -135,7 +160,7 @@ protected:
     float mSpotScale; // 0x128
     /** "Height offset of the floor disc" */
     float mSpotHeight; // 0x12c
-    Transform unk130; // 0x130
+    Transform mFloorSpotXfm; // 0x130
     Transform unk170; // 0x170
     /** "Color of the spotlight" */
     Hmx::Color mColor; // 0x1b0
@@ -153,7 +178,7 @@ protected:
     ObjPtrList<RndLight> mSlaves; // 0x270
     /** "Optional light can mesh to use" */
     ObjPtr<RndMesh> mLightCanMesh; // 0x284
-    Transform unk298; // 0x298
+    Transform mLightCanXfm; // 0x298
     /** "Offset of light can along beam trajectory" */
     float mLightCanOffset; // 0x2d8
     /** "Object to target spotlight.

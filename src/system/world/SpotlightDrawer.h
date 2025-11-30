@@ -82,6 +82,7 @@ public:
     void ApplyLightingApprox(BoxMapLighting &, float) const;
 
     static SpotlightDrawer *Current() { return sCurrent; }
+    static bool DrawNGSpotlights();
 
 protected:
     // SpotlightDrawer

@@ -169,7 +169,7 @@ public:
     int MaxBones() const { return GetGfxMode() != kOldGfx ? 40 : 4; }
     int NumBones() const { return mBones.size(); }
     void SetMutable(int m) { mGeomOwner->mMutable = m; }
-    int GetMutable() const { return mGeomOwner->mMutable; }
+    int Mutable() const { return mGeomOwner->mMutable; }
     bool HasAOCalc() const { return mGeomOwner->mHasAOCalc; }
     void SetHasAOCalc(bool calc) { mGeomOwner->mHasAOCalc = calc; }
     RndMesh *GetGeomOwner() const { return mGeomOwner; }

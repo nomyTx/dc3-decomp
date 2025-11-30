@@ -394,8 +394,7 @@ void RndText::FontMap::AllocateMeshes(RndText *text, int fixedLength) {
                 ResetFontMapPageMeshFaces(mesh, page.displayableChars * 2);
                 page.unkc |= 0xA0;
                 mesh->Verts().resize(page.displayableChars * 4);
-            } else if (mesh->GetMutable() == 0
-                       || mesh->Verts().size() != fixedLength * 4) {
+            } else if (mesh->Mutable() == 0 || mesh->Verts().size() != fixedLength * 4) {
                 mesh->SetMutable(0x1F);
                 ResetFontMapPageMeshFaces(mesh, page.displayableChars * 2);
                 page.unkc |= 0xA0;

@@ -33,6 +33,7 @@ public:
     Vector2 &Sizes() { return mSizes; }
     Vector2 &Range() { return mRange; }
     int GetSteps() const { return mSteps; }
+    void SetVisible(bool v) { mVisible = v; }
     void SetSteps(int steps);
     void SetPointTest(bool);
 
