@@ -46,16 +46,16 @@ public:
     virtual ~DetectionVolume() {}
     virtual void SetActiveState(bool) = 0;
     virtual bool GetActiveState() const = 0;
-    virtual void Reset(const Transform &) = 0;
-    virtual void ApplyRadialForce(float) {} // 0x64 - tentative
-    virtual void ApplyRadialImpulse(float) {} // 0x68 - tentative
-    virtual void ApplyDirectionalForce(const Vector3 &) {} // 0x6c - tentative
+    virtual void Reset(const Transform &) = 0; // 0x60
+    virtual void ApplyRadialForce(float) {} // 0x64
+    virtual void ApplyTangentialForce(Vector3) {} // 0x68
+    virtual void ApplyDirectionalForce(const Vector3 &) {} // 0x6c
     virtual void ApplyDirectionalImpulse(const Vector3 &) {} // 0x70 - tentative
-    virtual void ApplyDirectionalLinearVelocity(const Vector3 &) {} // 0x74 - tentative
-    virtual void ApplyTangentialForce(Vector3) {} // 0x78 - tentative
+    virtual void ApplyRadialImpulse(float) {} // 0x74 - tentative
+    virtual void ApplyDirectionalLinearVelocity(const Vector3 &) {} // 0x78
     virtual void SetCollisionFilter(CollisionFilter) {} // 0x7c
     virtual void GetOverlaps(std::list<std::pair<Hmx::Object *, ObjectDir *> > &) {
-    } // 0x80 - tentative
+    } // 0x80
 };
 
 /** "Physics Volume Trigger, fire events when things enter/exit me" */
@@ -74,7 +74,7 @@ public:
     virtual void Copy(const Hmx::Object *, Hmx::Object::CopyType);
     virtual void Load(BinStream &);
     // RndHighlightable
-    virtual void Highlight();
+    virtual void Highlight() {}
     // RndDrawable
     virtual bool MakeWorldSphere(Sphere &, bool);
     virtual void DrawShowing();
@@ -98,6 +98,8 @@ protected:
 
     void DestroyPhysicsVolume();
     void ChangeShapeType(int);
+    void HalfExtends(Vector3 &);
+
     DataNode OnSetDirectionalForce(const DataArray *);
     DataNode OnSetDirectionalVelocity(const DataArray *);
     DataNode OnSetTangentialForce(const DataArray *);
