@@ -376,6 +376,18 @@ bool ObjPtrList<T1, T2>::remove(T1 *target) {
     return false;
 }
 
+// remove a particular item inside iterator otherIt, from list otherList,
+// and insert it into this list at the position indicated by thisIt
+template <class T1, class T2>
+void ObjPtrList<T1, T2>::MoveItem(
+    iterator thisIt, ObjPtrList<T1, T2> &otherList, iterator otherIt
+) {
+    if (otherIt != thisIt) {
+        otherList.Unlink(otherIt.mNode);
+        Link(thisIt, otherIt.mNode);
+    }
+}
+
 template <class T1, class T2>
 bool ObjPtrList<T1, T2>::Load(BinStream &bs, bool print, ObjectDir *dir, bool b4) {
     bool ret = true;

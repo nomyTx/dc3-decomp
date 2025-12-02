@@ -33,17 +33,22 @@ BinStream &operator>>(BinStream &bs, ColorSet &cs) {
     return bs;
 }
 
+BinStreamRev &operator>>(BinStreamRev &d, ColorSet &cs) {
+    d.stream >> cs;
+    return d;
+}
+
 BEGIN_LOADS(ColorPalette)
     LOAD_REVS(bs)
     ASSERT_REVS(1, 0)
     LOAD_SUPERCLASS(Hmx::Object)
     if (d.rev < 1) {
         std::vector<ColorSet> vec;
-        bs >> vec;
+        d >> vec;
         mColors.clear();
-        for (std::vector<ColorSet>::iterator it = vec.begin(); it != vec.end(); ++it) {
+        FOREACH (it, vec) {
             mColors.push_back(it->mPrimary);
         }
     } else
-        bs >> mColors;
+        d >> mColors;
 END_LOADS

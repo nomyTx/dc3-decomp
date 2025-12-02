@@ -531,10 +531,10 @@ public:
     POOL_OVERLOAD(DataArray, 0xD2);
 };
 
-// inline TextStream &operator<<(TextStream &ts, const DataNode &node) {
-//     node.Print(ts, false);
-//     return ts;
-// }
+inline TextStream &operator<<(TextStream &ts, const DataNode &node) {
+    node.Print(ts, false, 0);
+    return ts;
+}
 
 inline BinStream &operator<<(BinStream &bs, const DataNode &node) {
     node.Save(bs);

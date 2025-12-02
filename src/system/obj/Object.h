@@ -441,6 +441,7 @@ public:
     iterator erase(iterator);
     iterator insert(iterator, T1 *);
     void Set(iterator it, T1 *obj);
+    void MoveItem(iterator thisIt, ObjPtrList<T1, T2> &otherList, iterator otherIt);
 
     typedef bool SortFunc(T1 *, T1 *);
     void sort(SortFunc *func);

@@ -15,6 +15,8 @@ class CameraManager : public Hmx::Object {
 public:
     class Category {
     public:
+        bool operator<(const Category &c) const { return unk0 < c.unk0; }
+
         Symbol unk0;
         ObjPtrList<CamShot> *unk4;
     };
@@ -55,13 +57,18 @@ public:
     void Randomize();
     void Enter();
     bool SetCrowds(ObjVector<CamShotCrowd> &);
-    int NumCameraShots(Symbol s, const std::vector<PropertyFilter> &);
+    int
+    NumCameraShots(Symbol s, const std::vector<PropertyFilter> &, std::list<CamShot *> *);
+    void SetNextShot(CamShot *);
+    void SyncObjects(WorldDir *);
+    CamShot *PickCameraShot(Symbol, const std::vector<PropertyFilter> &);
 
 private:
     void StartShot_(CamShot *);
     float CalcFrame();
     void FirstShotOk(Symbol);
     void RandomizeCategory(ObjPtrList<CamShot> &);
+    bool ShotMatches(CamShot *, const std::vector<PropertyFilter> &);
 
     DataNode OnPickCameraShot(DataArray *);
     DataNode OnFindCameraShot(DataArray *);

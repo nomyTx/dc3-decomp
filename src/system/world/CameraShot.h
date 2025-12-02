@@ -184,10 +184,13 @@ public:
     bool PlatformOk() const;
     void StartAnims(ObjPtrList<RndAnimatable> &);
     Symbol Category() const { return mCategory; }
+    int Flags() const { return mFlags; }
+    int Disabled() const { return mDisabled; }
     void Disable(bool, int);
     bool ShotOk(CamShot *);
     bool SetPos(CamShotFrame &, RndCam *);
     RndCam *GetCam();
+    void SetParent(RndDir *d) { unk1a4 = d; }
 
 protected:
     CamShot();
