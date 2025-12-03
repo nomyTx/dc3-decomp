@@ -188,6 +188,9 @@ public:
     RndCam *GetCam();
     void SetParent(RndDir *d) { unk1a4 = d; }
     class WorldDir *GetCrowdDir() const;
+    void AddAnim(RndAnimatable *);
+    void ClearCrowds();
+    bool AddCrowd(CamShotCrowd &);
 
 protected:
     CamShot();
@@ -270,8 +273,8 @@ protected:
     /** "The spotlight to get glow settings from" */
     ObjPtr<Spotlight> mGlowSpot; // 0x1d0
     int mFlags; // 0x1e4
-    ObjPtrList<RndDrawable> unk1e8;
-    ObjPtrList<RndDrawable> unk1fc;
+    ObjPtrList<RndDrawable> mEndHideList; // 0x1e8
+    ObjPtrList<RndDrawable> mEndShowList; // 0x1fc
     Vector3 unk210;
     Vector3 unk220;
     Vector3 unk230;
@@ -286,7 +289,7 @@ protected:
     int mDisabled; // 0x27c
     bool mShotStarted; // 0x280
     bool mShotOver; // 0x281
-    bool unk282;
+    bool mHidden; // 0x282
     bool unk283;
 };
 

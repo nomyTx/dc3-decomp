@@ -429,6 +429,11 @@ END_CUSTOM_PROPSYNC
 #pragma endregion
 #pragma region CamShot
 
+#define CAMERA_LOG(...)                                                                  \
+    if (DataVariable("camera_spew") != 0) {                                              \
+        MILO_LOG(__VA_ARGS__);                                                           \
+    }
+
 CamShot::CamShot()
     : mKeyframes(this), mLooping(false), mLoopKeyframe(0),
       mNearPlane(RndCam::DefaultNearPlane()),
@@ -437,9 +442,10 @@ CamShot::CamShot()
       mPlatform(kPlatformNone), mHideList(this), mShowList(this), mGenHideList(this),
       mDrawOverrides(this), mPostProcOverrides(this), unk1a4(this), mCrowds(this),
       mCrowdStateOverride(gNullStr), mPS3PerPixel(true), mGlowSpot(this), mFlags(0),
-      unk1e8(this), unk1fc(this), unk210(0, 0, 0), unk220(0, 0, 0), unk230(0, 0, 0),
-      unk240(0, 0, 0), unk250(0, 0, 0), unk260(0, 0, 0), mLastNext(0), mLastPrev(0),
-      mDuration(0), mDisabled(0), mShotStarted(1), mShotOver(0), unk282(0), unk283(0) {}
+      mEndHideList(this), mEndShowList(this), unk210(0, 0, 0), unk220(0, 0, 0),
+      unk230(0, 0, 0), unk240(0, 0, 0), unk250(0, 0, 0), unk260(0, 0, 0), mLastNext(0),
+      mLastPrev(0), mDuration(0), mDisabled(0), mShotStarted(1), mShotOver(0), mHidden(0),
+      unk283(0) {}
 
 CamShot::~CamShot() {}
 
@@ -872,9 +878,7 @@ next:
 END_LOADS
 
 void CamShot::StartAnim() {
-    if (DataVariable("camera_spew") != 0) {
-        MILO_LOG("** %s CamShot::StartAnim() start\n", Name());
-    }
+    CAMERA_LOG("** %s CamShot::StartAnim() start\n", Name());
     START_AUTO_TIMER("cam_switch");
     static Message msg("start_shot");
     Export(msg, true);
@@ -907,15 +911,11 @@ void CamShot::StartAnim() {
     }
     RndVelocityBuffer::Singleton().ResetFrame();
     DoHide();
-    if (DataVariable("camera_spew") != 0) {
-        MILO_LOG("** %s CamShot::StartAnim() stop\n", Name());
-    }
+    CAMERA_LOG("** %s CamShot::StartAnim() stop\n", Name());
 }
 
 void CamShot::EndAnim() {
-    if (DataVariable("camera_spew") != 0) {
-        MILO_LOG("** %s CamShot::EndAnim() start\n", Name());
-    }
+    CAMERA_LOG("** %s CamShot::EndAnim() start\n", Name());
     UnHide();
     if (TheHamWardrobe) {
         TheHamWardrobe->ForceCrowdAnimationEnd();
@@ -923,9 +923,7 @@ void CamShot::EndAnim() {
     static Message msg("stop_shot");
     Export(msg, true);
     EndAnims(mAnims);
-    if (DataVariable("camera_spew") != 0) {
-        MILO_LOG("** %s CamShot::EndAnim() stop\n", Name());
-    }
+    CAMERA_LOG("** %s CamShot::EndAnim() stop\n", Name());
 }
 
 void CamShot::SetFrame(float frame, float blend) {
@@ -1052,14 +1050,10 @@ bool CamShot::ShotOk(CamShot *shot) {
     DataNode handled = HandleType(msg);
     if (handled.Type() != kDataUnhandled) {
         if (handled.Type() == kDataString) {
-            if (DataVariable("camera_spew") != 0) {
-                MILO_LOG("Shot %s rejected: %s.\n", Name(), handled.Str());
-            }
+            CAMERA_LOG("Shot %s rejected: %s.\n", Name(), handled.Str());
             return false;
         } else if (handled.Int() == 0) {
-            if (DataVariable("camera_spew") != 0) {
-                MILO_LOG("Shot %s rejected: not ok.\n", Name());
-            }
+            CAMERA_LOG("Shot %s rejected: not ok.\n", Name());
             return false;
         } else {
             return true;
@@ -1116,4 +1110,110 @@ void CamShot::SetShotOver() {
     static Message msg("shot_over");
     Export(msg, true);
     mShotOver = true;
+}
+
+void CamShot::AddAnim(RndAnimatable *anim) {
+    if (mAnims.find(anim) == mAnims.end()) {
+        mAnims.push_back(anim);
+    }
+}
+
+void CamShot::DoHide() {
+    CAMERA_LOG("** %s CamShot::DoHide() start\n", Name());
+    if (!mHidden) {
+        mEndHideList.clear();
+        mEndShowList.clear();
+        FOREACH (it, mHideList) {
+            RndDrawable *cur = *it;
+            if (cur->Showing()) {
+                cur->SetShowing(false);
+                mEndShowList.push_back(cur);
+                CAMERA_LOG("   ** %s hide from mHideList\n", cur->Name());
+            }
+        }
+        FOREACH (it, mGenHideList) {
+            RndDrawable *cur = *it;
+            if (cur->Showing()) {
+                cur->SetShowing(false);
+                mEndShowList.push_back(cur);
+                CAMERA_LOG("   ** %s hide from mEndShowList\n", cur->Name());
+            }
+        }
+        FOREACH (it, mGenHideVector) {
+            RndDrawable *cur = *it;
+            if (cur->Showing()) {
+                cur->SetShowing(false);
+                CAMERA_LOG("   ** %s hide from mGenHideVector\n", cur->Name());
+                mEndShowList.push_back(cur);
+            }
+        }
+        FOREACH (it, mShowList) {
+            RndDrawable *cur = *it;
+            if (!cur->Showing()) {
+                cur->SetShowing(true);
+                mEndHideList.push_back(cur);
+                CAMERA_LOG("   ** %s show from mEndShowList\n", cur->Name());
+            }
+        }
+        mHidden = true;
+    }
+    CAMERA_LOG("** %s CamShot::DoHide() stop\n", Name());
+}
+
+void CamShot::UnHide() {
+    CAMERA_LOG(" ** %s CamShot::UnHide() start\n", Name());
+    if (mHidden) {
+        FOREACH (it, mEndHideList) {
+            (*it)->SetShowing(false);
+            CAMERA_LOG("   ** %s hide from mEndHideList\n", (*it)->Name());
+        }
+        FOREACH (it, mEndShowList) {
+            (*it)->SetShowing(true);
+            CAMERA_LOG("   ** %s show from mEndShowList\n", (*it)->Name());
+        }
+        mEndHideList.clear();
+        mEndShowList.clear();
+        mHidden = false;
+    }
+    CAMERA_LOG(" ** %s CamShot::UnHide() stop\n", Name());
+}
+
+RndCam *CamShot::GetCam() {
+    RndCam *ret = nullptr;
+    WorldDir *crowdDir = GetCrowdDir();
+    if (crowdDir) {
+        if (crowdDir->Cam()) {
+            ret = crowdDir->Cam();
+        }
+        if (!ret) {
+            MILO_NOTIFY_ONCE("%s: paneldir but no cam", PathName(crowdDir));
+        }
+    } else {
+        MILO_NOTIFY_ONCE("%s: no worlddir, so no cam", PathName(this));
+    }
+    return ret;
+}
+
+void CamShot::ClearCrowds() {
+    for (auto it = mCrowds.begin(); it != mCrowds.end(); it) {
+        if (!it->mCrowd) {
+            it = mCrowds.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+bool CamShot::AddCrowd(CamShotCrowd &crowd) {
+    bool ret = true;
+    FOREACH (it, mCrowds) {
+        if (it->mCrowd == crowd.mCrowd) {
+            ret = false;
+            break;
+        }
+    }
+    if (ret) {
+        mCrowds.push_back(crowd);
+    }
+    return ret;
 }
