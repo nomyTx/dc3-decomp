@@ -63,7 +63,8 @@ BinStreamRev &operator>>(BinStreamRev &d, WorldCrowd::CharData &cd) {
 WorldCrowd::WorldCrowd()
     : mPlacementMesh(this), mCharacters(this), mNum(0), unk6c(0), mForce3DCrowd(0),
       mShow3DOnly(0), mCharFullness(1), mFlatFullness(1), mLod(0), mEnviron(this),
-      mEnviron3D(this), mFocus(this), mCharForceLod(kLODPerFrame), unkd0(0), unkd4(0) {
+      mEnviron3D(this), mFocus(this), mCharForceLod(kLODPerFrame), unkd0(0),
+      mModifyStamp(0) {
     if (gNumCrowd++ == 0) {
         int w, h, bpp;
         if (GetGfxMode() == kNewGfx) {
@@ -170,7 +171,7 @@ BEGIN_SAVES(WorldCrowd)
         }
         bs << transforms;
     }
-    bs << unkd4;
+    bs << mModifyStamp;
     bs << force;
     bs << mShow3DOnly;
     bs << mFocus;
@@ -303,7 +304,7 @@ BEGIN_LOADS(WorldCrowd)
         OnRebuild(nullptr);
     }
     if (d.rev > 4) {
-        d >> unkd4;
+        d >> mModifyStamp;
     }
     if (d.rev > 0xC) {
         bool force = false;

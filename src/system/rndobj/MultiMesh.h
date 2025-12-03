@@ -116,6 +116,9 @@ public:
     NEW_OBJ(RndMultiMesh)
     static void Init() { REGISTER_OBJ_FACTORY(RndMultiMesh) }
     static void Terminate();
+    static const std::list<std::pair<class RndMultiMeshProxy *, int> > &ProxyPool() {
+        return sProxyPool;
+    }
 
     RndMesh *Mesh() const { return mMesh; }
     void SetMesh(RndMesh *);

@@ -18,8 +18,6 @@
 class CamShot;
 
 class CamShotFrame {
-    friend bool PropSync(CamShotFrame &, DataNode &, DataArray *, int, PropOp);
-
 public:
     enum BlendEaseMode {
         /** "blend in and out the same amount" */
@@ -50,7 +48,6 @@ public:
     float GetFrame() { return mFrame; }
     void SetFrame(float f) { mFrame = f; }
 
-private:
     /** "Duration this keyframe holds steady" */
     float mDuration; // 0x0
     /** "Duration this keyframe blends into the next one" */
@@ -117,8 +114,6 @@ enum CrowdRotate {
 };
 
 class CamShotCrowd {
-    friend bool PropSync(CamShotCrowd &, DataNode &, DataArray *, int, PropOp);
-
 public:
     CamShotCrowd(Hmx::Object *);
     CamShotCrowd(Hmx::Object *, const CamShotCrowd &);
@@ -137,7 +132,6 @@ public:
                   std::pair<RndMultiMesh *, std::list<RndMultiMesh::Instance>::iterator> >
                       &);
 
-private:
     /** "The crowd to show for this shot" */
     ObjPtr<WorldCrowd> mCrowd; // 0x0
     /** "How to rotate crowd" */
@@ -191,6 +185,7 @@ public:
     bool SetPos(CamShotFrame &, RndCam *);
     RndCam *GetCam();
     void SetParent(RndDir *d) { unk1a4 = d; }
+    class WorldDir *GetCrowdDir() const;
 
 protected:
     CamShot();

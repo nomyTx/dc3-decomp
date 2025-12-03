@@ -89,6 +89,7 @@ public:
     void Set3DCharList(const std::vector<std::pair<int, int> > &, Hmx::Object *);
     void Set3DCharXfm(const std::list<CharData>::iterator &, int, const Transform &);
     void Apply3DCharXfm(const std::list<CharData>::iterator &, int, RndCam *);
+    int GetModifyStamp() const { return mModifyStamp; }
 
 protected:
     WorldCrowd();
@@ -132,5 +133,5 @@ protected:
         -1 means no LOD is forced." */
     LODType mCharForceLod; // 0xcc
     int unkd0; // 0xd0
-    int unkd4; // 0xd4
+    int mModifyStamp; // 0xd4
 };

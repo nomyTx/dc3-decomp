@@ -25,6 +25,7 @@ public:
     RndMultiMesh *MultiMesh() const { return mMultiMesh; }
     void
     SetMultiMesh(RndMultiMesh *, const std::list<RndMultiMesh::Instance>::iterator &);
+    std::list<RndMultiMesh::Instance>::iterator Index() const { return mIndex; }
 
 protected:
     RndMultiMeshProxy();

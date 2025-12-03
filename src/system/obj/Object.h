@@ -98,6 +98,7 @@ public:
 
     iterator begin() const { return iterator(next); }
     iterator end() const { return iterator((ObjRef *)this); }
+    bool empty() const { return next == this; }
 
     void Clear() { next = prev = this; }
     void ReplaceList(Hmx::Object *obj) {
