@@ -1,18 +1,19 @@
 #pragma once
-
 #include "os/Debug.h"
+#include "rndobj/Rnd_NG.h"
+#include "xdk/D3D9.h"
 #include <types.h>
 
-class DxRnd {
+class DxRnd : public NgRnd {
 public:
-    u8 pad[0x224];
-    struct D3DDevice *mD3DDevice;
+    int unk220;
+    D3DDevice *mD3DDevice; // 0x224
     u8 pad2[0xD9];
     u8 unk_0x301;
 
     DxRnd(void);
 
-    struct D3DDevice *D3DDevice(void) { return mD3DDevice; }
+    D3DDevice *D3DDevice() { return mD3DDevice; }
     void AutoRelease(class D3DResource *);
 
     static const char *Error(s32);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "os/Debug.h"
-#include "rnddx9/Rnd_Xbox.h"
+#include "rnddx9/Rnd.h"
 #include <xdk/D3D9.h>
 
 template <typename T>
@@ -15,15 +15,9 @@ public:
             D3DDevice_SetStreamSource(TheDxRnd.D3DDevice(), 0, nullptr, 0, 0, 1);
             D3DDevice_SetStreamSource(TheDxRnd.D3DDevice(), 1, nullptr, 0, 0, 1);
         }
-        mDataAddr = // this is SUPPOSED to be a COM lookup, but idk how those work or
-                    // any hacks to make this work anyways
-            (void *)D3DVertexBuffer_Lock(
-                reinterpret_cast<D3DVertexBuffer *>(mBuf), 0, 0, flags
-            );
+        mDataAddr = mBuf->Lock(0, 0, flags);
     }
-    virtual ~BufLock() {
-        D3DVertexBuffer_Unlock(reinterpret_cast<D3DVertexBuffer *>(mBuf));
-    }
+    virtual ~BufLock() { mBuf->Unlock(); }
 
     T *mBuf;
     void *mDataAddr;

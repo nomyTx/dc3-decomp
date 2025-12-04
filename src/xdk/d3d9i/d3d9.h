@@ -84,28 +84,42 @@ DWORD D3DResource_Release(D3DResource *self);
 #pragma endregion
 #pragma region D3DIndexBuffer
 
-typedef struct D3DIndexBuffer : public D3DResource { /* Size=0x20 */
-    /* 0x0018 */ UINT Address;
-    /* 0x001c */ UINT Size;
-} D3DIndexBuffer;
+struct D3DIndexBuffer;
 
 VOID D3DIndexBuffer_GetDesc(D3DIndexBuffer *self, D3DINDEXBUFFER_DESC *pDesc);
 HANDLE
 D3DIndexBuffer_Lock(D3DIndexBuffer *self, UINT OffsetToLock, UINT SizeToLock, DWORD Flags);
 VOID D3DIndexBuffer_Unlock(D3DIndexBuffer *self);
 
+typedef struct D3DIndexBuffer : public D3DResource { /* Size=0x20 */
+    /* 0x0018 */ UINT Address;
+    /* 0x001c */ UINT Size;
+
+    HANDLE Lock(UINT offset, UINT size, DWORD flags) {
+        return D3DIndexBuffer_Lock(this, offset, size, flags);
+    }
+    VOID Unlock() { D3DIndexBuffer_Unlock(this); }
+} D3DIndexBuffer;
+
 #pragma endregion
 #pragma region D3DVertexBuffer
 
-typedef struct D3DVertexBuffer : public D3DResource { /* Size=0x20 */
-    /* 0x0018 */ GPUVERTEX_FETCH_CONSTANT Format;
-} D3DVertexBuffer;
+struct D3DVertexBuffer;
 
 VOID D3DVertexBuffer_GetDesc(D3DVertexBuffer *self, D3DVERTEXBUFFER_DESC *pDesc);
 HANDLE D3DVertexBuffer_Lock(
     D3DVertexBuffer *self, UINT OffsetToLock, UINT SizeToLock, DWORD Flags
 );
 VOID D3DVertexBuffer_Unlock(D3DVertexBuffer *self);
+
+typedef struct D3DVertexBuffer : public D3DResource { /* Size=0x20 */
+    /* 0x0018 */ GPUVERTEX_FETCH_CONSTANT Format;
+
+    HANDLE Lock(UINT offset, UINT size, DWORD flags) {
+        return D3DVertexBuffer_Lock(this, offset, size, flags);
+    }
+    VOID Unlock() { D3DVertexBuffer_Unlock(this); }
+} D3DVertexBuffer;
 
 D3DVertexBuffer *D3DDevice_CreateVertexBuffer(UINT Length, DWORD Usage, D3DPOOL Pool);
 
@@ -224,7 +238,11 @@ void D3DDevice_SetRenderState_ZEnable(D3DDevice *, DWORD);
 void D3DDevice_SetRenderState_ZFunc(D3DDevice *, D3DCMPFUNC);
 void D3DDevice_SetRenderState_ZWriteEnable(D3DDevice *, DWORD);
 
+#pragma endregion
+#pragma region Misc
+
 void D3DDevice_SetTexture(D3DDevice *, UINT, D3DBaseTexture *, UINT64);
+D3DSurface *D3DDevice_GetRenderTarget(D3DDevice *, UINT);
 
 #ifdef __cplusplus
 }

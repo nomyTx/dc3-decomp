@@ -1,5 +1,5 @@
 #include "rnddx9/CubeTex.h"
-#include "rnddx9/Rnd_Xbox.h"
+#include "rnddx9/Rnd.h"
 #include "rndobj/Mat_NG.h"
 
 DxCubeTex::DxCubeTex() : mResource(0) {}

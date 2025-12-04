@@ -1,6 +1,6 @@
 #pragma once
 #include "Utl.h"
-#include "rnddx9/Rnd_Xbox.h"
+#include "rnddx9/Rnd.h"
 #include "xdk/D3D9.h"
 #include <cstring>
 
