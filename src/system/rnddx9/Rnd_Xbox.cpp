@@ -6,6 +6,7 @@
 #include "obj/Object.h"
 #include "os/Debug.h"
 #include "os/System.h"
+#include "rnddx9/CubeTex.h"
 #include "rnddx9/OcclusionQueryMgr.h"
 #include "rnddx9/Rnd.h"
 #include "rndobj/Rnd_NG.h"
@@ -37,7 +38,12 @@ DxRnd::~DxRnd() {
     }
 }
 
-void CDError();
+void CDError() {
+    TheDxRnd.Suspend();
+    ShowDirtyDiscError();
+}
+
+void DxModal(Debug::ModalType &t, FixedString &s, bool b) { TheDxRnd.Modal(t, s, b); }
 
 void DxRnd::PreInit(HWND__ *) {
     if (!unk404) {
@@ -64,9 +70,6 @@ void DxRnd::PreInit(HWND__ *) {
         TheRenderState.Init();
         Suspend();
         REGISTER_OBJ_FACTORY(DxTexRenderer)
-        //     SVar6 = DxTexRenderer::StaticClassName();
-        //                     /* WARNING: Load size is inaccurate */
-        //     Hmx::Object::RegisterFactory(*SVar6.mStr,DxTexRenderer::NewObject);
         //     SVar6 = DxCam::StaticClassName();
         //                     /* WARNING: Load size is inaccurate */
         //     Hmx::Object::RegisterFactory(*SVar6.mStr,DxCam::NewObject);
@@ -78,23 +81,21 @@ void DxRnd::PreInit(HWND__ *) {
         //     SVar6 = DxTex::StaticClassName();
         //                     /* WARNING: Load size is inaccurate */
         //     Hmx::Object::RegisterFactory(*SVar6.mStr,DxTex::NewObject);
-        //     SVar6 = DxCubeTex::StaticClassName();
-        //                     /* WARNING: Load size is inaccurate */
-        //     Hmx::Object::RegisterFactory(*SVar6.mStr,DxCubeTex::NewObject);
+        REGISTER_OBJ_FACTORY(DxCubeTex);
         //     DxMultiMesh::Init();
         //     SVar6 = DxMovie::StaticClassName();
         //                     /* WARNING: Load size is inaccurate */
         //     Hmx::Object::RegisterFactory(*SVar6.mStr,DxMovie::NewObject);
         //     DxParticleSys::Init();
         //     DxLight::Init();
-        //     CreatePostTextures(this);
+        CreatePostTextures();
         //     DxTex::sEDRamChecksEnabled = false;
         //     NgPostProc::Init();
         //     NgDOFProc::Init();
         //     DxTex::sEDRamChecksEnabled = true;
         RndShadowMap::Init();
         Rnd::CreateDefaults();
-        //     Debug::SetModalCallback(&TheDebug,DxModal);
+        TheDebug.SetModalCallback(DxModal);
     }
 }
 

@@ -70,6 +70,7 @@ private:
     void InitBuffers();
     void PreDeviceReset();
     void PostDeviceReset();
+    void CreatePostTextures();
 
     int unk220;
     D3DDevice *mD3DDevice; // 0x224
@@ -109,9 +110,9 @@ private:
     int unk35c;
     bool unk360;
     bool unk361;
-    int unk364;
-    int unk368;
-    int unk36c;
+    D3DPerfCounters *unk364; // 0x364
+    D3DPerfCounters *unk368; // 0x368
+    Timer *unk36c; // 0x36c
     float unk370;
     float unk374;
     bool unk378;
