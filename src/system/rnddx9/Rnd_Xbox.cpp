@@ -16,6 +16,7 @@
 #include "rnddx9/CubeTex.h"
 #include "rnddx9/OcclusionQueryMgr.h"
 #include "rnddx9/Rnd.h"
+#include "rndobj/DOFProc_NG.h"
 #include "rndobj/Rnd_NG.h"
 #include "rndobj/ShaderMgr.h"
 #include "rndobj/ShadowMap.h"
@@ -90,7 +91,7 @@ void DxRnd::PreInit(HWND__ *) {
         CreatePostTextures();
         DxTex::SetEDRamChecksEnabled(false);
         //     NgPostProc::Init();
-        //     NgDOFProc::Init();
+        NgDOFProc::Init();
         DxTex::SetEDRamChecksEnabled(true);
         RndShadowMap::Init();
         Rnd::CreateDefaults();

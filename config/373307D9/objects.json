@@ -671,7 +671,7 @@
             "system/rndobj/Console.cpp": "NonMatching",
             "system/rndobj/CubeTex.cpp": "NonMatching",
             "system/rndobj/DOFProc.cpp": "NonMatching",
-            "system/rndobj/DOFProc_NG.cpp": "MISSING",
+            "system/rndobj/DOFProc_NG.cpp": "NonMatching",
             "system/rndobj/Dir.cpp": "NonMatching",
             "system/rndobj/Draw.cpp": "NonMatching",
             "system/rndobj/Enter.cpp": "NonMatching",
