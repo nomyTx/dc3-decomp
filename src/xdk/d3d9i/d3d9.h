@@ -503,7 +503,6 @@ void D3DDevice_Clear(
     INT
 );
 
-INT Direct3D_GetDeviceCaps(UINT, D3DDEVTYPE, D3DCAPS9 *);
 void D3DDevice_SynchronizeToPresentationInterval(D3DDevice *);
 void D3DDevice_QuerySwapStatus(D3DDevice *, D3DSWAP_STATUS *);
 void D3DDevice_Swap(D3DDevice *, D3DBaseTexture *, const D3DVIDEO_SCALER_PARAMETERS *);
@@ -524,6 +523,11 @@ void D3DDevice_Resolve(D3DDevice *, UINT, const D3DRECT *, D3DBaseTexture *, con
 void D3DDevice_Suspend(D3DDevice *);
 void D3DDevice_Resume(D3DDevice *);
 void D3DDevice_SetShaderGPRAllocation(D3DDevice *, UINT, UINT, UINT);
+D3DSurface *D3DDevice_GetDepthStencilSurface(D3DDevice *);
+
+INT Direct3D_GetDeviceCaps(UINT, D3DDEVTYPE, D3DCAPS9 *);
+HRESULT
+Direct3D_CreateDevice(UINT, D3DDEVTYPE, void *, UINT, D3DPRESENT_PARAMETERS *, D3DDevice **);
 
 #ifdef __cplusplus
 }

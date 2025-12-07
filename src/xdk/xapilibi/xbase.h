@@ -167,6 +167,17 @@ typedef struct _GUID { /* Size=0x10 */
     /* 0x0008 */ BYTE Data4[8];
 } GUID;
 
+typedef struct _XVIDEO_MODE { /* Size=0x30 */
+    /* 0x0000 */ DWORD dwDisplayWidth;
+    /* 0x0004 */ DWORD dwDisplayHeight;
+    /* 0x0008 */ BOOL fIsInterlaced;
+    /* 0x000c */ BOOL fIsWideScreen;
+    /* 0x0010 */ BOOL fIsHiDef;
+    /* 0x0014 */ float RefreshRate;
+    /* 0x0018 */ DWORD VideoStandard;
+    /* 0x001c */ DWORD Reserved[5];
+} XVIDEO_MODE;
+
 #ifdef __cplusplus
 }
 #endif

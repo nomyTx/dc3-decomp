@@ -2,10 +2,10 @@
 #include "math/Color.h"
 #include "os/Debug.h"
 #include "rnddx9/Object.h"
+#include "rnddx9/Tex.h"
 #include "rndobj/Bitmap.h"
 #include "rndobj/Rnd_NG.h"
 #include "xdk/D3D9.h"
-#include "xdk/d3d9i/d3d9.h"
 #include <types.h>
 
 struct LargeQuadRenderData {
@@ -43,10 +43,6 @@ public:
     virtual void SetShrinkToSafeArea(bool shrink);
     virtual void PushClipPlanesInternal(ObjPtrVec<RndTransformable> &);
     virtual void PopClipPlanesInternal(ObjPtrVec<RndTransformable> &);
-    virtual void DoWorldEnd();
-    virtual void DoPostProcess();
-    virtual bool CanModal(Debug::ModalType);
-    virtual void ModalDraw(Debug::ModalType, const char *);
 
     virtual void SetViewport(const Viewport &v);
     virtual void
@@ -85,7 +81,14 @@ public:
 
     static const char *Error(long);
 
+protected:
+    virtual void DoPostProcess();
+    virtual bool CanModal(Debug::ModalType);
+    virtual void ModalDraw(Debug::ModalType, const char *);
+
 private:
+    virtual void DoWorldEnd();
+
     void InitBuffers();
     void PreDeviceReset();
     void PostDeviceReset();
@@ -100,13 +103,17 @@ private:
     void EndTiling(D3DBaseTexture *, int);
     void SavePreBuffer();
     void SavePostBuffer();
+    void SetFrameBuffersAsSource();
+    void FinishPostProcess();
+    void CopyPostProcess();
+    void DoPointTests();
 
     // static D3DXMATRIX sIdentityMtx;
 
     int unk220;
     D3DDevice *mD3DDevice; // 0x224
     int unk228;
-    int unk22c;
+    void *unk22c;
     D3DDEVTYPE mDeviceType; // 0x230
     D3DPRESENT_PARAMETERS mPresentParams; // 0x234
     std::list<DxObject *> unk2b0;
@@ -121,23 +128,11 @@ private:
     u8 unk_0x301;
     std::vector<D3DResource *> unk304;
     std::vector<D3DBaseTexture *> unk310;
-    // 0x31c - struct of size 0x30?
-    int unk31c;
-    int unk320;
-    int unk324;
-    int unk328;
-    int unk32c;
-    int unk330;
-    int unk334;
-    int unk338;
-    int unk33c;
-    int unk340;
-    int unk344;
-    int unk348;
+    XVIDEO_MODE mVideoMode; // 0x31c
     bool unk34c;
     bool unk34d;
     D3DTexture *unk350[2]; // 0x350
-    D3DTexture *unk358;
+    D3DTexture *unk358; // 0x358
     int unk35c;
     bool unk360;
     bool mAsyncSwapCurrent; // 0x361
@@ -154,12 +149,12 @@ private:
     D3DSurface *unk38c;
     D3DTexture *unk390;
     D3DTexture *unk394;
-    RndTex *unk398; // DxTex*
-    RndTex *unk39c; // DxTex*
-    RndTex *unk3a0; // DxTex*
+    DxTex *unk398; // 0x398
+    DxTex *unk39c; // 0x39c
+    DxTex *unk3a0; // 0x3a0
     bool unk3a4;
-    int unk3a8;
-    int unk3ac;
+    unsigned int unk3a8;
+    unsigned int unk3ac;
     int mNumTiles; // 0x3b0
     D3DRECT unk3b4;
     int unk3c4;

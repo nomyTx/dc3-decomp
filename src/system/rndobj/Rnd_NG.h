@@ -41,7 +41,7 @@ public:
     virtual void RemovePointTest(RndFlare *);
     virtual RndTex *GetShadowMap() { return mShadowMap; }
     virtual RndCam *GetShadowCam() { return mShadowCam; }
-    virtual void DoPostProcess() { Rnd::DoPostProcess(); }
+    virtual void DoPostProcess();
 
     virtual void SetViewport(const Viewport &v) { unk1e0 = v; }
     virtual const Viewport &GetViewport() const { return unk1e0; }

@@ -88,6 +88,8 @@ void NgRnd::RemovePointTest(RndFlare *flare) {
     }
 }
 
+void NgRnd::DoPostProcess() { Rnd::DoPostProcess(); }
+
 void NgRnd::CreateLargeQuad(int, int, LargeQuadRenderData &) {
     MILO_FAIL("NgRnd::CreateLargeQuad not implemented!");
 }

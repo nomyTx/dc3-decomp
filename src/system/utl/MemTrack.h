@@ -9,3 +9,6 @@ void DebugHeapFree(void *);
 
 void BeginMemTrackFileName(const char *);
 void EndMemTrackFileName();
+
+void BeginMemTrackObjectName(const char *);
+void EndMemTrackObjectName();
