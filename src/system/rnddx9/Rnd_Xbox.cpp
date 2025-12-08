@@ -131,9 +131,9 @@ void DxRnd::Terminate() {
     DxMultiMesh::Shutdown();
     NgPostProc::Terminate();
     NgRnd::Terminate();
-    RELEASE(unk398);
-    RELEASE(unk39c);
-    RELEASE(unk3a0);
+    RELEASE(mPreProcessTex);
+    RELEASE(mPostProcessTex);
+    RELEASE(mPreDepthTex);
     TerminateBuffers();
 }
 
@@ -613,13 +613,13 @@ void DxRnd::InitBuffers() {
 }
 
 void DxRnd::CreatePostTextures() {
-    RELEASE(unk398);
-    unk398 = Hmx::Object::New<DxTex>();
-    unk398->SetDeviceTex(unk390);
-    RELEASE(unk3a0);
-    unk3a0 = Hmx::Object::New<DxTex>();
-    unk3a0->SetDeviceTex(unk358);
-    RELEASE(unk39c);
-    unk39c = Hmx::Object::New<DxTex>();
-    unk39c->SetDeviceTex(unk394);
+    RELEASE(mPreProcessTex);
+    mPreProcessTex = Hmx::Object::New<DxTex>();
+    mPreProcessTex->SetDeviceTex(unk390);
+    RELEASE(mPreDepthTex);
+    mPreDepthTex = Hmx::Object::New<DxTex>();
+    mPreDepthTex->SetDeviceTex(unk358);
+    RELEASE(mPostProcessTex);
+    mPostProcessTex = Hmx::Object::New<DxTex>();
+    mPostProcessTex->SetDeviceTex(unk394);
 }

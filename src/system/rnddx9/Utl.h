@@ -15,7 +15,7 @@ public:
             D3DDevice_SetStreamSource(TheDxRnd.GetD3DDevice(), 0, nullptr, 0, 0, 1);
             D3DDevice_SetStreamSource(TheDxRnd.GetD3DDevice(), 1, nullptr, 0, 0, 1);
         }
-        mDataAddr = mBuf->Lock(0, 0, flags);
+        mBuf->Lock(0, 0, &mDataAddr, flags);
     }
     virtual ~BufLock() { mBuf->Unlock(); }
 

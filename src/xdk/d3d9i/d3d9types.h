@@ -301,20 +301,23 @@ typedef struct _D3DBOX { /* Size=0x18 */
     /* 0x0014 */ UINT Back;
 } D3DBOX;
 
+// https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3drect
 typedef struct _D3DRECT { /* Size=0x10 */
-    /* 0x0000 */ INT x1;
-    /* 0x0004 */ INT y1;
-    /* 0x0008 */ INT x2;
-    /* 0x000c */ INT y2;
+    /** (x1, y1) = upper left corner of rectangle */
+    /* 0x0000 */ LONG x1;
+    /* 0x0004 */ LONG y1;
+    /** (x2, y2) = lower right corner of rectangle */
+    /* 0x0008 */ LONG x2;
+    /* 0x000c */ LONG y2;
 } D3DRECT;
 
 typedef struct _D3DRING_BUFFER_PARAMETERS { /* Size=0x18 */
-    /* 0x0000 */ UINT Flags;
-    /* 0x0004 */ UINT PrimarySize;
+    /* 0x0000 */ DWORD Flags;
+    /* 0x0004 */ DWORD PrimarySize;
     /* 0x0008 */ void *pPrimary;
-    /* 0x000c */ UINT SecondarySize;
+    /* 0x000c */ DWORD SecondarySize;
     /* 0x0010 */ void *pSecondary;
-    /* 0x0014 */ UINT SegmentCount;
+    /* 0x0014 */ DWORD SegmentCount;
 } D3DRING_BUFFER_PARAMETERS;
 
 typedef enum _D3DCOLORSPACE {
@@ -326,9 +329,9 @@ typedef enum _D3DCOLORSPACE {
 
 typedef struct _D3DVIDEO_SCALER_PARAMETERS { /* Size=0x1c */
     /* 0x0000 */ _D3DRECT ScalerSourceRect;
-    /* 0x0010 */ UINT ScaledOutputWidth;
-    /* 0x0014 */ UINT ScaledOutputHeight;
-    /* 0x0018 */ UINT FilterProfile;
+    /* 0x0010 */ DWORD ScaledOutputWidth;
+    /* 0x0014 */ DWORD ScaledOutputHeight;
+    /* 0x0018 */ DWORD FilterProfile;
 } D3DVIDEO_SCALER_PARAMETERS;
 
 typedef enum _D3DSWAPEFFECT {
@@ -348,17 +351,17 @@ typedef struct _D3DPRESENT_PARAMETERS_ { /* Size=0x7c */
     /* 0x0008 */ _D3DFORMAT BackBufferFormat;
     /* 0x000c */ UINT BackBufferCount;
     /* 0x0010 */ _D3DMULTISAMPLE_TYPE MultiSampleType;
-    /* 0x0014 */ UINT MultiSampleQuality;
+    /* 0x0014 */ DWORD MultiSampleQuality;
     /* 0x0018 */ _D3DSWAPEFFECT SwapEffect;
     /* 0x001c */ HWND__ *hDeviceWindow;
-    /* 0x0020 */ INT Windowed;
-    /* 0x0024 */ INT EnableAutoDepthStencil;
+    /* 0x0020 */ BOOL Windowed;
+    /* 0x0024 */ BOOL EnableAutoDepthStencil;
     /* 0x0028 */ _D3DFORMAT AutoDepthStencilFormat;
-    /* 0x002c */ UINT Flags;
+    /* 0x002c */ DWORD Flags;
     /* 0x0030 */ UINT FullScreen_RefreshRateInHz;
     /* 0x0034 */ UINT PresentationInterval;
-    /* 0x0038 */ INT DisableAutoBackBuffer;
-    /* 0x003c */ INT DisableAutoFrontBuffer;
+    /* 0x0038 */ BOOL DisableAutoBackBuffer;
+    /* 0x003c */ BOOL DisableAutoFrontBuffer;
     /* 0x0040 */ _D3DFORMAT FrontBufferFormat;
     /* 0x0044 */ _D3DCOLORSPACE FrontBufferColorSpace;
     /* 0x0048 */ _D3DRING_BUFFER_PARAMETERS RingBufferParameters;
@@ -524,11 +527,14 @@ typedef enum _D3DPRIMITIVETYPE {
     D3DPT_FORCE_DWORD = 0x7fffffff,
 } D3DPRIMITIVETYPE;
 
+// https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dviewport9
+/** Defines the window dimensions of a render-target surface onto which a 3D volume
+ * projects. */
 typedef struct _D3DVIEWPORT9 { /* Size=0x18 */
-    /* 0x0000 */ UINT X;
-    /* 0x0004 */ UINT Y;
-    /* 0x0008 */ UINT Width;
-    /* 0x000c */ UINT Height;
+    /* 0x0000 */ DWORD X;
+    /* 0x0004 */ DWORD Y;
+    /* 0x0008 */ DWORD Width;
+    /* 0x000c */ DWORD Height;
     /* 0x0010 */ float MinZ;
     /* 0x0014 */ float MaxZ;
 } D3DVIEWPORT9;

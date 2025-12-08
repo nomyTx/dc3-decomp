@@ -85,37 +85,47 @@ typedef struct D3DResource { /* Size=0x18 */
 } D3DResource;
 
 // D3DResource methods
-UINT D3DResource_AddRef(D3DResource *self);
-VOID D3DResource_BlockUntilNotBusy(D3DResource *self);
-VOID D3DResource_GetDevice(D3DResource *self, D3DDevice **);
-D3DRESOURCETYPE D3DResource_GetType(D3DResource *self);
-BOOL D3DResource_IsBusy(D3DResource *self);
-BOOL D3DResource_IsSet(D3DResource *self, D3DDevice *);
-UINT D3DResource_Release(D3DResource *self);
+UINT D3DResource_AddRef(D3DResource *pResource);
+VOID D3DResource_BlockUntilNotBusy(D3DResource *pResource);
+VOID D3DResource_GetDevice(D3DResource *pThis, D3DDevice **ppDevice);
+D3DRESOURCETYPE D3DResource_GetType(D3DResource *pResource);
+BOOL D3DResource_IsBusy(D3DResource *pResource);
+BOOL D3DResource_IsSet(D3DResource *pResource, D3DDevice *pDevice);
+UINT D3DResource_Release(D3DResource *pResource);
 
 #pragma endregion
 #pragma region D3DIndexBuffer
 
 struct D3DIndexBuffer;
 
-VOID D3DIndexBuffer_GetDesc(D3DIndexBuffer *self, D3DINDEXBUFFER_DESC *pDesc);
+VOID D3DIndexBuffer_GetDesc(D3DIndexBuffer *pIndexBuffer, D3DINDEXBUFFER_DESC *pDesc);
 HANDLE
-D3DIndexBuffer_Lock(D3DIndexBuffer *self, UINT OffsetToLock, UINT SizeToLock, DWORD Flags);
-HANDLE D3DIndexBuffer_AsyncLock(D3DIndexBuffer *, UINT64, UINT, UINT, UINT);
-VOID D3DIndexBuffer_Unlock(D3DIndexBuffer *self);
+D3DIndexBuffer_Lock(
+    D3DIndexBuffer *pIndexBuffer, UINT OffsetToLock, UINT SizeToLock, DWORD Flags
+);
+HANDLE D3DIndexBuffer_AsyncLock(
+    D3DIndexBuffer *pIndexBuffer,
+    UINT64 AsyncBlock,
+    UINT OffsetToLock,
+    UINT SizeToLock,
+    DWORD Flags
+);
+VOID D3DIndexBuffer_Unlock(D3DIndexBuffer *pIndexBuffer);
 
 typedef struct D3DIndexBuffer : public D3DResource { /* Size=0x20 */
     /* 0x0018 */ UINT Address;
     /* 0x001c */ UINT Size;
 
-    HANDLE Lock(UINT offset, UINT size, DWORD flags) {
-        return D3DIndexBuffer_Lock(this, offset, size, flags);
+    INT Lock(UINT OffsetToLock, UINT SizeToLock, void **ppbData, DWORD Flags) {
+        *ppbData = D3DIndexBuffer_Lock(this, OffsetToLock, SizeToLock, Flags);
+        return 0;
     }
-    VOID Unlock() { D3DIndexBuffer_Unlock(this); }
+    INT Unlock() {
+        D3DIndexBuffer_Unlock(this);
+        return 0;
+    }
 
-    //   public: int32_t Lock(uint32_t, uint32_t, void**, uint32_t);
     //   public: int32_t AsyncLock(uint64_t, uint32_t, uint32_t, void**, uint32_t);
-    //   public: int32_t Unlock();
     //   public: int32_t GetDesc(_D3DINDEXBUFFER_DESC*);
 
 } D3DIndexBuffer;
@@ -125,23 +135,25 @@ typedef struct D3DIndexBuffer : public D3DResource { /* Size=0x20 */
 
 struct D3DVertexBuffer;
 
-VOID D3DVertexBuffer_GetDesc(D3DVertexBuffer *self, D3DVERTEXBUFFER_DESC *pDesc);
+VOID D3DVertexBuffer_GetDesc(D3DVertexBuffer *pVertexBuffer, D3DVERTEXBUFFER_DESC *pDesc);
 HANDLE D3DVertexBuffer_Lock(
-    D3DVertexBuffer *self, UINT OffsetToLock, UINT SizeToLock, DWORD Flags
+    D3DVertexBuffer *pVertexBuffer, UINT OffsetToLock, UINT SizeToLock, DWORD Flags
 );
-VOID D3DVertexBuffer_Unlock(D3DVertexBuffer *self);
+VOID D3DVertexBuffer_Unlock(D3DVertexBuffer *pVertexBuffer);
 
 typedef struct D3DVertexBuffer : public D3DResource { /* Size=0x20 */
     /* 0x0018 */ GPUVERTEX_FETCH_CONSTANT Format;
 
-    HANDLE Lock(UINT offset, UINT size, DWORD flags) {
-        return D3DVertexBuffer_Lock(this, offset, size, flags);
+    INT Lock(UINT OffsetToLock, UINT SizeToLock, void **ppbData, DWORD Flags) {
+        *ppbData = D3DVertexBuffer_Lock(this, OffsetToLock, SizeToLock, Flags);
+        return 0;
     }
-    VOID Unlock() { D3DVertexBuffer_Unlock(this); }
+    INT Unlock() {
+        D3DVertexBuffer_Unlock(this);
+        return 0;
+    }
 
-    //   public: int32_t Lock(uint32_t, uint32_t, void**, uint32_t);
     //   public: int32_t AsyncLock(uint64_t, uint32_t, uint32_t, void**, uint32_t);
-    //   public: int32_t Unlock();
     //   public: int32_t GetDesc(_D3DVERTEXBUFFER_DESC*);
 } D3DVertexBuffer;
 
@@ -176,12 +188,18 @@ struct D3DSurface : public D3DResource { /* Size=0x30 */
 };
 
 VOID D3DSurface_AsyncLockRect(
-    D3DSurface *, UINT64, D3DLOCKED_RECT *, const tagRECT *, UINT
+    D3DSurface *pSurface,
+    UINT64 AsyncBlock,
+    D3DLOCKED_RECT *pLockedRect,
+    const tagRECT *pRect,
+    DWORD Flags
 );
-VOID D3DSurface_GetContainer(D3DSurface *, const _GUID &);
-VOID D3DSurface_GetDesc(D3DSurface *, D3DSURFACE_DESC *);
-VOID D3DSurface_LockRect(D3DSurface *, D3DLOCKED_RECT *, const tagRECT *, UINT);
-VOID D3DSurface_UnlockRect(D3DSurface *);
+VOID D3DSurface_GetContainer(D3DSurface *pSurface, const _GUID &UnusedRiid);
+VOID D3DSurface_GetDesc(D3DSurface *pSurface, D3DSURFACE_DESC *pDesc);
+VOID D3DSurface_LockRect(
+    D3DSurface *pSurface, D3DLOCKED_RECT *pLockedRect, const tagRECT *pRect, DWORD Flags
+);
+VOID D3DSurface_UnlockRect(D3DSurface *pSurface);
 
 #pragma endregion
 #pragma region D3DTexture
@@ -197,11 +215,19 @@ struct D3DBaseTexture : public D3DResource { /* Size=0x34 */
     INT UnlockTail(UINT);
 };
 
-VOID D3DBaseTexture_AsyncLockTail(D3DBaseTexture *, UINT64, UINT, D3DLOCKED_TAIL *, UINT);
-UINT D3DBaseTexture_GetLevelCount(D3DBaseTexture *self);
-VOID D3DBaseTexture_GetTailDesc(D3DBaseTexture *, D3DMIPTAIL_DESC *);
-VOID D3DBaseTexture_LockTail(D3DBaseTexture *, UINT, D3DLOCKED_TAIL *, UINT);
-VOID D3DBaseTexture_UnlockTail(D3DBaseTexture *, UINT);
+VOID D3DBaseTexture_AsyncLockTail(
+    D3DBaseTexture *pTexture,
+    UINT64 AsyncBlock,
+    UINT ArrayIndex,
+    D3DLOCKED_TAIL *pLockedTail,
+    DWORD Flags
+);
+UINT D3DBaseTexture_GetLevelCount(D3DBaseTexture *pTexture);
+VOID D3DBaseTexture_GetTailDesc(D3DBaseTexture *pTexture, D3DMIPTAIL_DESC *pDesc);
+VOID D3DBaseTexture_LockTail(
+    D3DBaseTexture *pTexture, UINT, D3DLOCKED_TAIL *pLockedTail, DWORD Flags
+);
+VOID D3DBaseTexture_UnlockTail(D3DBaseTexture *pTexture, UINT ArrayIndex);
 
 struct D3DTexture : public D3DBaseTexture { /* Size=0x34 */
     /* 0x0000: fields for D3DBaseTexture */
@@ -216,12 +242,23 @@ struct D3DTexture : public D3DBaseTexture { /* Size=0x34 */
 };
 
 VOID D3DTexture_AsyncLockRect(
-    D3DTexture *, UINT64, UINT, D3DLOCKED_RECT *, const tagRECT *, UINT
+    D3DTexture *pTexture,
+    UINT64 AsyncBlock,
+    UINT Level,
+    D3DLOCKED_RECT *pLockedRect,
+    const tagRECT *pRect,
+    DWORD Flags
 );
-VOID D3DTexture_GetLevelDesc(D3DTexture *, DWORD, D3DSURFACE_DESC *);
-D3DSurface *D3DTexture_GetSurfaceLevel(D3DTexture *, UINT);
-VOID D3DTexture_LockRect(D3DTexture *, UINT, D3DLOCKED_RECT *, const tagRECT *, UINT);
-VOID D3DTexture_UnlockRect(D3DTexture *, UINT level);
+VOID D3DTexture_GetLevelDesc(D3DTexture *pTexture, UINT Level, D3DSURFACE_DESC *pDesc);
+D3DSurface *D3DTexture_GetSurfaceLevel(D3DTexture *pTexture, UINT Level);
+VOID D3DTexture_LockRect(
+    D3DTexture *pTexture,
+    UINT Level,
+    D3DLOCKED_RECT *pLockedRect,
+    const tagRECT *pRect,
+    DWORD Flags
+);
+VOID D3DTexture_UnlockRect(D3DTexture *pTexture, UINT Level);
 
 struct D3DArrayTexture : public D3DBaseTexture { /* Size=0x34 */
     /* 0x0000: fields for D3DBaseTexture */
@@ -238,15 +275,29 @@ struct D3DArrayTexture : public D3DBaseTexture { /* Size=0x34 */
 };
 
 VOID D3DArrayTexture_AsyncLockRect(
-    D3DArrayTexture *, UINT64, UINT, UINT, D3DLOCKED_RECT *, const tagRECT *, UINT
+    D3DArrayTexture *pTexture,
+    UINT64 AsyncBlock,
+    UINT ArrayIndex,
+    UINT Level,
+    D3DLOCKED_RECT *pLockedRect,
+    const tagRECT *pRect,
+    DWORD Flags
 );
-UINT D3DArrayTexture_GetArraySize(D3DArrayTexture *);
-D3DSurface *D3DArrayTexture_GetArraySurface(D3DArrayTexture *, UINT, UINT);
-VOID D3DArrayTexture_GetLevelDesc(D3DArrayTexture *, UINT, D3DSURFACE_DESC *);
+UINT D3DArrayTexture_GetArraySize(D3DArrayTexture *pTexture);
+D3DSurface *
+D3DArrayTexture_GetArraySurface(D3DArrayTexture *pTexture, UINT ArrayIndex, UINT Level);
+VOID D3DArrayTexture_GetLevelDesc(
+    D3DArrayTexture *pTexture, UINT Level, D3DSURFACE_DESC *pDesc
+);
 VOID D3DArrayTexture_LockRect(
-    D3DArrayTexture *, UINT, UINT, D3DLOCKED_RECT *, const tagRECT *, UINT
+    D3DArrayTexture *pTexture,
+    UINT ArrayIndex,
+    UINT Level,
+    D3DLOCKED_RECT *pLockedRect,
+    const tagRECT *pRect,
+    DWORD Flags
 );
-VOID D3DArrayTexture_UnlockRect(D3DArrayTexture *, UINT, UINT);
+VOID D3DArrayTexture_UnlockRect(D3DArrayTexture *pTexture, UINT ArrayIndex, UINT Level);
 
 struct D3DCubeTexture : public D3DBaseTexture { /* Size=0x34 */
     /* 0x0000: fields for D3DBaseTexture */
@@ -263,20 +314,31 @@ struct D3DCubeTexture : public D3DBaseTexture { /* Size=0x34 */
 };
 
 VOID D3DCubeTexture_AsyncLockRect(
-    D3DCubeTexture *,
-    UINT64,
-    D3DCUBEMAP_FACES,
-    UINT,
-    D3DLOCKED_RECT *,
-    const tagRECT *,
-    UINT
+    D3DCubeTexture *pTexture,
+    UINT64 AsyncBlock,
+    D3DCUBEMAP_FACES FaceType,
+    UINT Level,
+    D3DLOCKED_RECT *pLockedRect,
+    const tagRECT *pRect,
+    DWORD Flags
 );
-D3DSurface *D3DCubeTexture_GetCubeMapSurface(D3DCubeTexture *, D3DCUBEMAP_FACES, UINT);
-VOID D3DCubeTexture_GetLevelDesc(D3DCubeTexture *, UINT, D3DSURFACE_DESC *);
+D3DSurface *D3DCubeTexture_GetCubeMapSurface(
+    D3DCubeTexture *pTexture, D3DCUBEMAP_FACES FaceType, UINT Level
+);
+VOID D3DCubeTexture_GetLevelDesc(
+    D3DCubeTexture *pTexture, UINT Level, D3DSURFACE_DESC *pDesc
+);
 VOID D3DCubeTexture_LockRect(
-    D3DCubeTexture *, D3DCUBEMAP_FACES, UINT, D3DLOCKED_RECT *, const tagRECT *, UINT
+    D3DCubeTexture *pTexture,
+    D3DCUBEMAP_FACES FaceType,
+    UINT Level,
+    D3DLOCKED_RECT *pLockedRect,
+    const tagRECT *pRect,
+    DWORD Flags
 );
-VOID D3DCubeTexture_UnlockRect(D3DCubeTexture *, D3DCUBEMAP_FACES, UINT);
+VOID D3DCubeTexture_UnlockRect(
+    D3DCubeTexture *pTexture, D3DCUBEMAP_FACES FaceType, UINT Level
+);
 
 struct D3DLineTexture : public D3DBaseTexture { /* Size=0x34 */
     /* 0x0000: fields for D3DBaseTexture */
@@ -292,14 +354,25 @@ struct D3DLineTexture : public D3DBaseTexture { /* Size=0x34 */
 };
 
 VOID D3DLineTexture_AsyncLockRect(
-    D3DLineTexture *, UINT64, UINT, D3DLOCKED_RECT *, const tagRECT *, UINT
+    D3DLineTexture *pTexture,
+    UINT64 AsyncBlock,
+    UINT Level,
+    D3DLOCKED_RECT *pLockedRect,
+    const tagRECT *pRect,
+    DWORD Flags
 );
-VOID D3DLineTexture_GetLevelDesc(D3DLineTexture *, UINT, D3DSURFACE_DESC *);
-D3DSurface *D3DLineTexture_GetSurfaceLevel(D3DLineTexture *, UINT);
+VOID D3DLineTexture_GetLevelDesc(
+    D3DLineTexture *pTexture, UINT Level, D3DSURFACE_DESC *pDesc
+);
+D3DSurface *D3DLineTexture_GetSurfaceLevel(D3DLineTexture *pTexture, UINT Level);
 VOID D3DLineTexture_LockRect(
-    D3DLineTexture *, UINT, D3DLOCKED_RECT *, const tagRECT *, UINT
+    D3DLineTexture *pTexture,
+    UINT Level,
+    D3DLOCKED_RECT *pLockedRect,
+    const tagRECT *pRect,
+    DWORD Flags
 );
-VOID D3DLineTexture_UnlockRect(D3DLineTexture *, UINT);
+VOID D3DLineTexture_UnlockRect(D3DLineTexture *pTexture, UINT Level);
 
 struct D3DVolumeTexture : public D3DBaseTexture { /* Size=0x34 */
     /* 0x0000: fields for D3DBaseTexture */
@@ -314,12 +387,18 @@ struct D3DVolumeTexture : public D3DBaseTexture { /* Size=0x34 */
     INT UnlockTail();
 };
 
-VOID D3DVolumeTexture_GetLevelDesc(D3DVolumeTexture *, UINT, D3DVOLUME_DESC *);
-D3DVolume *D3DVolumeTexture_GetVolumeLevel(D3DVolumeTexture *, UINT);
-VOID D3DVolumeTexture_LockBox(
-    D3DVolumeTexture *, UINT, D3DLOCKED_BOX *, const D3DBOX *, UINT
+VOID D3DVolumeTexture_GetLevelDesc(
+    D3DVolumeTexture *pTexture, UINT Level, D3DVOLUME_DESC *pDesc
 );
-VOID D3DVolumeTexture_UnlockBox(D3DVolumeTexture *, UINT);
+D3DVolume *D3DVolumeTexture_GetVolumeLevel(D3DVolumeTexture *pTexture, UINT Level);
+VOID D3DVolumeTexture_LockBox(
+    D3DVolumeTexture *pTexture,
+    UINT Level,
+    D3DLOCKED_BOX *pLockedVolume,
+    const D3DBOX *pBox,
+    DWORD Flags
+);
+VOID D3DVolumeTexture_UnlockBox(D3DVolumeTexture *pTexture, UINT Level);
 
 #pragma endregion
 #pragma region D3DVolume
@@ -336,10 +415,12 @@ struct D3DVolume : public D3DResource { /* Size=0x20 */
     INT UnlockBox();
 };
 
-void *D3DVolume_GetContainer(D3DVolume *, const _GUID &);
-void D3DVolume_GetDesc(D3DVolume *, D3DVOLUME_DESC *);
-void D3DVolume_LockBox(D3DVolume *, D3DLOCKED_BOX *, D3DBOX *, UINT);
-void D3DVolume_UnlockBox(D3DVolume *);
+void *D3DVolume_GetContainer(D3DVolume *pVolume, const _GUID &UnusedRiid);
+void D3DVolume_GetDesc(D3DVolume *pVolume, D3DVOLUME_DESC *pDesc);
+void D3DVolume_LockBox(
+    D3DVolume *pVolume, D3DLOCKED_BOX *pLockedVolume, const D3DBOX *pBox, DWORD Flags
+);
+void D3DVolume_UnlockBox(D3DVolume *pVolume);
 
 #pragma endregion
 #pragma region D3DQuery
@@ -354,13 +435,13 @@ struct D3DQuery { /* Size=0x1 */
     INT GetData(VOID *, UINT, UINT);
 };
 
-UINT D3DQuery_AddRef(D3DQuery *);
-UINT D3DQuery_Release(D3DQuery *);
-INT D3DQuery_GetData(D3DQuery *, VOID *, UINT, UINT);
-UINT D3DQuery_GetDataSize(D3DQuery *);
-VOID D3DQuery_GetDevice(D3DQuery *, D3DDevice **);
-D3DQUERYTYPE D3DQuery_GetType(D3DQuery *);
-VOID D3DQuery_Issue(D3DQuery *, UINT);
+UINT D3DQuery_AddRef(D3DQuery *pThis);
+UINT D3DQuery_Release(D3DQuery *pThis);
+INT D3DQuery_GetData(D3DQuery *pThis, VOID *pData, DWORD Size, DWORD GetDataFlags);
+UINT D3DQuery_GetDataSize(D3DQuery *pThis);
+VOID D3DQuery_GetDevice(D3DQuery *pThis, D3DDevice **ppDevice);
+D3DQUERYTYPE D3DQuery_GetType(D3DQuery *pThis);
+VOID D3DQuery_Issue(D3DQuery *pThis, DWORD IssueFlags);
 
 #pragma endregion
 #pragma region D3DPerfCounters
@@ -375,21 +456,25 @@ struct D3DPerfCounters { /* Size=0x1 */
     INT GetValues(D3DPERFCOUNTER_VALUES *, UINT, UINT *);
 };
 
-UINT D3DPerfCounters_AddRef(D3DPerfCounters *);
-UINT D3DPerfCounters_Release(D3DPerfCounters *);
-VOID D3DPerfCounters_GetDevice(D3DQuery *, D3DDevice **);
-VOID D3DPerfCounters_BlockUntilNotBusy(D3DPerfCounters *);
-UINT D3DPerfCounters_GetNumPasses(D3DPerfCounters *);
-BOOL D3DPerfCounters_IsBusy(D3DPerfCounters *);
+UINT D3DPerfCounters_AddRef(D3DPerfCounters *pThis);
+UINT D3DPerfCounters_Release(D3DPerfCounters *pThis);
+VOID D3DPerfCounters_GetDevice(D3DPerfCounters *pThis, D3DDevice **ppDevice);
+VOID D3DPerfCounters_BlockUntilNotBusy(D3DPerfCounters *pThis);
+UINT D3DPerfCounters_GetNumPasses(D3DPerfCounters *pThis);
+BOOL D3DPerfCounters_IsBusy(D3DPerfCounters *pThis);
 HRESULT
-D3DPerfCounters_GetValues(D3DPerfCounters *, D3DPERFCOUNTER_VALUES *, UINT, UINT *);
+D3DPerfCounters_GetValues(
+    D3DPerfCounters *pThis, D3DPERFCOUNTER_VALUES *pValues, UINT PassIndex, UINT *pPassType
+);
 
 struct D3DVertexDeclaration : public D3DResource { /* Size=0x18 */
     /* 0x0000: fields for D3DResource */
     INT GetDeclaration(D3DVERTEXELEMENT9 *, UINT *);
 };
 
-VOID D3DVertexDeclaration_GetDeclaration(D3DVertexDeclaration *, D3DVERTEXELEMENT9 *, UINT *);
+VOID D3DVertexDeclaration_GetDeclaration(
+    D3DVertexDeclaration *pThis, D3DVERTEXELEMENT9 *pDecl, UINT *pNumElements
+);
 
 #pragma endregion
 #pragma region PerfCounters
@@ -418,49 +503,55 @@ typedef struct _D3DPERFCOUNTER_EVENTS { /* Size=0xf0 */
     /* 0x00ec */ GPUPERFEVENT_BIF BIF[1];
 } D3DPERFCOUNTER_EVENTS;
 
-void D3DDevice_EnablePerfCounters(D3DDevice *, INT);
-void D3DDevice_SetPerfCounterEvents(D3DDevice *, const D3DPERFCOUNTER_EVENTS *, UINT);
-void D3DDevice_QueryPerfCounters(D3DDevice *, D3DPerfCounters *, UINT);
+void D3DDevice_EnablePerfCounters(D3DDevice *pDevice, BOOL Enable);
+void D3DDevice_SetPerfCounterEvents(
+    D3DDevice *pDevice, const D3DPERFCOUNTER_EVENTS *pEvents, DWORD Flags
+);
+void D3DDevice_QueryPerfCounters(
+    D3DDevice *pDevice, D3DPerfCounters *pCounters, DWORD Flags
+);
 
 #pragma endregion
 #pragma region RenderState
 
-uint D3DDevice_GetRenderState_BlendOp(D3DDevice *);
-uint D3DDevice_GetRenderState_SrcBlend(D3DDevice *);
-uint D3DDevice_GetRenderState_DestBlend(D3DDevice *);
-uint D3DDevice_GetRenderState_SrcBlendAlpha(D3DDevice *);
-uint D3DDevice_GetRenderState_DestBlendAlpha(D3DDevice *);
+DWORD D3DDevice_GetRenderState_BlendOp(D3DDevice *pDevice);
+DWORD D3DDevice_GetRenderState_SrcBlend(D3DDevice *pDevice);
+DWORD D3DDevice_GetRenderState_DestBlend(D3DDevice *pDevice);
+DWORD D3DDevice_GetRenderState_SrcBlendAlpha(D3DDevice *pDevice);
+DWORD D3DDevice_GetRenderState_DestBlendAlpha(D3DDevice *pDevice);
 
-void D3DDevice_SetRenderState_AlphaBlendEnable(D3DDevice *, uint);
-void D3DDevice_SetRenderState_AlphaFunc(D3DDevice *, D3DCMPFUNC);
-void D3DDevice_SetRenderState_AlphaRef(D3DDevice *, DWORD);
-void D3DDevice_SetRenderState_AlphaTestEnable(D3DDevice *, uint);
-void D3DDevice_SetRenderState_BlendOp(D3DDevice *, uint);
-void D3DDevice_SetRenderState_SrcBlend(D3DDevice *, uint);
-void D3DDevice_SetRenderState_DestBlend(D3DDevice *, uint);
-void D3DDevice_SetRenderState_SrcBlendAlpha(D3DDevice *, uint);
-void D3DDevice_SetRenderState_DestBlendAlpha(D3DDevice *, uint);
-void D3DDevice_SetRenderState_ColorWriteEnable(D3DDevice *, uint);
-void D3DDevice_SetRenderState_FillMode(D3DDevice *, uint);
-void D3DDevice_SetRenderState_CullMode(D3DDevice *, uint);
-void D3DDevice_SetRenderState_StencilEnable(D3DDevice *, uint);
-void D3DDevice_SetRenderState_StencilFail(D3DDevice *, uint);
-void D3DDevice_SetRenderState_StencilZFail(D3DDevice *, uint);
-void D3DDevice_SetRenderState_StencilPass(D3DDevice *, uint);
-void D3DDevice_SetRenderState_StencilFunc(D3DDevice *, D3DCMPFUNC);
-void D3DDevice_SetRenderState_StencilRef(D3DDevice *, DWORD);
-void D3DDevice_SetRenderState_ZEnable(D3DDevice *, DWORD);
-void D3DDevice_SetRenderState_ZFunc(D3DDevice *, D3DCMPFUNC);
-void D3DDevice_SetRenderState_ZWriteEnable(D3DDevice *, DWORD);
-void D3DDevice_SetRenderState_PointSizeMax(D3DDevice *, UINT);
-void D3DDevice_SetRenderState_SeparateAlphaBlendEnable(D3DDevice *, UINT);
-void D3DDevice_SetRenderState_BlendOpAlpha(D3DDevice *, UINT);
+void D3DDevice_SetRenderState_AlphaBlendEnable(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_AlphaFunc(D3DDevice *pDevice, D3DCMPFUNC Value);
+void D3DDevice_SetRenderState_AlphaRef(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_AlphaTestEnable(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_BlendOp(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_SrcBlend(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_DestBlend(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_SrcBlendAlpha(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_DestBlendAlpha(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_ColorWriteEnable(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_FillMode(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_CullMode(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_StencilEnable(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_StencilFail(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_StencilZFail(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_StencilPass(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_StencilFunc(D3DDevice *pDevice, D3DCMPFUNC Value);
+void D3DDevice_SetRenderState_StencilRef(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_ZEnable(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_ZFunc(D3DDevice *pDevice, D3DCMPFUNC Value);
+void D3DDevice_SetRenderState_ZWriteEnable(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_PointSizeMax(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_SeparateAlphaBlendEnable(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_BlendOpAlpha(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_PresentInterval(D3DDevice *pDevice, DWORD Value);
+void D3DDevice_SetRenderState_PresentImmediateThreshold(D3DDevice *pDevice, DWORD Value);
 
 #pragma endregion
 #pragma region Misc
 
-void D3DDevice_SetSamplerState_MinFilter(D3DDevice *, UINT, UINT);
-void D3DDevice_SetSamplerState_MagFilter(D3DDevice *, UINT, UINT);
+void D3DDevice_SetSamplerState_MinFilter(D3DDevice *pDevice, DWORD Sampler, DWORD Value);
+void D3DDevice_SetSamplerState_MagFilter(D3DDevice *pDevice, DWORD Sampler, DWORD Value);
 
 D3DVertexBuffer *D3DDevice_CreateVertexBuffer(UINT Length, DWORD Usage, D3DPOOL Pool);
 
@@ -468,66 +559,132 @@ D3DIndexBuffer *
 D3DDevice_CreateIndexBuffer(UINT Length, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool);
 
 HRESULT D3DDevice_SetStreamSource(
-    D3DDevice *,
+    D3DDevice *pDevice,
     UINT StreamNumber,
-    D3DVertexBuffer *pStreamData,
+    D3DVertexBuffer *pVertexBuffer,
     UINT OffsetInBytes,
-    UINT Stride,
-    UINT64 unk_r8
+    UINT StrideInBytes,
+    UINT64 PendingMask3
 );
 
-void D3DDevice_SetTexture(D3DDevice *, UINT, D3DBaseTexture *, UINT64);
-D3DSurface *D3DDevice_GetRenderTarget(D3DDevice *, UINT);
+void D3DDevice_SetTexture(
+    D3DDevice *pDevice, DWORD Sampler, D3DBaseTexture *pTexture, UINT64 PendingMask3
+);
+D3DSurface *D3DDevice_GetRenderTarget(D3DDevice *pDevice, DWORD RenderTargetIndex);
 D3DBaseTexture *D3DDevice_CreateTexture(
-    UINT, UINT, UINT, UINT, UINT, D3DFORMAT, UINT, D3DRESOURCETYPE
+    UINT Width,
+    UINT Height,
+    UINT Depth,
+    UINT Levels,
+    DWORD Usage,
+    D3DFORMAT D3DFormat,
+    UINT Pool,
+    D3DRESOURCETYPE D3DType
 );
 
-D3DVertexDeclaration *D3DDevice_CreateVertexDeclaration(const D3DVERTEXELEMENT9 *);
+D3DVertexDeclaration *
+D3DDevice_CreateVertexDeclaration(const D3DVERTEXELEMENT9 *pVertexElements);
 
-void D3DDevice_SetFVF(D3DDevice *, UINT);
-void D3DDevice_DrawVerticesUP(D3DDevice *, D3DPRIMITIVETYPE, UINT, const void *, UINT);
-void D3DDevice_SetRenderTarget_External(D3DDevice *, UINT, D3DSurface *);
-void D3DDevice_SetDepthStencilSurface(D3DDevice *, D3DSurface *);
-void D3DDevice_SetViewport(D3DDevice *, const D3DVIEWPORT9 *);
-void D3DDevice_SetIndices(D3DDevice *, D3DIndexBuffer *);
-void D3DDevice_DrawIndexedVertices(D3DDevice *, D3DPRIMITIVETYPE, INT, UINT, UINT);
-HRESULT D3DDevice_Reset(D3DDevice *, D3DPRESENT_PARAMETERS *);
+void D3DDevice_SetFVF(D3DDevice *pDevice, DWORD FVF);
+void D3DDevice_DrawVerticesUP(
+    D3DDevice *pDevice,
+    D3DPRIMITIVETYPE PrimitiveType,
+    UINT VertexCount,
+    const void *pVertexStreamZeroData,
+    UINT VertexStreamZeroStride
+);
+void D3DDevice_SetRenderTarget_External(
+    D3DDevice *pDevice, UINT RenderTargetIndex, D3DSurface *pRenderTarget
+);
+void D3DDevice_SetDepthStencilSurface(D3DDevice *pDevice, D3DSurface *pZStencilSurface);
+void D3DDevice_SetViewport(D3DDevice *pDevice, const D3DVIEWPORT9 *pViewport);
+void D3DDevice_SetIndices(D3DDevice *pDevice, D3DIndexBuffer *pIndexData);
+void D3DDevice_DrawIndexedVertices(
+    D3DDevice *pDevice,
+    D3DPRIMITIVETYPE PrimitiveType,
+    INT BaseVertexIndex,
+    UINT StartIndex,
+    UINT IndexCount
+);
+HRESULT D3DDevice_Reset(D3DDevice *pDevice, D3DPRESENT_PARAMETERS *);
 void D3DDevice_Clear(
-    D3DDevice *self,
+    D3DDevice *pDevice,
     UINT Count,
     const D3DRECT *pRects,
     UINT Flags,
     UINT Color,
     float Z,
     UINT Stencil,
-    INT
+    BOOL EDRamClear
 );
 
-void D3DDevice_SynchronizeToPresentationInterval(D3DDevice *);
-void D3DDevice_QuerySwapStatus(D3DDevice *, D3DSWAP_STATUS *);
-void D3DDevice_Swap(D3DDevice *, D3DBaseTexture *, const D3DVIDEO_SCALER_PARAMETERS *);
-void D3DDevice_BlockUntilIdle(D3DDevice *);
-void D3DDevice_SetSwapMode(D3DDevice *, INT);
-void D3DDevice_SetRenderState_PresentInterval(D3DDevice *, UINT);
-UINT D3DDevice_Release(D3DDevice *);
-void D3DDevice_SetGammaRamp(D3DDevice *, UINT, const D3DGAMMARAMP *);
-void D3DDevice_SetRenderState_PresentImmediateThreshold(D3DDevice *, UINT);
+void D3DDevice_SynchronizeToPresentationInterval(D3DDevice *pDevice);
+void D3DDevice_QuerySwapStatus(D3DDevice *pDevice, D3DSWAP_STATUS *pSwapStatus);
+void D3DDevice_Swap(
+    D3DDevice *pDevice,
+    D3DBaseTexture *pFrontBuffer,
+    const D3DVIDEO_SCALER_PARAMETERS *pParameters
+);
+void D3DDevice_BlockUntilIdle(D3DDevice *pDevice);
+void D3DDevice_SetSwapMode(D3DDevice *pDevice, BOOL Asynchronous);
+UINT D3DDevice_Release(D3DDevice *pDevice);
+void D3DDevice_SetGammaRamp(
+    D3DDevice *pDevice, DWORD UnusedFlags, const D3DGAMMARAMP *pRamp
+);
 void D3DDevice_BeginTiling(
-    D3DDevice *, UINT, UINT, const D3DRECT *, const XMVECTOR *, float, UINT
+    D3DDevice *pDevice,
+    DWORD Flags,
+    DWORD Count,
+    const D3DRECT *pTileRects,
+    const XMVECTOR *pClearColor,
+    float ClearZ,
+    DWORD ClearStencil
 );
-D3DPerfCounters *D3DDevice_CreatePerfCounters(D3DDevice *, UINT);
+D3DPerfCounters *D3DDevice_CreatePerfCounters(D3DDevice *pDevice, UINT NumPasses);
 
 HRESULT
-D3DDevice_EndTiling(D3DDevice *, UINT, const D3DRECT *, D3DBaseTexture *, const XMVECTOR *, float, UINT, const D3DRESOLVE_PARAMETERS *);
-void D3DDevice_Resolve(D3DDevice *, UINT, const D3DRECT *, D3DBaseTexture *, const D3DPOINT *, UINT, UINT, const XMVECTOR *, float, UINT, const D3DRESOLVE_PARAMETERS *);
-void D3DDevice_Suspend(D3DDevice *);
-void D3DDevice_Resume(D3DDevice *);
-void D3DDevice_SetShaderGPRAllocation(D3DDevice *, UINT, UINT, UINT);
-D3DSurface *D3DDevice_GetDepthStencilSurface(D3DDevice *);
+D3DDevice_EndTiling(
+    D3DDevice *pDevice,
+    UINT ResolveFlags,
+    const D3DRECT *pResolveRects,
+    D3DBaseTexture *pDestTexture,
+    const XMVECTOR *pClearColor,
+    float ClearZ,
+    UINT ClearStencil,
+    const D3DRESOLVE_PARAMETERS *pParameters
+);
 
-INT Direct3D_GetDeviceCaps(UINT, D3DDEVTYPE, D3DCAPS9 *);
+void D3DDevice_Resolve(
+    D3DDevice *pDevice,
+    UINT Flags,
+    const D3DRECT *pSourceRect,
+    D3DBaseTexture *pDestTexture,
+    const D3DPOINT *pDestPoint,
+    UINT DestLevel,
+    UINT DestSliceOrFace,
+    const XMVECTOR *pClearColor,
+    float ClearZ,
+    UINT ClearStencil,
+    const D3DRESOLVE_PARAMETERS *pParameters
+);
+
+void D3DDevice_Suspend(D3DDevice *pDevice);
+void D3DDevice_Resume(D3DDevice *pDevice);
+void D3DDevice_SetShaderGPRAllocation(
+    D3DDevice *pDevice, DWORD Flags, DWORD VertexShaderCount, DWORD PixelShaderCount
+);
+D3DSurface *D3DDevice_GetDepthStencilSurface(D3DDevice *pDevice);
+
+HRESULT Direct3D_GetDeviceCaps(UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9 *pCaps);
 HRESULT
-Direct3D_CreateDevice(UINT, D3DDEVTYPE, void *, UINT, D3DPRESENT_PARAMETERS *, D3DDevice **);
+Direct3D_CreateDevice(
+    UINT Adapter,
+    D3DDEVTYPE DeviceType,
+    void *pUnused,
+    DWORD BehaviorFlags,
+    D3DPRESENT_PARAMETERS *pPresentationParameters,
+    D3DDevice **ppReturnedDeviceInterface
+);
 
 #ifdef __cplusplus
 }

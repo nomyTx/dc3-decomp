@@ -51,9 +51,9 @@ public:
         const Vector3 &, const Vector3 (&)[4], const Vector4 &, RndMat *, ShaderType
     );
     virtual bool Offscreen() const;
-    virtual RndTex *PreProcessTexture() { return unk398; }
-    virtual RndTex *PostProcessTexture() { return unk39c; }
-    virtual RndTex *PreDepthTexture() { return unk3a0; }
+    virtual RndTex *PreProcessTexture() { return mPreProcessTex; }
+    virtual RndTex *PostProcessTexture() { return mPostProcessTex; }
+    virtual RndTex *PreDepthTexture() { return mPreDepthTex; }
     virtual void Suspend();
     virtual void Resume();
     virtual void CreateLargeQuad(int, int, LargeQuadRenderData &);
@@ -142,16 +142,16 @@ private:
     float unk370;
     float unk374;
     bool mCreatedPerfCounters; // 0x378
-    int unk37c;
+    int unk37c; // 0x37c - flags
     D3DSurface *unk380; // 0x380 - back buffer?
     D3DSurface *unk384;
     D3DSurface *unk388;
     D3DSurface *unk38c;
-    D3DTexture *unk390;
-    D3DTexture *unk394;
-    DxTex *unk398; // 0x398
-    DxTex *unk39c; // 0x39c
-    DxTex *unk3a0; // 0x3a0
+    D3DTexture *unk390; // 0x390
+    D3DTexture *unk394; // 0x394
+    DxTex *mPreProcessTex; // 0x398
+    DxTex *mPostProcessTex; // 0x39c
+    DxTex *mPreDepthTex; // 0x3a0
     bool unk3a4;
     unsigned int unk3a8;
     unsigned int unk3ac;
