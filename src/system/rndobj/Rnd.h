@@ -144,6 +144,7 @@ public:
     bool DisablePP() const { return mDisablePostProc; }
     DataArray *Font() const { return mFont; }
     RndEnviron *DefaultEnv() const { return mDefaultEnv; }
+    RndMat *DefaultMat() const { return mDefaultMat; }
     void ShowConsole(bool);
     bool ConsoleShowing();
     void EndWorld();

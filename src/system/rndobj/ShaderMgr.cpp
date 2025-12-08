@@ -68,9 +68,10 @@ void RndShaderMgr::PreInit() {
         CreateAndSetMetaMat(mDrawRectMat);
         MILO_ASSERT(mConstantCache == NULL, 104);
         unk68 = 516;
-        MemPushTemp();
-        mConstantCache = new float[unk68];
-        MemPopTemp();
+        {
+            MemTemp tmp;
+            mConstantCache = new float[unk68];
+        }
         LoadShaders("%s_preinit_shaders");
     }
 }

@@ -11,6 +11,7 @@
 #include "rndobj/ShaderMgr.h"
 #include "rndobj/ShaderOptions.h"
 #include "rndobj/ShaderProgram.h"
+#include "rndobj/Stats_NG.h"
 #include "utl/Loader.h"
 #include "utl/Str.h"
 #include <set>
@@ -39,6 +40,12 @@ unsigned int StrHash(const char *str) {
     return hash;
 }
 
+void CheckDistortionOpts(RndMat *, const ShaderOptions &);
+void CheckDistortion(RndMat *);
+void SetColorWriteMask(const ShaderOptions &, RndMat *);
+void CheckShadow();
+void CheckExtrude();
+
 void RndShader::Init() {
     sShaders[kBloomShader] = &gShaderSimple;
     sShaders[kDepthVolumeShader] = &gShaderDepthVolume;
@@ -62,12 +69,12 @@ void RndShader::Init() {
     sShaders[kPlayerDepthShellShader] = &gShaderSimple;
     sShaders[kSyncTrackShader] = &gShaderSyncTrack;
     sShaders[kStandardShader] = &gShaderStandard;
-    sShaders[k19Shader] = &gShaderStandard;
+    sShaders[kStandardBBShader] = &gShaderStandard;
     sShaders[kPostprocessShader] = &gShaderPostProc;
     sShaders[kPlayerDepthShell2Shader] = &gShaderSimple;
     sShaders[kDepthBuffer3DShader] = &gShaderSimple;
     sShaders[kYUVtoRGBShader] = &gShaderSimple;
-    sShaders[k21Shader] = &gShaderSyncTrack;
+    sShaders[kSyncTrackChargeEffectShader] = &gShaderSyncTrack;
     sShaders[kVelocityCameraShader] = &gShaderVelocityCamera;
     sShaders[kUnwrapUVShader] = &gShaderUnwrapUV;
     sShaders[kVelocityObjectShader] = &gShaderVelocity;
@@ -98,9 +105,9 @@ bool RndShader::RedundantState(
 ) {
     if (!b5 && mat && (NgMat *)mat == NgMat::Current() && !mat->Dirty()
         && s == sCurrentShader && skinned == sCurrentSkinned && useAO == sCurrentUseAO) {
-        if (s == kStandardShader || s == k19Shader || s == kParticlesShader
+        if (s == kStandardShader || s == kStandardBBShader || s == kParticlesShader
             || s == kMultimeshShader || s == kMultimeshBBShader || s == kSyncTrackShader
-            || s == k21Shader || s == kAllWhiteShader) {
+            || s == kSyncTrackChargeEffectShader || s == kAllWhiteShader) {
             return true;
         }
     }
@@ -212,8 +219,28 @@ void RndShader::Cache(ShaderType s, ShaderOptions opts, RndMat *mat) {
             MatShaderFlagsOK(mat, s);
         }
     }
-    // program pure call
+    bool select = s == kShadowmapShader || TheRnd.GetDrawMode() == Rnd::kDrawShadowColor;
+    program.Select(select);
 }
 
-void RndShaderSimple::Select(RndMat *mat, ShaderType s, bool b) {}
-u64 RndShaderSimple::CalcShaderOpts(NgMat *, ShaderType, bool) { return 0; }
+void RndShaderSimple::Select(RndMat *mat, ShaderType s, bool b) {
+    if (!mat) {
+        if (s == kLineNozShader) {
+            mat = TheShaderMgr.DrawHighlightMat();
+            mat->SetZMode(kZModeForce);
+            s = kLineShader;
+        } else {
+            mat = TheRnd.DefaultMat();
+        }
+    }
+    TheRenderState.SetFillMode((RndRenderState::FillMode)0);
+    bool isSkinned = TheShaderMgr.Unk10() && (s == kErrorShader || s == kShadowmapShader);
+    if (!RedundantState(mat, s, isSkinned, TheShaderMgr.UseAO(), b)) {
+        TheNgStats->mMats++;
+        ((NgMat *)mat)->SetupShader(TheShaderMgr.AllowPerPixel(), true);
+        ShaderOptions opts(CalcShaderOpts((NgMat *)mat, s, b));
+        SetColorWriteMask(opts, mat);
+        CheckForceCull(s);
+        Cache(s, opts, mat);
+    }
+}

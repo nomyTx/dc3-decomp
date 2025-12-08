@@ -16,11 +16,14 @@ class RndShaderProgram {
 public:
     RndShaderProgram() {}
     virtual ~RndShaderProgram();
-    // 7 pures
-    virtual void pure1() = 0;
-    virtual void pure2(const RndShaderProgram &) = 0;
-    virtual void pure3() = 0;
-    virtual RndShaderBuffer *pure4(int) = 0;
+    virtual void Select(bool) = 0;
+    virtual void Copy(const RndShaderProgram &) = 0;
+    virtual void EstimatedCost(float &, float &) = 0;
+    virtual RndShaderBuffer *NewBuffer(unsigned int) = 0;
+    virtual bool
+    Compile(ShaderType, const ShaderOptions &, RndShaderBuffer *&, RndShaderBuffer *&) = 0;
+    virtual void CreateVertexShader(RndShaderBuffer &) = 0;
+    virtual void CreatePixelShader(RndShaderBuffer &, ShaderType) = 0;
 
     void LoadShaderBuffer(BinStream &, int, RndShaderBuffer *&);
     bool Cache(ShaderType, const ShaderOptions &, RndShaderBuffer *, RndShaderBuffer *);

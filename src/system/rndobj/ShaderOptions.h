@@ -23,9 +23,9 @@ enum ShaderType {
     kPostprocessShader = 16,
     kShadowmapShader = 17,
     kStandardShader = 18,
-    k19Shader = 19,
+    kStandardBBShader = 19,
     kSyncTrackShader = 20,
-    k21Shader = 21,
+    kSyncTrackChargeEffectShader = 21,
     kUnwrapUVShader = 22,
     kVelocityCameraShader = 23,
     kVelocityObjectShader = 24,
@@ -46,8 +46,10 @@ enum ShaderType {
 };
 
 struct ShaderMacro {
-    const char *unk0;
-    const char *unk4;
+    ShaderMacro(const char *c1 = nullptr, const char *c2 = nullptr)
+        : unk0(c1), unk4(c2) {}
+    const char *unk0; // 0x0 - name
+    const char *unk4; // 0x4 - level/depth?
 };
 
 struct ShaderOptions {

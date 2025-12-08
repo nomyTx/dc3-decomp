@@ -20,7 +20,7 @@ void RndShaderProgram::LoadShaderBuffer(
     BinStream &bs, int size, RndShaderBuffer *&buffer
 ) {
     MemTemp tmp;
-    buffer = pure4(size);
+    buffer = NewBuffer(size);
     bs.Read(buffer->Storage(), size);
 }
 
@@ -74,5 +74,5 @@ void RndShaderProgram::CopyErrorShader(ShaderType shader, const ShaderOptions &o
         }
         Cache(errorType, newOpts, nullptr, nullptr);
     }
-    pure2(program);
+    Copy(program);
 }

@@ -62,6 +62,9 @@ public:
     bool ShowShaderErrors() const { return mShowShaderErrors; }
     bool Unk18() const { return unk18; }
     bool ShowMetaMatErrors() const { return mShowMetaMatErrors; }
+    int Unk10() const { return unk10; }
+    bool UseAO() const { return unkc; }
+    bool AllowPerPixel() const { return mAllowPerPixel; }
 
 protected:
     virtual void LoadShaders(const char *);
@@ -76,7 +79,7 @@ protected:
     int unk14;
     bool unk18;
     int unk1c;
-    int unk20;
+    int unk20; // 0x20 - some sort of enum
     bool unk24;
     bool unk25;
     bool unk26;
