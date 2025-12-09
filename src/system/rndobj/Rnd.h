@@ -145,6 +145,7 @@ public:
     DataArray *Font() const { return mFont; }
     RndEnviron *DefaultEnv() const { return mDefaultEnv; }
     RndMat *DefaultMat() const { return mDefaultMat; }
+    bool Unk140() const { return unk140; }
     void ShowConsole(bool);
     bool ConsoleShowing();
     void EndWorld();
@@ -262,8 +263,8 @@ protected:
     bool mWorldEnded; // 0x137
     Aspect mAspect; // 0x138
     DrawMode mDrawMode; // 0x13c
-    bool unk140;
-    bool unk141;
+    bool unk140; // 0x140 - mResourceCached
+    bool unk141; // 0x141 - mShowShaderCost
     bool mShrinkToSafe; // 0x142
     bool mInGame; // 0x143
     bool mVerboseTimers; // 0x144

@@ -1,13 +1,16 @@
 
 #include "ShaderMgr.h"
 #include "Memory.h"
+#include "math/Utl.h"
 #include "obj/Object.h"
 #include "os/Debug.h"
+#include "os/System.h"
 #include "rnddx9/Rnd.h"
 #include "rnddx9/Shader.h"
 #include "rnddx9/ShaderInclude.h"
 #include "rndobj/BaseMaterial.h"
 #include "rndobj/Mat.h"
+#include "rndobj/Rnd.h"
 #include "rndobj/ShaderMgr.h"
 #include "rndobj/ShaderOptions.h"
 #include "rndobj/ShaderProgram.h"
@@ -18,6 +21,7 @@
 #include "xdk/d3d9i/d3d9.h"
 #include "xdk/XGRAPHICS.h"
 #include "xdk/d3dx9/d3dx9mesh.h"
+#include "xdk/d3dx9/d3dx9shader.h"
 #include "xdk/xgraphics/xgraphics.h"
 
 DxShaderMgr TheDxShaderMgr;
@@ -35,6 +39,25 @@ DxShader::~DxShader() {
     } else {
         DX_RELEASE(mVShader);
         DX_RELEASE(mPShader);
+    }
+}
+
+void DxShader::Select(bool b1) {
+    D3DDevice_SetVertexShader(TheDxRnd.Device(), mVShader);
+    D3DDevice_SetPixelShader(TheDxRnd.Device(), b1 ? nullptr : mPShader);
+    if (TheRnd.Unk140()) {
+        float min, max;
+        EstimatedCost(min, max);
+        static float div = SystemConfig("rnd", "estimated_cost_divisor")->Float(1);
+        Vector4 v;
+        v.z = 0;
+        v.w = 1;
+        float div1 = ((min + max) / 2.0f) / div;
+        float f3 = Max(0.0f, div1);
+        float f2 = Max(0.0f, 1.0f - div1);
+        v.x = Min(f3, 1.0f);
+        v.y = Min(f2, 1.0f);
+        TheShaderMgr.SetPConstant((PShaderConstant)4, v);
     }
 }
 
@@ -86,15 +109,29 @@ bool DxShader::Compile(
     MILO_ASSERT(streq("PIXEL_SHADER", defines[0].Name), 0xBB);
     MILO_ASSERT(!mVShader, 0xBD);
     MILO_ASSERT(!mPShader, 0xBE);
-    LPCVOID data = nullptr;
+    LPCSTR data = nullptr;
     UINT bytes = 0;
     if (TheDxShaderInclude.Open(
-            D3DXINC_LOCAL, shaderName, nullptr, &data, &bytes, nullptr, 0
+            D3DXINC_LOCAL, shaderName, nullptr, (LPCVOID *)&data, &bytes, nullptr, 0
         )
         < 0) {
         return false;
     } else {
         buf1 = new DxShaderBuffer();
+        defines[0].Value = "0";
+        HRESULT vRes = D3DXCompileShaderExA(
+            data,
+            bytes,
+            reinterpret_cast<const D3DXMACRO *>(defines.begin()),
+            &TheDxShaderInclude,
+            "vshader",
+            "vs_3_0",
+            0,
+            0,
+            0,
+            0,
+            0
+        );
     }
 
     return true;
@@ -237,3 +274,5 @@ void DxShaderMgr::LoadShaderFile(FileStream &fs) {
     }
     RndSplasherSuspend();
 }
+
+RndShaderProgram *DxShaderMgr::NewShaderProgram() { return new DxShader(); }

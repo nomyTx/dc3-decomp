@@ -1,15 +1,19 @@
 #pragma once
+#include "rndobj/ShaderMgr.h"
 #include "rndobj/ShaderProgram.h"
 #include "xdk/D3D9.h"
 
 class DxShader : public RndShaderProgram {
 public:
-    DxShader();
+    DxShader()
+        : mVShader(0), mPShader(0), mMinOverall(-1), mMaxOverall(-1), mPreCreated(0) {}
     virtual ~DxShader();
     virtual void Select(bool);
     virtual void Copy(const RndShaderProgram &);
     virtual void EstimatedCost(float &, float &);
     virtual void SetShaders(D3DVertexShader *, D3DPixelShader *);
+
+    static void *operator new(unsigned int) { return TheShaderMgr.AllocShader(); }
 
 protected:
     virtual RndShaderBuffer *NewBuffer(unsigned int);

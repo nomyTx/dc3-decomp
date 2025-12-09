@@ -723,6 +723,9 @@ Direct3D_CreateDevice(
 D3DQuery *
 D3DDevice_CreateQueryTiled(D3DDevice *pDevice, D3DQUERYTYPE Type, UINT TileCapacity);
 
+void D3DDevice_SetVertexShader(D3DDevice *pDevice, D3DVertexShader *pShader);
+void D3DDevice_SetPixelShader(D3DDevice *pDevice, D3DPixelShader *pShader);
+
 #ifdef __cplusplus
 }
 #endif
