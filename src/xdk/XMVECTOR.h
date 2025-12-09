@@ -1,10 +1,10 @@
 #pragma once
 #include "win_types.h"
 
-struct __vector4 { /* Size=0x10 */
+typedef struct __declspec(intrin_type) __declspec(align(16)) __vector4 { /* Size=0x10 */
     union {
         /* 0x0000 */ float vector4_f32[4];
-        /* 0x0000 */ DWORD vector4_u32[4];
+        /* 0x0000 */ UINT vector4_u32[4];
         struct {
             /* 0x0000 */ float x;
             /* 0x0004 */ float y;
@@ -12,9 +12,9 @@ struct __vector4 { /* Size=0x10 */
             /* 0x000c */ float w;
         };
         /* 0x0000 */ float v[4];
-        /* 0x0000 */ DWORD u[4];
+        /* 0x0000 */ UINT u[4];
     };
-};
+} __vector4;
 typedef __vector4 XMVECTOR;
 
 struct XMVECTORF32 { /* Size=0x10 */
@@ -89,3 +89,20 @@ typedef struct _XMMATRIX { /* Size=0x40 */
     _XMMATRIX &operator*=(const _XMMATRIX &);
     _XMMATRIX operator*(const _XMMATRIX &) const;
 } XMMATRIX;
+
+// VMX128 Intrinsics let's goooooooo
+
+static inline XMVECTOR __lvx(const void *base, int offset) {
+    const char *ret = (const char *)base + offset;
+    return *(XMVECTOR *)ret;
+}
+
+static inline void __stvx(XMVECTOR vSrc, void *base, int offset) {
+    char *dest = (char *)base + offset;
+    XMVECTOR *vDst = (XMVECTOR *)dest;
+    *vDst = vSrc;
+}
+
+// TODO: need intrinsics for:
+// vspltw128, vmaddcfp128, vmaddfp128
+// any others that we find in DC3
