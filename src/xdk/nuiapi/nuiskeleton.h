@@ -45,3 +45,6 @@ typedef _NUI_SKELETON_FRAME NUI_SKELETON_FRAME;
 #ifdef __cplusplus
 }
 #endif
+
+// has a C++ definition
+XMMATRIX NuiTransformMatrixLevel(XMVECTOR);
