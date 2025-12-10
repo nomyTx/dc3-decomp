@@ -85,6 +85,9 @@ public:
     virtual void FinishBuildList(NavListSort *);
 
     void SetShortcut(NavListShortcutNode *);
+    int StartIndex() const { return mStartIx; }
+    NavListShortcutNode *GetShortcut() const { return mShortcut; }
+    const std::list<NavListSortNode *> &Children() const { return mChildren; }
 
 protected:
     std::list<NavListSortNode *> mChildren; // 0x34
@@ -110,6 +113,7 @@ public:
     void FinishBuildList(NavListSort *);
     void FinishSort(NavListSort *);
     void Renumber(std::vector<NavListSortNode *> &);
+    const std::list<NavListSortNode *> &Children() const { return mChildren; }
 
 protected:
     Symbol mToken; // 0x34

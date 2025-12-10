@@ -117,7 +117,7 @@
             "lazer/meta_ham/MovieProvider.cpp": "MISSING",
             "lazer/meta_ham/MultiUserGesturePanel.cpp": "MISSING",
             "lazer/meta_ham/NavListNode.cpp": "NonMatching",
-            "lazer/meta_ham/NavListSort.cpp": "MISSING",
+            "lazer/meta_ham/NavListSort.cpp": "NonMatching",
             "lazer/meta_ham/NavListSortMgr.cpp": "MISSING",
             "lazer/meta_ham/OptionsPanel.cpp": "MISSING",
             "lazer/meta_ham/OutfitProvider.cpp": "MISSING",
