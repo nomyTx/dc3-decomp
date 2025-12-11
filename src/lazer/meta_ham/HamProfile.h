@@ -18,5 +18,9 @@ public:
 
     static int SaveSize(int);
 
+    void CheckForIconManUnlock();
+    void CheckForNinjaUnlock();
+    void SetFitnessMode(bool);
+
 protected:
 };

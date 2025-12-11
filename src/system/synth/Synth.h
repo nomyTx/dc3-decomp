@@ -44,7 +44,7 @@ public:
     virtual void PreInit() {}
     virtual void Init();
     virtual void InitSecurity();
-    virtual void SetDolby(bool, bool) {}
+    virtual void SetDolby(bool, bool) {} // 0x64
     virtual bool IsUsingDolby() const { return false; }
     virtual bool Fail() { return false; }
     virtual void Terminate();

@@ -5,15 +5,22 @@
 #include "gesture/SpeechMgr.h"
 #include "hamobj/HamGameData.h"
 #include "hamobj/HamPlayerData.h"
+#include "math/Utl.h"
 #include "meta/FixedSizeSaveable.h"
+#include "meta/FixedSizeSaveableStream.h"
 #include "meta/MemcardMgr.h"
 #include "meta/Profile.h"
+#include "obj/Data.h"
 #include "obj/Dir.h"
+#include "obj/Msg.h"
 #include "obj/Object.h"
 #include "os/Debug.h"
 #include "os/PlatformMgr.h"
 #include "os/System.h"
+#include "os/User.h"
 #include "rndobj/Overlay.h"
+#include "rndobj/Rnd.h"
+#include "synth/FxSend.h"
 #include "synth/Synth.h"
 #include "utl/MemMgr.h"
 #include "utl/Symbol.h"
@@ -58,9 +65,9 @@ BEGIN_HANDLERS(ProfileMgr)
     HANDLE_EXPR(get_venue_preference, mVenuePreference)
     HANDLE_EXPR(get_disable_photos, mDisablePhotos)
     HANDLE_EXPR(get_disable_voice, mDisableVoice)
-    HANDLE_EXPR(get_disable_voice_commander, mDisableVoiceCommander)
-    HANDLE_EXPR(get_disable_voice_pause, mDisableVoicePause)
-    HANDLE_EXPR(get_disable_voice_practice, mDisableVoicePractice)
+    HANDLE_EXPR(get_disable_voice_commander, GetDisableVoiceCommander())
+    HANDLE_EXPR(get_disable_voice_pause, GetDisableVoicePause())
+    HANDLE_EXPR(get_disable_voice_practice, GetDisableVoicePractice())
     HANDLE_EXPR(get_show_voice_tip, GetShowVoiceTip())
     HANDLE_EXPR(get_disable_freestyle, mDisableFreestyle)
     HANDLE_EXPR(get_no_flashcards, mNoFlashcards)
@@ -117,6 +124,10 @@ BEGIN_HANDLERS(ProfileMgr)
     HANDLE_SUPERCLASS(Hmx::Object)
     HANDLE_SUPERCLASS(Hmx::Object)
 END_HANDLERS
+
+bool ProfileMgr::GetDisableVoiceCommander() const { return mDisableVoiceCommander; }
+bool ProfileMgr::GetDisableVoicePause() const { return mDisableVoicePause; }
+bool ProfileMgr::GetDisableVoicePractice() const { return mDisableVoicePractice; }
 
 bool ProfileMgr::UnlockAllSongs() {
     bool old = mAllUnlocked;
@@ -270,6 +281,8 @@ float ProfileMgr::GetExcessVideoLag() const {
     return -(mPlatformVideoLatency + GetSyncOffsetRaw());
 }
 
+void ProfileMgr::SetVenuePreference(Symbol venue) { mVenuePreference = venue; }
+
 void ProfileMgr::Init() {
     for (int i = 0; i < 4; i++) {
         unk90.push_back(new HamProfile(i));
@@ -317,4 +330,336 @@ void ProfileMgr::Init() {
         mShowVoiceTip = false;
     }
     mProfilesOverlay = RndOverlay::Find("profiles", false);
+}
+
+std::vector<HamProfile *> ProfileMgr::GetAll() {
+    std::vector<HamProfile *> all;
+    FOREACH (it, unk90) {
+        all.push_back(*it);
+    }
+    return all;
+}
+
+std::vector<HamProfile *> ProfileMgr::GetSignedIn() {
+    std::vector<HamProfile *> profiles;
+    FOREACH (it, unk90) {
+        if (ThePlatformMgr.IsSignedIn((*it)->GetPadNum())) {
+            profiles.push_back(*it);
+        }
+    }
+    return profiles;
+}
+
+std::vector<HamProfile *> ProfileMgr::GetSignedInProfiles() {
+    std::vector<HamProfile *> profiles;
+    FOREACH (it, unk90) {
+        if (ThePlatformMgr.IsSignedIn((*it)->GetPadNum())) {
+            profiles.push_back(*it);
+        }
+    }
+    return profiles;
+}
+
+float ProfileMgr::SliderIxToDb(int ixVol) const {
+    MILO_ASSERT(mSliderConfig, 0x34B);
+    MILO_ASSERT(0 <= ixVol && ixVol < mSliderConfig->Size() - 1, 0x34C);
+    return mSliderConfig->Float(ixVol + 1);
+}
+
+int ProfileMgr::GetSliderStepCount() const {
+    MILO_ASSERT(mSliderConfig, 0x352);
+    return mSliderConfig->Size() - 1;
+}
+
+void ProfileMgr::InitSliders() {
+    if (!mSliderConfig) {
+        mSliderConfig = SystemConfig("sound", "slider");
+    }
+    if (!mVoiceChatSliderConfig) {
+        mVoiceChatSliderConfig = SystemConfig("sound", "slider_voicechat");
+    }
+}
+
+void ProfileMgr::SetOverscan(bool overscan) {
+    if (overscan != mOverscan) {
+        mOverscan = overscan;
+        TheRnd.SetShrinkToSafeArea(!mOverscan);
+        mGlobalOptionsDirty = true;
+    }
+}
+
+float ProfileMgr::GetSongToTaskMgrMs(LagContext lc) const {
+    switch (lc) {
+    case kPractice90:
+        return mSongToTaskMgrMs - unk34 - 0x46;
+    case kPractice80:
+    case kPractice70:
+    default:
+        break;
+    }
+    return 0;
+}
+
+// bool ProfileMgr::IsUnlockableContent(Symbol s) const {
+//   return TheAccomplishmentMgr.IsUnlockableAsset(s);
+// }
+
+HamProfile *ProfileMgr::GetProfileFromPad(int pad) const {
+    HamProfile *ret = nullptr;
+    FOREACH (it, unk90) {
+        if ((*it)->GetPadNum() == pad) {
+            ret = *it;
+            break;
+        }
+    }
+    return ret;
+}
+
+int ProfileMgr::GetSavableProfileCount() const {
+    int i = 0;
+    FOREACH (it, unk90) {
+        HamProfile *pProfile = *it;
+        MILO_ASSERT(pProfile, 0x191);
+        if (pProfile->HasValidSaveData())
+            i++;
+    }
+    return i;
+}
+
+HamProfile *ProfileMgr::GetFirstSavableProfile() const {
+    FOREACH (it, unk90) {
+        HamProfile *pProfile = *it;
+        MILO_ASSERT(pProfile, 0x1A1);
+        if (pProfile->HasValidSaveData())
+            return pProfile;
+    }
+    return nullptr;
+}
+
+HamProfile *ProfileMgr::GetProfile(const LocalUser *user) {
+    if (user && user->GetPadNum() != -1) {
+        return GetProfileFromPad(user->GetPadNum());
+    } else {
+        return nullptr;
+    }
+}
+
+bool ProfileMgr::HasUnsavedDataForPad(int padNum) {
+    MILO_ASSERT(padNum != -1, 0x220);
+    HamProfile *profile = GetProfileFromPad(padNum);
+    return ThePlatformMgr.IsSignedIn(padNum)
+        && profile->GetSaveState() == kMetaProfileLoaded && profile->IsUnsaved();
+    return 0;
+}
+
+HamProfile *ProfileMgr::GetSaveData(const HamUser *user) {
+    if (user && user->IsLocal() && user->CanSaveData()) {
+        HamProfile *profile = GetProfileFromPad(user->GetPadNum());
+        MILO_ASSERT(profile, 0x1ED);
+        return profile;
+    } else {
+        return nullptr;
+    }
+}
+
+bool ProfileMgr::NeedsUpload() {
+    if (!mAllUnlocked) {
+        FOREACH (it, unk90) {
+            if ((*it)->HasSomethingToUpload()) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void ProfileMgr::CheckForServerCrewUnlock() {
+    for (int i = 0; i < unk90.size(); i++) {
+        if (unk90[i]->HasValidSaveData()) {
+            unk90[i]->CheckForIconManUnlock();
+            unk90[i]->CheckForNinjaUnlock();
+        }
+    }
+}
+
+void ProfileMgr::SetGlobalOptionsSaveState(ProfileSaveState state) {
+    MILO_ASSERT(mGlobalOptionsSaveState != kMetaProfileUnchanged, 0x2A4);
+    if (state != kMetaProfileUnchanged) {
+        mGlobalOptionsSaveState = state;
+    }
+}
+
+void ProfileMgr::SaveGlobalOptions(FixedSizeSaveableStream &fs) {
+    fs << 0x1C;
+    fs << mMono;
+    fs << mSyncOffset;
+    fs << mSongToTaskMgrMs;
+    fs << mMusicVolume;
+    fs << mFxVolume;
+    fs << mBassBoost;
+    fs << mCrowdVolume;
+    fs << mDolby;
+    fs << mDisablePhotos;
+    fs << mNoFlashcards;
+    fs << mDisableVoice;
+    fs << mDisableVoiceCommander;
+    fs << mDisableVoicePause;
+    fs << mDisableVoicePractice;
+    fs << mShowVoiceTip;
+    fs << mDisableFreestyle;
+    fs << mSyncPresetIx;
+    fs << mOverscan;
+    fs << mTutorialsSeen;
+    fs << unk4c;
+    fs << unk78;
+    fs << (u64)unk80;
+    fs << (u64)unk84;
+    mGlobalOptionsDirty = false;
+}
+
+void ProfileMgr::EnableFitnessForActiveProfiles() {
+    for (int i = 0; i < 2; i++) {
+        HamPlayerData *pPlayer = TheGameData->Player(i);
+        MILO_ASSERT(pPlayer, 0x3CB);
+        HamProfile *pProfile = TheProfileMgr.GetProfileFromPad(pPlayer->PadNum());
+        if (pProfile && pProfile->HasValidSaveData()) {
+            pProfile->SetFitnessMode(true);
+        }
+    }
+}
+
+float ProfileMgr::GetSyncOffset(int i1) const {
+    float f1 = 0;
+    if (i1 != -1) {
+        f1 = GetPadExtraLag(i1, kGame);
+    }
+    return mSyncOffset + unk38 - f1;
+}
+
+bool ProfileMgr::IsAnyProfileSignedIntoLive() const {
+    for (int i = 0; i < 2; i++) {
+        HamPlayerData *pPlayer = TheGameData->Player(i);
+        MILO_ASSERT(pPlayer, 0x5A7);
+        int padNum = pPlayer->PadNum();
+        if (TheProfileMgr.GetProfileFromPad(padNum)
+            && ThePlatformMgr.IsSignedIntoLive(padNum)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ProfileMgr::HasActiveProfile(bool b1) const { return GetActiveProfile(b1); }
+
+void ProfileMgr::PurgeOldData() {
+    FOREACH (it, unk90) {
+        HamProfile *pProfile = *it;
+        if (pProfile->GetSaveState() == kMetaProfileDelete) {
+            pProfile->DeleteAll();
+            pProfile->SetSaveState(kMetaProfileUnloaded);
+            static ProfileChangedMsg msg(pProfile);
+            msg[0] = pProfile;
+            Handle(msg, false);
+        }
+    }
+}
+
+void ProfileMgr::PushAllOptions() {
+    float musicDb = GetMusicVolumeDb();
+    float crowdDb = GetCrowdVolumeDb();
+    float fxDb = GetFxVolumeDb();
+    // if (TheGame) {
+    //     TheGame->SetBackgroundVolume(musicDb);
+    //     if (TheGame) {
+    //         TheGame->SetBackgroundVolume(musicDb);
+    //     }
+    // }
+    Fader *bFade = TheSynth->Find<Fader>("background_music_level.fade", false);
+    if (bFade) {
+        bFade->SetVolume(musicDb);
+    }
+    Fader *cFade = TheSynth->Find<Fader>("crowd_level.fade", false);
+    if (cFade) {
+        cFade->SetVolume(crowdDb);
+    }
+    Fader *sFade = TheSynth->Find<Fader>("sfx_level.fade", false);
+    if (sFade) {
+        sFade->SetVolume(fxDb);
+    }
+    Fader *iFade = TheSynth->Find<Fader>("instrument_level.fade", false);
+    if (iFade) {
+        iFade->SetVolume(musicDb);
+    }
+    FxSend *send = TheSynth->Find<FxSend>("bass_boost.send", false);
+    if (send) {
+        if (mBassBoost) {
+            send->SetProperty("wet_gain", 0.0f);
+            send->SetProperty("dry_gain", kDbSilence);
+        } else {
+            send->SetProperty("wet_gain", kDbSilence);
+            send->SetProperty("dry_gain", 0.0f);
+        }
+    }
+    TheRnd.SetShrinkToSafeArea(!mOverscan);
+    TheSynth->SetDolby(mDolby, true);
+    static DataNode &n = DataVariable("crowd_audio.volume");
+    n = GetCrowdVolumeDb();
+    if (TheSpeechMgr) {
+        if (unk78 && TheSpeechMgr->OnIsSpeechSupportable()) {
+            TheSpeechMgr->ForceLanguageSupport();
+        } else if (!TheSpeechMgr->SpeechSupported() && !mDisableVoice) {
+            mDisableVoice = !mDisableVoice;
+            mGlobalOptionsDirty = true;
+            mDisableVoiceCommander = !mDisableVoiceCommander;
+            mDisableVoicePause = !mDisableVoicePause;
+            mDisableVoicePractice = !mDisableVoicePractice;
+        }
+    }
+    DWORD locale = ULSystemLocale();
+    DWORD language = ULSystemLanguage();
+    if (TheSpeechMgr && (locale != unk80 || language != unk84)
+        && TheSpeechMgr->SpeechSupported() && mDisableVoice) {
+        mDisableVoice = !mDisableVoice;
+        mGlobalOptionsDirty = true;
+        mDisableVoiceCommander = !mDisableVoiceCommander;
+        mDisableVoicePause = !mDisableVoicePause;
+        mDisableVoicePractice = !mDisableVoicePractice;
+    }
+    unk80 = locale;
+    unk84 = language;
+    mGlobalOptionsDirty = true;
+}
+
+void ProfileMgr::SetMusicVolume(int step) {
+    if (step >= 0 && GetSliderStepCount() > step) {
+        mMusicVolume = step;
+        mGlobalOptionsDirty = true;
+        PushAllOptions();
+    }
+}
+
+void ProfileMgr::SetExcessVideoLag(float lag) {
+    float audioLag = GetExcessAudioLag();
+    SetSyncOffset(-(mPlatformVideoLatency + lag));
+    SetExcessAudioLag(audioLag);
+}
+
+void ProfileMgr::HandlePlayerNameChange() {
+    static Symbol ui_nav_mode("ui_nav_mode");
+    const DataNode *pNavPlayerNode = TheHamProvider->Property(ui_nav_mode);
+    MILO_ASSERT(pNavPlayerNode, 0x6FA);
+    Symbol nodeSym = pNavPlayerNode->Sym();
+    static Symbol store("store");
+    if (nodeSym == store) {
+        HamPlayerData *pPlayer0 = TheGameData->Player(0);
+        MILO_ASSERT(pPlayer0, 0x704);
+        HamProfile *pProfile = GetProfileFromPad(pPlayer0->PadNum());
+        if (mCriticalProfile) {
+            if (mCriticalProfile->HasValidSaveData() && pProfile != mCriticalProfile) {
+                static Symbol store_user_change("store_user_change");
+                static Message init("init");
+                // TheUIEventMgr.TriggerEvent
+            }
+        }
+    }
 }

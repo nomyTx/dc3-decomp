@@ -1,5 +1,7 @@
 #pragma once
+#include "meta/FixedSizeSaveableStream.h"
 #include "obj/Data.h"
+#include "obj/Msg.h"
 #include "obj/Object.h"
 #include "meta_ham/HamProfile.h"
 #include "game/HamUser.h"
@@ -83,6 +85,21 @@ public:
     void SetSongToTaskMgrMsRaw(float);
     void Init();
     void InitSliders();
+    void SetVenuePreference(Symbol);
+    bool GetDisableVoiceCommander() const;
+    bool GetDisableVoicePause() const;
+    bool GetDisableVoicePractice() const;
+    std::vector<HamProfile *> GetAll();
+    std::vector<HamProfile *> GetSignedIn();
+    std::vector<HamProfile *> GetSignedInProfiles();
+    int GetSliderStepCount() const;
+    float GetSongToTaskMgrMs(LagContext) const;
+    bool IsUnlockableContent(Symbol) const;
+    bool HasUnsavedDataForPad(int);
+    void CheckForServerCrewUnlock();
+    void SetGlobalOptionsSaveState(ProfileSaveState);
+    void SaveGlobalOptions(FixedSizeSaveableStream &);
+    bool HasActiveProfile(bool) const;
 
     bool GetBassBoost() const { return mBassBoost; }
     bool GetDolby() const { return mDolby; }
@@ -124,8 +141,8 @@ protected:
     Symbol mVenuePreference; // 0x7c
     int unk80;
     int unk84;
-    int unk88;
-    int unk8c;
+    DataArray *mSliderConfig; // 0x88
+    DataArray *mVoiceChatSliderConfig; // 0x8c
     std::vector<HamProfile *> unk90;
     HamProfile *mCriticalProfile; // 0x9c
     bool mAllUnlocked; // 0xa0
@@ -138,3 +155,7 @@ protected:
 };
 
 extern ProfileMgr TheProfileMgr;
+
+DECLARE_MESSAGE(ProfileChangedMsg, "profile_changed_msg")
+ProfileChangedMsg(Profile *p) : Message(Type(), p) {}
+END_MESSAGE
