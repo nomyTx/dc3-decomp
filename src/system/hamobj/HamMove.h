@@ -157,3 +157,10 @@ struct HamMoveKey {
     HamMove *move;
     float beat;
 };
+
+struct HamMoveScore {
+    int unk0;
+    int unk4;
+    int unk8;
+    int unkc;
+};

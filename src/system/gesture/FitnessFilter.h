@@ -1,19 +1,19 @@
 #pragma once
-
 #include "gesture/SkeletonViz.h"
 #include "obj/Data.h"
 #include "obj/Object.h"
 #include "rndobj/Overlay.h"
 #include "utl/BinStream.h"
 #include "utl/MemMgr.h"
+
 class FitnessFilter {
 public:
+    FitnessFilter();
     virtual ~FitnessFilter();
     virtual void Clear();
     virtual void Poll();
     virtual void Draw(BaseSkeleton const &, SkeletonViz &);
 
-    FitnessFilter();
     void SetPlayerIndex(int);
     bool GetFitnessData(float &, float &) const;
     bool GetFitnessDataAndReset(float &, float &);

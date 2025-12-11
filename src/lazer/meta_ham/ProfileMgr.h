@@ -108,6 +108,8 @@ public:
 
     bool GetBassBoost() const { return mBassBoost; }
     bool GetDolby() const { return mDolby; }
+    Symbol GetVenuePreference() const { return mVenuePreference; }
+    bool NoFlashcards() const { return mNoFlashcards; }
 
 private:
     void UpdateFriendsList();
