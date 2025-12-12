@@ -17,6 +17,7 @@ enum PlaylistType { // Taken from RB3 and "Setlist" replaced with "Playlist"
 
 class Playlist {
 public:
+    Playlist();
     virtual ~Playlist(); // 0x0
     // unsure where these go but they are definitely between 0x4 - 0xc
     virtual bool IsCustom() const { return 0; }
@@ -26,7 +27,6 @@ public:
     virtual int GetOnlineID() { return -1; } // 0x10 ?
     virtual PlaylistType GetType() const; // 0x14
 
-    Playlist();
     void SwapSongs(int, int);
     void MoveSong(int, int);
     void ShuffleSongs();

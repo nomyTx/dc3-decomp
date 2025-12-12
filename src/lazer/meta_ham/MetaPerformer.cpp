@@ -4,11 +4,14 @@
 #include "game/GameMode.h"
 #include "game/HamUserMgr.h"
 #include "gesture/GestureMgr.h"
+#include "hamobj/HamDirector.h"
 #include "hamobj/HamGameData.h"
 #include "hamobj/HamMove.h"
 #include "hamobj/HamNavProvider.h"
 #include "hamobj/HamPlayerData.h"
+#include "hamobj/MoveDir.h"
 #include "hamobj/ScoreUtl.h"
+#include "math/Rand.h"
 #include "meta_ham/HamProfile.h"
 #include "meta_ham/HamSongMgr.h"
 #include "meta_ham/ProfileMgr.h"
@@ -18,6 +21,9 @@
 #include "obj/Object.h"
 #include "os/DateTime.h"
 #include "os/Debug.h"
+#include "os/System.h"
+#include "utl/DataPointMgr.h"
+#include "utl/Std.h"
 #include "utl/Symbol.h"
 
 bool CharConflict(Symbol s1, Symbol s2) {
@@ -496,7 +502,7 @@ void MetaPerformer::SetPlaylist(Playlist *playlist) {
 
 void MetaPerformer::StartPlaylist() {
     mPlaylistElapsedTime = 0;
-    if (!TheGameMode) {
+    if (!TheGameMode->IsInfinite()) {
         MILO_ASSERT(mPlaylist, 0x713);
         MILO_ASSERT(!mPlaylist->IsEmpty(), 0x714);
         mPlaylistIndex = 0;
@@ -511,6 +517,151 @@ void MetaPerformer::StartPlaylist() {
     }
     UpdateSongFromPlaylist();
     UpdateIsLastSong();
+}
+
+void MetaPerformer::ContinuePlaylist() {
+    if (TheGameMode->IsInfinite()
+        || TheHamProvider->Property("is_in_infinite_party_mode")->Int()) {
+        if (!TheGameMode->InMode("campaign", true))
+            goto end;
+    }
+    MILO_ASSERT(mPlaylist, 0x731);
+    mPlaylistIndex++;
+    while (!mPlaylist->IsValidSong(mPlaylistIndex)) {
+        mSkippedSongs.insert(mPlaylistIndex);
+        mPlaylistIndex++;
+        MILO_ASSERT(mPlaylistIndex < mPlaylist->GetNumSongs(), 0x73B);
+    }
+end:
+    UpdateSongFromPlaylist();
+    UpdateIsLastSong();
+}
+
+void MetaPerformer::ShufflePlaylist() {
+    if (!unke3) {
+        mPlaylist = new Playlist(*mPlaylist);
+        mPlaylist->ShuffleSongs();
+        unke3 = true;
+    }
+}
+
+void MetaPerformer::SetPlaylist(Symbol s) {
+    Playlist *pPlaylist = TheHamSongMgr.GetPlaylist(s);
+    MILO_ASSERT(pPlaylist, 0x6D5);
+    SetPlaylist(pPlaylist);
+}
+
+void MetaPerformer::Restart() {
+    mNumCompleted.clear();
+    mNumRestarts++;
+    if (mInstarank) {
+        RELEASE(mInstarank);
+    }
+}
+
+Symbol MetaPerformer::GetRandomVenue() {
+    static Symbol review("review");
+    std::vector<Symbol> validVenues;
+    DataArray *venueArray = SystemConfig()->FindArray("venues", false);
+    MILO_ASSERT(venueArray, 0x25E);
+    for (int i = 1; i < venueArray->Size(); i++) {
+        DataArray *pVenueEntryArray = venueArray->Array(i);
+        MILO_ASSERT(pVenueEntryArray, 0x263);
+        static Symbol never_show("never_show");
+        bool neverShow = false;
+        pVenueEntryArray->FindData(never_show, neverShow, false);
+        if (!neverShow) {
+            Symbol s = pVenueEntryArray->Sym(0);
+            if (TheProfileMgr.IsContentUnlocked(s) && s != review) {
+                validVenues.push_back(s);
+            }
+        }
+    }
+    MILO_ASSERT(validVenues.size() > 0, 0x272);
+    return validVenues[RandomInt(0, validVenues.size())];
+}
+
+void MetaPerformer::OnPracticeMovePassed(
+    int playerIndex, const char *cc, SkillsAward award, bool b4
+) {
+    MILO_ASSERT_RANGE(playerIndex, 0, 2, 0x41A);
+    HamPlayerData *pPlayerData = TheGameData->Player(playerIndex);
+    MILO_ASSERT(pPlayerData, 0x41D);
+    HamMove *theMove = nullptr;
+    MoveDir *moveDir = TheHamDirector->GetWorld()->Find<MoveDir>("moves", true);
+    std::vector<HamMoveKey> keys;
+    TheHamDirector->MoveKeys(pPlayerData->GetDifficulty(), moveDir, keys);
+    int numKeys = keys.size();
+    for (int i = 0; i != numKeys; i++) {
+        if (streq(keys[i].move->Name(), cc)) {
+            theMove = keys[i].move;
+        }
+    }
+    if (unk40[playerIndex].size() == 0) {
+        unk40[playerIndex].reserve(numKeys);
+    }
+    HamMoveScore score;
+    int i4 = -1;
+    switch (award) {
+    case 1:
+        i4 = -2;
+        break;
+    case 2:
+        i4 = -3;
+        break;
+    case 3:
+        i4 = -4;
+        break;
+    default:
+        break;
+    }
+    score.unk0 = theMove;
+    score.unk4 = i4;
+    score.unk8 = 0;
+    score.unkc = b4;
+    unk40[playerIndex].push_back(score);
+    mMovesAttempted[playerIndex]++;
+}
+
+void MetaPerformer::Init() {
+    MILO_ASSERT(!sScriptHook, 0xC1);
+    sScriptHook = new MetaPerformerHook(TheHamSongMgr);
+}
+
+void MetaPerformer::GenerateRecommendedPracticeMoves(int player) {
+    MILO_ASSERT(player>=0 && player < MULTIPLAYER_SLOTS, 0x4D4);
+    ClearAndShrink(mRecommendedPracticeMoves);
+    for (int i = 0; i < unk40[player].size(); i++) {
+        String name = unk40[player][i].unk0->DisplayName();
+        if (!IsRecommendedPracticeMove(name)) {
+            if (CheckRecommendedPracticeMove(name, player)) {
+                mRecommendedPracticeMoves.push_back(name);
+            }
+        }
+    }
+}
+
+void MetaPerformer::SendSpeechDatapoint(DataArray *a, float confidence, Symbol rule) {
+    static Symbol sr_confidence("sr_confidence");
+    static Symbol sr_tag("sr_tag");
+    static Symbol sr_rule("sr_rule");
+    static Symbol sr_language("sr_language");
+    static Symbol sr_locale("sr_locale");
+    if (a->Size() > 0) {
+        SendDataPoint(
+            "speech",
+            sr_rule,
+            rule,
+            sr_tag,
+            a->Sym(0),
+            sr_confidence,
+            confidence,
+            sr_language,
+            SystemLanguage(),
+            sr_locale,
+            SystemLocale()
+        );
+    }
 }
 
 #pragma endregion

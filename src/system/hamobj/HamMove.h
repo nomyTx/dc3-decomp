@@ -160,8 +160,8 @@ struct HamMoveKey {
 };
 
 struct HamMoveScore {
-    int unk0;
+    HamMove *unk0;
     int unk4;
-    int unk8;
-    int unkc;
+    float unk8;
+    bool unkc;
 };

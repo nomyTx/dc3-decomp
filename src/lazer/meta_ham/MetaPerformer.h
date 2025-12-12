@@ -12,6 +12,8 @@
 #include "obj/Object.h"
 #include "os/DateTime.h"
 
+#define MULTIPLAYER_SLOTS 2
+
 enum PlayerFlag {
 };
 
@@ -93,6 +95,7 @@ public:
 
     bool HasPlaylist() const { return mPlaylist; }
 
+    static void Init();
     static void SendSpeechDatapoint(DataArray *, float, Symbol);
     static MetaPerformer *Current();
 
@@ -115,6 +118,7 @@ protected:
     bool IsCheatWinning() const;
     Symbol GetRandomVenue();
     void PotentiallyUpdateLeaderboards(bool, Symbol, int, int, bool);
+    bool CheckRecommendedPracticeMove(String, int) const;
 
     DataNode OnMsg(const RCJobCompleteMsg &);
 
