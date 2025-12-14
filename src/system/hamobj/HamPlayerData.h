@@ -38,6 +38,7 @@ public:
     int GetSkeletonTrackingID() const { return mSkeletonTrackingID; }
     void AssignSkeleton(int id) { SetSkeletonTrackingID(id); }
     int PadNum() const { return mPadNum; }
+    bool IsAutoplaying() const { return !mAutoplay.Null(); }
 
 private:
     void SetSkeletonTrackingID(int);

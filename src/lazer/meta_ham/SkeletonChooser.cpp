@@ -1,5 +1,6 @@
 #include "meta_ham/SkeletonChooser.h"
 #include "flow/PropertyEventProvider.h"
+#include "game/GameMode.h"
 #include "gesture/BaseSkeleton.h"
 #include "gesture/DirectionGestureFilter.h"
 #include "gesture/GestureMgr.h"
@@ -16,6 +17,7 @@
 #include "obj/Object.h"
 #include "obj/Task.h"
 #include "os/Debug.h"
+#include "ui/UI.h"
 
 SkeletonChooser::SkeletonChooser()
     : unk34(false), unk3c(0), unk44(1), unk48(true), unk80(0), unk84(0), unk88(0),
@@ -202,4 +204,240 @@ DataNode SkeletonChooser::OnGetJointDepthPos(const DataArray *a) {
     *a->Var(5) = v.y;
     *a->Var(6) = v.z;
     return 0;
+}
+
+bool SkeletonChooser::GetPlayerPresent(int player) {
+    MILO_ASSERT_RANGE(player, 0, 2, 0xAB);
+    static Symbol player_present("player_present");
+    HamPlayerData *pPlayer = TheGameData->Player(player);
+    MILO_ASSERT(pPlayer, 0xB0);
+    Hmx::Object *pPlayerProvider = pPlayer->Provider();
+    MILO_ASSERT(pPlayerProvider, 0xB2);
+    const DataNode *pPlayerPresent = pPlayerProvider->Property(player_present);
+    MILO_ASSERT(pPlayerPresent, 0xB4);
+    return pPlayerPresent->Int();
+}
+
+void SkeletonChooser::SetPlayerPresent(int player, bool present) {
+    if (TheGestureMgr->IsTrackingAllSkeletons())
+        return;
+    MILO_ASSERT_RANGE(player, 0, 2, 0x98);
+    static Symbol player_present("player_present");
+    HamPlayerData *pPlayer = TheGameData->Player(player);
+    MILO_ASSERT(pPlayer, 0x9D);
+    Hmx::Object *pPlayerProvider = pPlayer->Provider();
+    MILO_ASSERT(pPlayerProvider, 0x9F);
+    bool pPlayerPresent = GetPlayerPresent(player);
+    if (pPlayerPresent != present) {
+        pPlayerProvider->SetProperty(player_present, present);
+    }
+}
+
+void SkeletonChooser::EnterMultiPlayerUpdateMode() {
+    if (!unka0) {
+        TheGestureMgr->StartTrackAllSkeletons();
+        unka0 = true;
+        for (int i = 0; i < 6; i++) {
+            unka4[i] = 0;
+            unk4c[i]->SetRequiredMs(500);
+            unk4c[i]->SetForwardFacingCutoff(0.82f);
+            unk4c[i]->Clear();
+        }
+    }
+}
+
+void SkeletonChooser::ExitMultiPlayerUpdateMode() {
+    if (unka0) {
+        TheGestureMgr->CancelTrackAllSkeletons();
+        unka0 = false;
+        for (int i = 0; i < 6; i++) {
+            unka4[i] = 0;
+            unk4c[i]->SetRequiredMs(750);
+            unk4c[i]->RestoreDefaultForwardFacingCutoff();
+            unk4c[i]->Clear();
+        }
+    }
+}
+
+void SkeletonChooser::SetPlayerSkeletonID(int player, int id) {
+    MILO_ASSERT_RANGE(player, 0, 2, 0x78);
+    TheGameData->AssignSkeleton(player, id);
+}
+
+bool SkeletonChooser::IsFreestyleMode() const {
+    bool ret = false;
+    static Symbol ui_nav_mode("ui_nav_mode");
+    const DataNode *pNavPlayerNode = TheHamProvider->Property(ui_nav_mode);
+    MILO_ASSERT(pNavPlayerNode, 0x272);
+    Symbol navModeSym = pNavPlayerNode->Sym();
+    static Symbol game("game");
+    if (navModeSym == game) {
+        static Symbol freestyle("freestyle");
+        static Symbol game_stage("game_stage");
+        const DataNode *pGameStageNode = TheHamProvider->Property(game_stage);
+        MILO_ASSERT(pGameStageNode, 0x27C);
+        Symbol gameStageSym = pGameStageNode->Sym();
+        if (gameStageSym == freestyle) {
+            ret = true;
+        }
+    }
+    return ret;
+}
+
+bool SkeletonChooser::IsSinglePlayerMode() const {
+    bool ret = false;
+    static Symbol ui_nav_mode("ui_nav_mode");
+    const DataNode *pNavPlayerNode = TheHamProvider->Property(ui_nav_mode);
+    MILO_ASSERT(pNavPlayerNode, 0x2AF);
+    Symbol navModeSym = pNavPlayerNode->Sym();
+    static Symbol practice("practice");
+    static Symbol gameplay_mode("gameplay_mode");
+    static Symbol game("game");
+    static Symbol results("results");
+    static Symbol loading("loading");
+    static Symbol pause("pause");
+    static Symbol practice_shell("practice_shell");
+    static Symbol store("store");
+    if (TheGameMode->Property(gameplay_mode)->Sym() == practice
+        && (navModeSym == game || navModeSym == results || navModeSym == loading
+            || navModeSym == pause || navModeSym == practice_shell
+            || navModeSym == store)) {
+        ret = true;
+    }
+    return ret;
+}
+
+bool SkeletonChooser::IsAutoplaying() const {
+    HamPlayerData *pPlayer1 = TheGameData->Player(0);
+    MILO_ASSERT(pPlayer1, 0x3EE);
+    HamPlayerData *pPlayer2 = TheGameData->Player(1);
+    MILO_ASSERT(pPlayer2, 0x3F0);
+    return pPlayer1->IsAutoplaying() || pPlayer2->IsAutoplaying();
+}
+
+bool SkeletonChooser::DoesRequireHandRaise() const {
+    static Symbol ui_nav_mode("ui_nav_mode");
+    static Symbol game("game");
+    static Symbol loading("loading");
+    const DataNode *uiNavModeProp = TheHamProvider->Property(ui_nav_mode);
+    Symbol uiNavModeSym = uiNavModeProp->Sym();
+    static Symbol raise_hand_to_join("raise_hand_to_join");
+    bool shouldRaiseHand = TheGameMode->Property(raise_hand_to_join)->Int();
+    static Symbol is_in_campaign_work_it("is_in_campaign_work_it");
+    bool b1 = TheHamProvider->Property(is_in_campaign_work_it)->Int()
+        && uiNavModeSym == loading;
+    static Symbol doing_stupid_kinect_trick("doing_stupid_kinect_trick");
+    bool doingStupidTrickLmao =
+        TheHamProvider->Property(doing_stupid_kinect_trick)->Int();
+    if (!IsFreestyleMode() && shouldRaiseHand && !b1 && !doingStupidTrickLmao
+        && (uiNavModeSym == game || uiNavModeSym == loading)) {
+        return true;
+    }
+    return false;
+}
+
+int SkeletonChooser::RoundRobinForPlayer(int x) {
+    if (DoesRequireHandRaise()) {
+        return RoundRobinForHandRaised(x);
+    } else {
+        return RoundRobinForStandingStill(x);
+    }
+}
+
+bool SkeletonChooser::IsCentered(int id) {
+    Skeleton *pSkeleton = TheGestureMgr->GetSkeletonByTrackingID(id);
+    MILO_ASSERT(pSkeleton, 0x5A8);
+    if (pSkeleton->IsTracked()) {
+        Vector2 spinePos;
+        pSkeleton->ScreenPos(kJointSpine, spinePos);
+        if (0.35f < spinePos.x && spinePos.x < 0.65f)
+            return true;
+    }
+    return false;
+}
+
+void SkeletonChooser::QueueActivePlayerSwitch(int playerIndex) {
+    MILO_ASSERT_RANGE(playerIndex, 0, 2, 0x589);
+    if (unk38 != playerIndex) {
+        unk38 = playerIndex;
+        unk40 = 0;
+    }
+}
+
+bool SkeletonChooser::IsHandUp(int id) {
+    Skeleton *pSkeleton = TheGestureMgr->GetSkeletonByTrackingID(id);
+    if (!pSkeleton)
+        return false;
+    return !AreArmsCrossed(id)
+        && (unk2c->IsHandValid(*pSkeleton) || unk30->IsHandValid(*pSkeleton));
+}
+
+bool SkeletonChooser::IsAtEdge(int id) {
+    Skeleton *pSkeleton = TheGestureMgr->GetSkeletonByTrackingID(id);
+    MILO_ASSERT(pSkeleton, 0x5BA);
+    if (!pSkeleton->IsTracked()) {
+        return false;
+    } else {
+        Vector2 spinePos;
+        pSkeleton->ScreenPos(kJointSpine, spinePos);
+        if (0.85f < spinePos.x || spinePos.x < 0.15f) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+void SkeletonChooser::PollUiNavModeStatus() {
+    static Symbol ui_nav_mode("ui_nav_mode");
+    static Symbol shell_4p("shell_4p");
+    bool inShell = TheHamProvider->Property(ui_nav_mode)->Sym() == shell_4p;
+    if (inShell != unka0) {
+        if (inShell) {
+            EnterMultiPlayerUpdateMode();
+        } else {
+            ExitMultiPlayerUpdateMode();
+        }
+    }
+}
+
+bool SkeletonChooser::IsPlayerInFreestyle(int player) const {
+    HamPlayerData *pPlayer = TheGameData->Player(player);
+    MILO_ASSERT(pPlayer, 0x28B);
+    PropertyEventProvider *pProvider = pPlayer->Provider();
+    MILO_ASSERT(pProvider, 0x28E);
+    static Symbol in_freestyle("in_freestyle");
+    const DataNode *pNode = pProvider->Property(in_freestyle);
+    MILO_ASSERT(pNode, 0x292);
+    return pNode->Int();
+}
+
+void SkeletonChooser::SwapPlayerSides() {
+    static Symbol is_in_party_mode("is_in_party_mode");
+    if (!IsFreestyleMode()) {
+        if (TheHamProvider->Property(is_in_party_mode)->Int() != 1) {
+            TheGameData->SwapPlayerSides();
+            static Message cSwapPlayersMsg("swap_players");
+            TheUI->Handle(cSwapPlayersMsg, false);
+            static Message post_sides_switched("post_sides_switched");
+            TheHamProvider->Export(post_sides_switched, true);
+        }
+    } else {
+        TheGameData->SwapPlayerSidesByIDOnly();
+    }
+}
+
+void SkeletonChooser::ForceSwapPlayerSides() {
+    TheGameData->SwapPlayerSides();
+    TheGameData->SwapPlayerSidesByIDOnly();
+    static Message cSwapPlayersMsg("swap_players");
+    TheUI->Handle(cSwapPlayersMsg, false);
+    static Message post_sides_switched("post_sides_switched");
+    TheHamProvider->Export(post_sides_switched, true);
+}
+
+void SkeletonChooser::SwitchActiveToPlayerIndexImmediate(int playerIndex) {
+    MILO_ASSERT_RANGE(playerIndex, 0, 2, 0x581);
+    unk38 = -1;
+    SetActivePlayer(playerIndex);
 }

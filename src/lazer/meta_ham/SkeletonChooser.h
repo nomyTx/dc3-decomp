@@ -35,6 +35,29 @@ private:
     bool PotentiallyRecoverSkeletons();
     void CheckToSwitchActivePlayer();
     void UpdateTrackedSkeletonsElective();
+    bool GetPlayerPresent(int);
+    void SetPlayerPresent(int, bool);
+    void EnterMultiPlayerUpdateMode();
+    void ExitMultiPlayerUpdateMode();
+    bool ShouldWaitForRecovery();
+    bool IsFreestyleMode() const;
+    bool IsSinglePlayerMode() const;
+    int NextSkeletonIndexToTrack(int);
+    int GetNumValidSkeletonChoices();
+    bool IsAutoplaying() const;
+    bool DoesRequireHandRaise() const;
+    int RoundRobinForHandRaised(int);
+    int RoundRobinForStandingStill(int);
+    int RoundRobinForPlayer(int);
+    bool IsCentered(int);
+    void QueueActivePlayerSwitch(int);
+    bool IsHandUp(int);
+    bool IsAtEdge(int);
+    void PollUiNavModeStatus();
+    bool IsPlayerInFreestyle(int) const;
+    void SwapPlayerSides();
+    void ResolveFreestyle();
+    void ResolveSinglePlayer();
 
 protected:
     DirectionGestureFilterSingleUser *unk2c;
@@ -55,7 +78,7 @@ protected:
     int unk90;
     int unk94;
     HandRaisedGestureFilter *unk98[2];
-    bool unka0;
+    bool unka0; // 0xa0 - multiplayer update mode
     int unka4[6];
     int unkbc;
     bool unkc0;
