@@ -1,5 +1,4 @@
 #pragma once
-
 #include "meta/FixedSizeSaveable.h"
 #include "meta/FixedSizeSaveableStream.h"
 #include "utl/Symbol.h"
@@ -19,12 +18,10 @@ class Playlist {
 public:
     Playlist();
     virtual ~Playlist(); // 0x0
-    // unsure where these go but they are definitely between 0x4 - 0xc
-    virtual bool IsCustom() const { return 0; }
-    virtual bool IsDirty() { return 0; }
-    virtual void SetOnlineID(int) {}
-    //
-    virtual int GetOnlineID() { return -1; } // 0x10 ?
+    virtual bool IsCustom() const { return false; } // 0x4
+    virtual void SetOnlineID(int) {} // 0x8
+    virtual int GetOnlineID() { return -1; } // 0xc
+    virtual bool IsDirty() { return false; } // 0x10
     virtual PlaylistType GetType() const; // 0x14
 
     void SwapSongs(int, int);
@@ -45,9 +42,9 @@ public:
     bool IsFull() const { return m_vSongs.size() >= 20; }
     Symbol GetName() const { return mName; }
 
-    Symbol mName;
-    bool unk8;
-    bool unk9;
+    Symbol mName; // 0x4
+    bool unk8; // 0x8
+    bool unk9; // 0x9
     std::vector<int> m_vSongs; // 0xc
 
 protected:
@@ -56,18 +53,24 @@ protected:
 
 class CustomPlaylist : public Playlist, public FixedSizeSaveable {
 public:
+    CustomPlaylist();
     virtual ~CustomPlaylist();
+    virtual bool IsCustom() const { return true; } // 0x4
+    virtual void SetOnlineID(int id) { mOnlineID = id; } // 0x8
+    virtual int GetOnlineID() { return mOnlineID; } // 0xc
+    virtual bool IsDirty() { return false; } // 0x10
+    // FixedSizeSaveable
     virtual void SaveFixed(FixedSizeSaveableStream &) const;
     virtual void LoadFixed(FixedSizeSaveableStream &, int);
 
-    CustomPlaylist();
     void SetParentProfile(class HamProfile *);
-    static int SaveSize(int);
     void Copy(CustomPlaylist *);
 
-    HamProfile *unk20;
-    bool unk24;
-    int unk28;
+    static int SaveSize(int);
+
+    HamProfile *mProfile; // 0x20
+    bool unk24; // 0x24
+    int mOnlineID; // 0x28
 
 protected:
     virtual void HandleChange(); // 0x18

@@ -121,7 +121,7 @@ public:
         int maxsize,
         int savesize
     ) {
-        if (vec.size() != 0) {
+        if (vec.size() > 0) {
             MILO_NOTIFY("vector is not empty!");
             vec.clear();
         }

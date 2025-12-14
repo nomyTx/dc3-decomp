@@ -1,6 +1,7 @@
-#include "lazer/meta_ham/Playlist.h"
+#include "meta_ham/Playlist.h"
 #include "HamSongMgr.h"
-#include "lazer/meta_ham/HamSongMgr.h"
+#include "meta_ham/HamSongMgr.h"
+#include "meta_ham/HamProfile.h"
 #include "math/Rand.h"
 #include "meta/FixedSizeSaveable.h"
 #include "meta/FixedSizeSaveableStream.h"
@@ -15,8 +16,8 @@ Playlist::Playlist() : mName(gNullStr), unk8(0), unk9(0) { m_vSongs.clear(); }
 Playlist::~Playlist() { m_vSongs.clear(); }
 
 void Playlist::SwapSongs(int index1, int index2) {
-    MILO_ASSERT((0) <= (index1) && (index1) < (GetNumSongs()), 0xb3);
-    MILO_ASSERT((0) <= (index2) && (index2) < (GetNumSongs()), 0xb4);
+    MILO_ASSERT_RANGE(index1, 0, GetNumSongs(), 0xB3);
+    MILO_ASSERT_RANGE(index2, 0, GetNumSongs(), 0xB4);
     int i = m_vSongs[index1];
     m_vSongs[index1] = m_vSongs[index2];
     m_vSongs[index2] = i;
@@ -24,51 +25,50 @@ void Playlist::SwapSongs(int index1, int index2) {
 }
 
 void Playlist::MoveSong(int from_index, int to_index) {
-    MILO_ASSERT((0) <= (from_index) && (from_index) < (GetNumSongs()), 0xcf);
+    MILO_ASSERT_RANGE(from_index, 0, GetNumSongs(), 0xCF);
     if (to_index - from_index < 1) {
     }
     HandleChange();
 }
 
 void Playlist::ShuffleSongs() {
-    for (int i = 0; i < m_vSongs.size(); i++) {
+    int numSongs = m_vSongs.size();
+    for (int i = 0; i < numSongs; i++) {
+        SwapSongs(i, rand() % numSongs);
     }
 }
 
 bool Playlist::IsValidSong(int i_iIndex) const {
-    MILO_ASSERT((0) <= (i_iIndex) && (i_iIndex) < (m_vSongs.size()), 0x103);
+    MILO_ASSERT_RANGE(i_iIndex, 0, m_vSongs.size(), 0x103);
     return TheHamSongMgr.HasSong(m_vSongs[i_iIndex]);
 }
 
 int Playlist::GetSong(int i_iIndex) const {
-    MILO_ASSERT((0) <= (i_iIndex) && (i_iIndex) < (m_vSongs.size()), 0x10b);
+    MILO_ASSERT_RANGE(i_iIndex, 0, m_vSongs.size(), 0x10B);
     return m_vSongs[i_iIndex];
 }
 
 int Playlist::GetDuration() const {
     int totalDur = 0;
-    if (!m_vSongs.empty()) {
-        for (int i = 0; i < m_vSongs.size(); i++) {
-            if (IsValidSong(i)) {
-                int id = GetSong(i);
-                Symbol name = TheHamSongMgr.GetShortNameFromSongID(id, 1);
-                id = TheHamSongMgr.GetDuration(name);
-                totalDur += id;
-            }
+    for (int i = 0; i < GetNumSongs(); i++) {
+        if (IsValidSong(i)) {
+            int songID = GetSong(i);
+            Symbol name = TheHamSongMgr.GetShortNameFromSongID(songID);
+            totalDur += TheHamSongMgr.GetDuration(name);
         }
     }
     return totalDur;
 }
 
 int Playlist::GetSongDuration(int i_iIndex) const {
-    MILO_ASSERT((0) <= (i_iIndex) && (i_iIndex) < (m_vSongs.size()), 0x125);
-    int i = 0;
+    MILO_ASSERT_RANGE(i_iIndex, 0, m_vSongs.size(), 0x125);
+    int duration = 0;
     if (IsValidSong(i_iIndex)) {
-        i = GetSong(i_iIndex);
-        Symbol name = TheHamSongMgr.GetShortNameFromSongID(i, true);
-        i = TheHamSongMgr.GetDuration(name);
+        int songID = GetSong(i_iIndex);
+        Symbol name = TheHamSongMgr.GetShortNameFromSongID(songID);
+        duration = TheHamSongMgr.GetDuration(name);
     }
-    return i;
+    return duration;
 }
 
 void Playlist::RemoveSong() {
@@ -80,11 +80,9 @@ int Playlist::GetLastValidSongIndex() const {
     int index = -1;
     int i = 0;
     int size = m_vSongs.size();
-    if (0 < size) {
-        for (i; i < size; i++) {
-            if (IsValidSong(i)) {
-                index = i;
-            }
+    for (; i < size; i++) {
+        if (IsValidSong(i)) {
+            index = i;
         }
     }
     return index;
@@ -96,8 +94,7 @@ void Playlist::RemoveSongAtIndex(int i) {
 }
 
 void Playlist::AddSong(int index) {
-    int size = m_vSongs.size();
-    if (size < 0x50 || !IsDirty()) {
+    if (!IsCustom() || GetNumSongs() < 20) {
         m_vSongs.push_back(index);
     } else {
         MILO_NOTIFY("Trying to add too many songs to playlist!");
@@ -122,15 +119,27 @@ int Playlist::GetNumSongs() const { return m_vSongs.size(); }
 #pragma endregion Playlist
 #pragma region CustomPlaylist
 
-CustomPlaylist::CustomPlaylist() : unk20(0), unk24(false), unk28(-1) { m_vSongs.clear(); }
+CustomPlaylist::CustomPlaylist() : mProfile(0), unk24(false), mOnlineID(-1) {
+    m_vSongs.clear();
+    mSaveSizeMethod = SaveSize;
+}
 
 CustomPlaylist::~CustomPlaylist() { m_vSongs.clear(); }
 
-void CustomPlaylist::SaveFixed(FixedSizeSaveableStream &) const {}
+void CustomPlaylist::SaveFixed(FixedSizeSaveableStream &fs) const {
+    FixedSizeSaveable::SaveStd(fs, m_vSongs, 20, 4);
+    fs << mOnlineID;
+    if (unk24) {
+    }
+}
 
-void CustomPlaylist::LoadFixed(FixedSizeSaveableStream &, int) {}
+void CustomPlaylist::LoadFixed(FixedSizeSaveableStream &fs, int) {
+    FixedSizeSaveable::LoadStd(fs, m_vSongs, 20, 4);
+    fs >> mOnlineID;
+    unk24 = false;
+}
 
-void CustomPlaylist::SetParentProfile(class HamProfile *hp) { unk20 = hp; }
+void CustomPlaylist::SetParentProfile(HamProfile *hp) { mProfile = hp; }
 
 int CustomPlaylist::SaveSize(int x) {
     int i = 0x58;
@@ -141,17 +150,18 @@ int CustomPlaylist::SaveSize(int x) {
 }
 
 void CustomPlaylist::Copy(CustomPlaylist *customP) {
-    unk28 = customP->unk28;
-    unk20 = customP->unk20;
+    mOnlineID = customP->mOnlineID;
+    mProfile = customP->mProfile;
     mName = customP->mName;
     unk8 = customP->unk8;
     unk9 = customP->unk9;
     m_vSongs = customP->m_vSongs;
+    HandleChange();
 }
 
 void CustomPlaylist::HandleChange() {
-    if (unk20) {
-        // HamProfile does not exist yet
+    if (mProfile) {
+        mProfile->MakeDirty();
     }
     unk24 = true;
 }
