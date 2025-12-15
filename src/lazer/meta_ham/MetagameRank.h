@@ -5,7 +5,7 @@
 #include "obj/Object.h"
 
 struct DeferredPoints {
-    int unk0;
+    int unk0; // score?
     Symbol unk4;
 };
 
@@ -39,15 +39,15 @@ private:
     int ComputeRankNumber(bool);
 
 protected:
-    int unk34;
+    int mScore; // 0x34
     bool unk38;
     char unk39[0x40];
     char unk79[0x40];
     HamProfile *mProfile; // 0xbc
-    int unkc0; // 0xc0 - level
-    float unkc4;
-    bool unkc8;
+    int mRankNumber; // 0xc0 - current level?
+    float mPctToNextRank; // 0xc4
+    bool mAtMaxRank; // 0xc8
     bool unkc9;
     bool unkca;
-    std::list<DeferredPoints> unkcc;
+    std::list<DeferredPoints> mDeferredPoints; // 0xcc
 };

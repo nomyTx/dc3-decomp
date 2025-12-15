@@ -40,33 +40,33 @@ MetagameRank::MetagameRank(HamProfile *p) : mProfile(p) {
 }
 
 BEGIN_HANDLERS(MetagameRank)
-    HANDLE_EXPR(get_score, unk34)
-    HANDLE_EXPR(get_rank_number, unkc0)
+    HANDLE_EXPR(get_score, mScore)
+    HANDLE_EXPR(get_rank_number, mRankNumber)
     HANDLE_EXPR(get_rank_in_tier, GetRankInTier())
     HANDLE_EXPR(get_tier, GetTier())
     HANDLE_EXPR(get_xp_of_rank, GetXPOfRank(_msg->Int(2)))
     HANDLE_EXPR(has_new_rank, HasNewRank())
-    HANDLE_EXPR(at_max_rank, unkc8)
-    HANDLE_EXPR(get_percent_to_next_rank, unkc4)
+    HANDLE_EXPR(at_max_rank, mAtMaxRank)
+    HANDLE_EXPR(get_percent_to_next_rank, mPctToNextRank)
     HANDLE_ACTION(award_points, AwardPointsForTask(_msg->Sym(2)))
-    HANDLE_EXPR(have_deferred_points, unkcc.size() > 0)
+    HANDLE_EXPR(have_deferred_points, mDeferredPoints.size() > 0)
     HANDLE(get_next_deferred_points, GetNextDeferredPoints)
 END_HANDLERS
 
 bool MetagameRank::HasNewRank() const {
-    if (!unkc8) {
-        return unkc4 == 1;
+    if (!mAtMaxRank) {
+        return mPctToNextRank == 1;
     } else {
         return unkc9;
     }
 }
 
 void MetagameRank::SaveFixed(FixedSizeSaveableStream &fs) const {
-    fs << unk34;
+    fs << mScore;
     bool b1 = unk38;
     if (!b1) {
         static Symbol play_first_time_disp("play_first_time_disp");
-        FOREACH (it, unkcc) {
+        FOREACH (it, mDeferredPoints) {
             if (it->unk4 == play_first_time_disp) {
                 b1 = true;
                 break;
@@ -74,14 +74,14 @@ void MetagameRank::SaveFixed(FixedSizeSaveableStream &fs) const {
         }
     }
     fs << b1;
-    fs << unkc8;
+    fs << mAtMaxRank;
     fs.Write(unk39, 0x40);
     fs.Write(unk79, 0x40);
     static Symbol combined_xp_disp("combined_xp_disp");
     int sum;
-    if (unkcc.size() != 0) {
+    if (mDeferredPoints.size() != 0) {
         sum = 0;
-        FOREACH (it, unkcc) {
+        FOREACH (it, mDeferredPoints) {
             sum += it->unk0;
         }
     } else {
@@ -93,12 +93,12 @@ void MetagameRank::SaveFixed(FixedSizeSaveableStream &fs) const {
 }
 
 void MetagameRank::LoadFixed(FixedSizeSaveableStream &fs, int i2) {
-    fs >> unk34;
+    fs >> mScore;
     if (i2 > 0x45) {
         fs >> unk38;
     }
     if (i2 > 0x4E) {
-        fs >> unkc8;
+        fs >> mAtMaxRank;
     }
     fs.Read(unk39, 0x40);
     if (unk38) {
@@ -121,7 +121,7 @@ void MetagameRank::LoadFixed(FixedSizeSaveableStream &fs, int i2) {
         LoadSymbolFromID(fs, pt.unk4);
         fs >> pt.unk0;
         if (pt.unk0 > 0) {
-            unkcc.push_back(pt);
+            mDeferredPoints.push_back(pt);
         }
     }
     ComputeRankNumber(true);
@@ -203,21 +203,21 @@ void MetagameRank::Init() {
 
 void MetagameRank::Clear() {
     unkca = false;
-    unk34 = 0;
+    mScore = 0;
     unk38 = true;
     memset(unk39, 0, 0x40);
     memset(unk79, 0, 0x40);
-    unkcc.clear();
-    unkc0 = 0;
-    unkc8 = false;
+    mDeferredPoints.clear();
+    mRankNumber = 0;
+    mAtMaxRank = false;
     unkc9 = false;
-    unkc4 = 0;
+    mPctToNextRank = 0;
     ComputeRankNumber(true);
 }
 
 Symbol MetagameRank::GetRankTitle() const {
     char buf[32];
-    sprintf(buf, "rank_%d", unkc0);
+    sprintf(buf, "rank_%d", mRankNumber);
     return buf;
 }
 
@@ -259,13 +259,13 @@ int MetagameRank::GetXPOfRank(int i) const {
 }
 
 DataNode MetagameRank::GetNextDeferredPoints(DataArray *a) {
-    if (unkcc.empty()) {
+    if (mDeferredPoints.empty()) {
         static Symbol xp_previous_points_msg("xp_previous_points_msg");
         return xp_previous_points_msg;
     } else {
-        DeferredPoints pt = unkcc.front();
-        unkcc.pop_front();
-        unk34 += pt.unk0;
+        DeferredPoints pt = mDeferredPoints.front();
+        mDeferredPoints.pop_front();
+        mScore += pt.unk0;
         ComputeRankNumber(false);
         unkca = true;
         DataArrayPtr ptr(pt.unk4, pt.unk0);
