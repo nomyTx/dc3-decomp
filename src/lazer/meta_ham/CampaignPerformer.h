@@ -82,6 +82,7 @@ public:
     bool SetEraToFirstIncomplete();
 
     Symbol GetTanBattleEra() { return "era_tan_battle"; }
+    Symbol Era() const { return mEra; }
 
     Playlist mIntroPlaylist; // 0x114
     Playlist mOutroPlaylist; // 0x12c

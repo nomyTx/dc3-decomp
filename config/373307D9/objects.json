@@ -71,7 +71,7 @@
             "lazer/meta_ham/ChooseModeProvider.cpp": "NonMatching",
             "lazer/meta_ham/ChooseProfilePanel.cpp": "MISSING",
             "lazer/meta_ham/ContentLoadingPanel.cpp": "NonMatching",
-            "lazer/meta_ham/ContextChecker.cpp": "MISSING",
+            "lazer/meta_ham/ContextChecker.cpp": "NonMatching",
             "lazer/meta_ham/CorrectIdentityPanel.cpp": "NonMatching",
             "lazer/meta_ham/CrewProvider.cpp": "NonMatching",
             "lazer/meta_ham/CursorPanel.cpp": "MISSING",
