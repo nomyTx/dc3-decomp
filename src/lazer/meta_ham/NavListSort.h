@@ -34,6 +34,12 @@ public:
     void DeleteTree();
     bool SetHighlightID(DataArray *);
 
+    NavListSortNode *GetUnk50() { return unk50; }
+    NavListSortNode *GetUnk54() { return unk54; }
+    void SetUnk54(NavListSortNode *sortnode) { unk54 = sortnode; }
+    Symbol GetSortName() { return mSortName; }
+    NavListSortNode * GetListFromIdx(int idx) { return mList[idx]; }
+
 protected:
     std::vector<NavListShortcutNode *> unk30;
     std::list<NavListSortNode *> unk3c;
