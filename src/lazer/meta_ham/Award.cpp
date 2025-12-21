@@ -1,4 +1,5 @@
 #include "lazer/meta_ham/Award.h"
+#include "meta_ham/AccomplishmentManager.h"
 #include "obj/Data.h"
 #include "os/Debug.h"
 #include "utl/MakeString.h"
@@ -6,49 +7,59 @@
 #include "utl/Symbol.h"
 
 Award::Award(DataArray *d, int i)
-    : unk4(""), unk8(i), unkc(false), unkd(false), unk18(gNullStr) {
+    : mName(""), unk8(i), mIsSecret(false), mIsSilent(false), mArt(gNullStr) {
     Configure(d);
 }
 
-Award::~Award() { unk10.clear(); }
+Award::~Award() { mAwardEntries.clear(); }
 
-char const *Award::GetArt() const {
-    return MakeString("ui/award/award_art/%s_keep.png", unk18.Str());
+const char *Award::GetArt() const {
+    return MakeString("ui/award/award_art/%s_keep.png", mArt.Str());
 }
 
 void Award::GrantAwards(class HamProfile *hp) {
-    FOREACH (it, unk10) {
+    FOREACH (it, mAwardEntries) {
         GrantAward(*it, hp);
     };
 }
 
 Symbol Award::GetDisplayName() const {
     static Symbol asset("asset");
-
-    return 0;
+    Symbol name = mName;
+    if (!mAwardEntries.empty()) {
+        if (mAwardEntries.size() == 1
+            && mAwardEntries.front().m_symAwardCategory == asset) {
+            name = mAwardEntries.front().m_symAward;
+        }
+    }
+    return name;
 }
 
 void Award::Configure(DataArray *i_pConfig) {
     MILO_ASSERT(i_pConfig, 0x21);
-    unk4 = i_pConfig->Sym(0);
+    mName = i_pConfig->Sym(0);
     static Symbol is_secret("is_secret");
-    i_pConfig->FindData(is_secret, unkc, false);
-
+    i_pConfig->FindData(is_secret, mIsSecret, false);
     static Symbol is_silent("is_silent");
-    i_pConfig->FindData(is_silent, unkd, false);
-
+    i_pConfig->FindData(is_silent, mIsSilent, false);
     static Symbol art("art");
-    i_pConfig->FindData(art, unk18, false);
-
+    i_pConfig->FindData(art, mArt, false);
     static Symbol asset("asset");
     static Symbol awards("awards");
     DataArray *pAwardArray = i_pConfig->FindArray(awards, false);
     if (pAwardArray) {
         MILO_ASSERT(pAwardArray->Size() > 1, 0x35);
         for (int i = 1; i < pAwardArray->Size(); i++) {
-            DataArray *pAwardEntryArray = pAwardArray->Array(i);
+            DataArray *pAwardEntryArray = pAwardArray->Node(i).Array();
             MILO_ASSERT(pAwardEntryArray, 0x3a);
             MILO_ASSERT(pAwardEntryArray->Size() == 2, 0x3b);
+            AwardEntry entry;
+            entry.m_symAwardCategory = pAwardEntryArray->Node(0).Sym();
+            entry.m_symAward = pAwardEntryArray->Node(1).Sym();
+            if (entry.m_symAwardCategory == asset) {
+                TheAccomplishmentMgr->AddAssetAward(entry.m_symAward, mName);
+            }
+            mAwardEntries.push_back(entry);
         }
     }
 }
@@ -56,9 +67,10 @@ void Award::Configure(DataArray *i_pConfig) {
 void Award::GrantAward(AwardEntry const &ae, HamProfile *i_pProfile) {
     MILO_ASSERT(i_pProfile, 0x74);
     static Symbol asset("asset");
-    if (ae.unk4 == asset) {
-        // i_pProfile->UnlockContent(ae.unk4);
+    Symbol award = ae.m_symAwardCategory;
+    if (award == asset) {
+        i_pProfile->UnlockContent(ae.m_symAward);
     } else {
-        MILO_NOTIFY("Award Category is not currently supported: %s ", ae.unk4);
+        MILO_NOTIFY("Award Category is not currently supported: %s ", award);
     }
 }

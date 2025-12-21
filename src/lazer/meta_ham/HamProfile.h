@@ -33,6 +33,7 @@ public:
     AccomplishmentProgress &AccessAccomplishmentProgress();
     void EarnAccomplishment(Symbol);
     void GetFitnessStats(float &, float &, float &);
+    void UnlockContent(Symbol);
 
 protected:
 };
