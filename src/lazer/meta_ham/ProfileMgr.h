@@ -33,7 +33,6 @@ public:
     HamProfile *GetFirstSavableProfile() const;
     float SliderIxToDb(int) const;
     bool GlobalOptionsNeedsSave();
-    bool GetAllUnlocked();
     bool UnlockAllSongs();
     void RelockSongs();
     int GetFxVolume() const;
@@ -112,6 +111,7 @@ public:
     bool GetDolby() const { return mDolby; }
     Symbol GetVenuePreference() const { return mVenuePreference; }
     bool NoFlashcards() const { return mNoFlashcards; }
+    bool GetAllUnlocked() { return mAllUnlocked; }
 
 private:
     void UpdateFriendsList();

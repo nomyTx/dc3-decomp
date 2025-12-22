@@ -1,4 +1,7 @@
 #include "meta_ham/HamProfile.h"
+#include "flow/PropertyEventProvider.h"
+#include "game/HamUser.h"
+#include "game/HamUserMgr.h"
 #include "hamobj/HamLabel.h"
 #include "meta/FixedSizeSaveable.h"
 #include "meta/FixedSizeSaveableStream.h"
@@ -6,26 +9,29 @@
 #include "meta_ham/HamSongMgr.h"
 #include "meta_ham/MetagameRank.h"
 #include "meta_ham/MoveRatingHistory.h"
+#include "meta_ham/ProfileMgr.h"
 #include "meta_ham/SongStatusMgr.h"
 #include "obj/Object.h"
 #include "os/OnlineID.h"
+#include "os/PlatformMgr.h"
 #include "utl/Std.h"
 #include "utl/Symbol.h"
 
 HamProfile::HamProfile(int i1)
-    : Profile(i1), unk34(this), unk2fc(0), unk2fd(0), unk300(130), unk304(0), unk308(0),
-      unk30c(0), unk310(0), unk314(0), unk318(new OnlineID()), unk31c(0), unk320(0),
-      unk324(0), unk328(0), unk32c(0), unk330(0), unk334(0), unk338(gNullStr), unk33c(0),
-      unk340(0), unk344(0), unk348(0), unk34c(0), unk350(0), unk354(0), unk358(0),
-      unk35c(0), unk360(0), unk364(0), unk368(0), unk36c(1), unk370(0), unk374(3) {
+    : Profile(i1), mAccProgress(this), unk2fc(0), mInFitnessMode(0), mFitnessPounds(130),
+      mIsFitnessWeightEntered(0), unk308(0), unk30c(0), unk310(0), unk314(0),
+      unk318(new OnlineID()), unk31c(0), unk320(0), unk324(0), mSkippedSongCount(0),
+      unk32c(0), unk330(0), unk334(0), unk338(gNullStr), mIsFitnessGoalSet(0), unk340(0),
+      unk344(0), unk348(0), unk34c(0), unk350(0), unk354(0), unk358(0), unk35c(0),
+      unk360(0), unk364(0), unk368(0), unk36c(1), unk370(0), unk374(3) {
     mSaveSizeMethod = SaveSize;
-    unk18 = new SongStatusMgr(&TheHamSongMgr);
-    unk208 = new MetagameStats();
-    unk20c = new MetagameRank(this);
+    mSongStatusMgr = new SongStatusMgr(&TheHamSongMgr);
+    mStats = new MetagameStats();
+    mRank = new MetagameRank(this);
     unk210 = new MoveRatingHistory();
-    unk158[0].SetProfile(this);
-    unk158[1].SetProfile(this);
-    unk158[2].SetProfile(this);
+    mCampaignProgress[0].SetProfile(this);
+    mCampaignProgress[1].SetProfile(this);
+    mCampaignProgress[2].SetProfile(this);
     ResetOutfitPrefs();
     static Symbol playlist_custom("playlist_custom");
     for (int i = 0; i < 5; i++) {
@@ -37,22 +43,22 @@ HamProfile::HamProfile(int i1)
 
 HamProfile::~HamProfile() {
     DeleteAll();
-    delete unk18;
-    delete unk208;
-    delete unk20c;
+    delete mSongStatusMgr;
+    delete mStats;
+    delete mRank;
     delete unk210;
 }
 
 void HamProfile::SaveFixed(FixedSizeSaveableStream &fs) const {
-    fs << *unk18;
+    fs << *mSongStatusMgr;
     FixedSizeSaveable::SaveStd(fs, unk1c, 100);
     FixedSizeSaveable::SaveStd(fs, unk28, 100);
-    fs << unk34;
-    fs << unk158[0];
-    fs << unk158[1];
-    fs << unk158[2];
-    fs << *unk208;
-    fs << *unk20c;
+    fs << mAccProgress;
+    fs << mCampaignProgress[0];
+    fs << mCampaignProgress[1];
+    fs << mCampaignProgress[2];
+    fs << *mStats;
+    fs << *mRank;
     fs << *unk210;
     int numPrefs = unk214.size();
     fs << numPrefs;
@@ -65,9 +71,9 @@ void HamProfile::SaveFixed(FixedSizeSaveableStream &fs) const {
         fs << unk220[i];
     }
     fs << unk314;
-    fs << unk2fd;
-    fs << unk300;
-    fs << unk304;
+    fs << mInFitnessMode;
+    fs << mFitnessPounds;
+    fs << mIsFitnessWeightEntered;
     fs << unk324;
     fs << unk340;
     fs << unk344;
@@ -83,22 +89,22 @@ void HamProfile::SaveFixed(FixedSizeSaveableStream &fs) const {
     fs << unk36c;
     fs << unk370;
     fs << unk374;
-    fs << unk33c;
+    fs << mIsFitnessGoalSet;
     fs << unk360;
     const_cast<HamProfile *>(this)->mDirty = false;
 }
 
 void HamProfile::LoadFixed(FixedSizeSaveableStream &fs, int i2) {
     DeleteAll();
-    fs >> *unk18;
+    fs >> *mSongStatusMgr;
     FixedSizeSaveable::LoadStd(fs, unk1c, 100);
     FixedSizeSaveable::LoadStd(fs, unk28, 100);
-    fs >> unk34;
-    fs >> unk158[0];
-    fs >> unk158[1];
-    fs >> unk158[2];
-    fs >> *unk208;
-    fs >> *unk20c;
+    fs >> mAccProgress;
+    fs >> mCampaignProgress[0];
+    fs >> mCampaignProgress[1];
+    fs >> mCampaignProgress[2];
+    fs >> *mStats;
+    fs >> *mRank;
     fs >> *unk210;
     int count;
     fs >> count;
@@ -112,9 +118,9 @@ void HamProfile::LoadFixed(FixedSizeSaveableStream &fs, int i2) {
         fs >> unk220[i];
     }
     fs >> unk314;
-    fs >> unk2fd;
-    fs >> unk300;
-    fs >> unk304;
+    fs >> mInFitnessMode;
+    fs >> mFitnessPounds;
+    fs >> mIsFitnessWeightEntered;
     fs >> unk324;
     fs >> unk340;
     fs >> unk344;
@@ -124,23 +130,23 @@ void HamProfile::LoadFixed(FixedSizeSaveableStream &fs, int i2) {
     fs >> unk354;
     fs >> unk358;
     fs >> unk35c;
-    unk328 = 0;
+    mSkippedSongCount = 0;
     fs >> unk32c;
     fs >> unk364;
     fs >> unk368;
     fs >> unk36c;
     fs >> unk370;
     fs >> unk374;
-    fs >> unk33c;
+    fs >> mIsFitnessGoalSet;
     fs >> unk360;
     mDirty = false;
     unk2fc = false;
 }
 
 BEGIN_HANDLERS(HamProfile)
-    HANDLE_EXPR(get_accomplishment_progress, &unk34)
-    HANDLE_EXPR(get_stats, unk208)
-    HANDLE_EXPR(get_rank, unk20c)
+    HANDLE_EXPR(get_accomplishment_progress, &mAccProgress)
+    HANDLE_EXPR(get_stats, mStats)
+    HANDLE_EXPR(get_rank, mRank)
     HANDLE_ACTION(mark_content_not_new, MarkContentNotNew(_msg->ForceSym(2)))
     HANDLE_EXPR(character_outfit, CharacterOutfit(_msg->Sym(2)))
     HANDLE_ACTION(set_character_outfit, SetCharacterOutfit(_msg->Sym(2), _msg->Sym(3)))
@@ -148,14 +154,14 @@ BEGIN_HANDLERS(HamProfile)
     HANDLE_EXPR(has_song_status, HasSongStatus(_msg->Sym(2)))
     HANDLE_ACTION(set_pad_num, mPadNum = _msg->Int(2))
     HANDLE_EXPR(get_pad_num, GetPadNum())
-    HANDLE_EXPR(in_fitness_mode, unk2fd)
-    HANDLE_EXPR(is_fitness_weight_entered, unk304)
+    HANDLE_EXPR(in_fitness_mode, mInFitnessMode)
+    HANDLE_EXPR(is_fitness_weight_entered, mIsFitnessWeightEntered)
     HANDLE_ACTION(set_fitness_pounds, SetFitnessPounds(_msg->Float(2)))
-    HANDLE_EXPR(get_fitness_pounds, unk300)
+    HANDLE_EXPR(get_fitness_pounds, mFitnessPounds)
     HANDLE_ACTION(
         set_fitness_stats, SetFitnessStats(_msg->Int(2), _msg->Float(3), _msg->Float(4))
     )
-    HANDLE_ACTION(toggle_fitness_mode, SetFitnessMode(!unk2fd))
+    HANDLE_ACTION(toggle_fitness_mode, SetFitnessMode(!mInFitnessMode))
     HANDLE_EXPR(get_fitness_time, (int)unk308)
     HANDLE_ACTION(update_fitness_time, UpdateFitnessTime(_msg->Obj<HamLabel>(2)))
     HANDLE_ACTION(
@@ -166,12 +172,12 @@ BEGIN_HANDLERS(HamProfile)
     HANDLE_ACTION(
         update_infinite_playlist_time, UpdateInfinitePlaylistTime(_msg->Obj<HamLabel>(2))
     )
-    HANDLE_EXPR(get_skipped_song_count, unk328)
+    HANDLE_EXPR(get_skipped_song_count, mSkippedSongCount)
     HANDLE_ACTION(increment_skipped_song_count, IncrementSkippedSongCount())
     HANDLE_EXPR(get_battle_won_count, GetBattleWonCount(_msg->Int(2)))
     HANDLE_EXPR(get_battle_lost_count, GetBattleLostCount(_msg->Int(2)))
     HANDLE_EXPR(get_won_last_battle, GetWonLastBattle(_msg->Int(2)))
-    HANDLE_EXPR(is_fitness_goal_set, unk33c)
+    HANDLE_EXPR(is_fitness_goal_set, mIsFitnessGoalSet)
     HANDLE_EXPR(is_fitness_days_goal_met, IsFitnessDaysGoalMet())
     HANDLE_EXPR(is_fitness_calories_goal_met, IsFitnessCaloriesGoalMet())
     HANDLE_ACTION(
@@ -207,11 +213,93 @@ BEGIN_HANDLERS(HamProfile)
     HANDLE_SUPERCLASS(Profile)
 END_HANDLERS
 
-bool HamProfile::IsFitnessDaysGoalMet() const { return unk33c && unk354 >= unk34c; }
-bool HamProfile::IsFitnessCaloriesGoalMet() const { return unk33c && unk358 >= unk350; }
+bool HamProfile::HasCheated() const { return TheProfileMgr.GetAllUnlocked(); }
+
+bool HamProfile::IsUnsaved() const {
+    if (HasCheated()) {
+        return false;
+    } else {
+    }
+}
+
+bool HamProfile::HasSomethingToUpload() {
+    ThePlatformMgr.IsSignedIntoLive(GetPadNum());
+    return false;
+}
+
+void HamProfile::DeleteAll() {
+    mAccProgress.Clear();
+    if (mSongStatusMgr) {
+        mSongStatusMgr->Clear();
+    }
+    if (unk210) {
+        unk210->Clear();
+    }
+    if (mStats) {
+        mStats->Clear();
+    }
+    if (mRank) {
+        mRank->Clear();
+    }
+    unk1c.clear();
+    unk28.clear();
+    mCampaignProgress[0].Clear();
+    mCampaignProgress[1].Clear();
+    mCampaignProgress[2].Clear();
+    ResetOutfitPrefs();
+    for (int i = 0; i < 5; i++) {
+        unk220[i].Clear();
+    }
+    mIsFitnessWeightEntered = false;
+    mInFitnessMode = false;
+    unk320 = 0;
+    mFitnessPounds = 130;
+    unk324 = 0;
+    unk308 = 0;
+    mIsFitnessGoalSet = false;
+    unk30c = 0;
+    unk340 = 0;
+    unk310 = 0;
+    unk344 = 0;
+    unk348 = 0;
+    unk34c = 0;
+    unk350 = 0;
+    unk354 = 0;
+    unk358 = 0;
+    unk35c = 0;
+    unk360 = false;
+    mSkippedSongCount = 0;
+    unk364 = 0;
+    unk368 = 0;
+    unk36c = true;
+    unk370 = 0;
+    unk374 = 3;
+    mDirty = true;
+}
+
+const AccomplishmentProgress &HamProfile::GetAccomplishmentProgress() const {
+    return mAccProgress;
+}
+AccomplishmentProgress &HamProfile::AccessAccomplishmentProgress() {
+    return mAccProgress;
+}
+const CampaignProgress &HamProfile::GetCampaignProgress(Difficulty d) const {
+    return mCampaignProgress[d];
+}
+CampaignProgress &HamProfile::AccessCampaignProgress(Difficulty d) {
+    return mCampaignProgress[d];
+}
+SongStatusMgr *HamProfile::GetSongStatusMgr() const { return mSongStatusMgr; }
+
+bool HamProfile::IsFitnessDaysGoalMet() const {
+    return mIsFitnessGoalSet && unk354 >= unk34c;
+}
+bool HamProfile::IsFitnessCaloriesGoalMet() const {
+    return mIsFitnessGoalSet && unk358 >= unk350;
+}
 
 void HamProfile::SendFitnessGoalToRC() {
-    if (unk33c) {
+    if (mIsFitnessGoalSet) {
         TheFitnessGoalMgr->OnSendFitnessGoalToRC(this);
     } else {
         TheFitnessGoalMgr->DeleteFitnessGoalFromRC(this);
@@ -220,3 +308,27 @@ void HamProfile::SendFitnessGoalToRC() {
 
 void HamProfile::CheckForNinjaUnlock() {}
 void HamProfile::CheckForIconManUnlock() {}
+
+bool HamProfile::HasSongStatus(Symbol shortname) const {
+    int songID = TheHamSongMgr.GetSongIDFromShortName(shortname, false);
+    if (songID != 0 && mSongStatusMgr && mSongStatusMgr->HasSongStatus(songID)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+HamUser *HamProfile::GetHamUser() const {
+    return TheHamUserMgr->GetUserFromPad(GetPadNum());
+}
+
+bool HamProfile::IsOkToUpdateProfile() {
+    int partyMode = TheHamProvider->Property("is_in_party_mode")->Int();
+    if (partyMode <= 0) {
+        int infinite = TheHamProvider->Property("is_in_infinite_party_mode")->Int();
+        if (infinite <= 0) {
+            return true;
+        }
+    }
+    return false;
+}

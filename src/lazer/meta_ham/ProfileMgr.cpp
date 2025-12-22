@@ -137,7 +137,6 @@ bool ProfileMgr::UnlockAllSongs() {
 }
 
 void ProfileMgr::RelockSongs() { mAllUnlocked = false; }
-bool ProfileMgr::GetAllUnlocked() { return mAllUnlocked; }
 
 bool ProfileMgr::GlobalOptionsNeedsSave() {
     if (mGlobalOptionsSaveState != kMetaProfileLoaded)

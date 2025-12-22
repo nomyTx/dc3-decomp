@@ -57,7 +57,7 @@ bool CampaignSongProvider::IsSongPlayed(Symbol song) const {
     CampaignPerformer *pPerformer =
         dynamic_cast<CampaignPerformer *>(MetaPerformer::Current());
     MILO_ASSERT(pPerformer, 0xe3);
-    CampaignProgress &pProgress =
+    const CampaignProgress &pProgress =
         pProfile->GetCampaignProgress(pPerformer->GetDifficulty());
     return pProgress.IsSongPlayed(pPerformer->Era(), song);
 }
@@ -108,7 +108,7 @@ void CampaignSongSelectPanel::Load() {
     mDifficulty = pPerformer->GetDifficulty();
     HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
     MILO_ASSERT(pProfile, 0x19f);
-    m_pCurCampaignProgress = &pProfile->GetCampaignProgress(mDifficulty);
+    m_pCurCampaignProgress = &pProfile->AccessCampaignProgress(mDifficulty);
     MILO_ASSERT(m_pCurCampaignProgress, 0x1a1);
     TexLoadPanel::Load();
 }

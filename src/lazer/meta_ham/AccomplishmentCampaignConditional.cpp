@@ -23,7 +23,7 @@ bool AccomplishmentCampaignConditional::IsFulfilled(HamProfile *profile) const {
         Symbol cur8 = curCond.unk8;
         int cur4 = curCond.unk4;
         Symbol curSym = curCond.unk0;
-        CampaignProgress &progress = profile->GetCampaignProgress(curDiff);
+        const CampaignProgress &progress = profile->GetCampaignProgress(curDiff);
         if (curSym == crewsong) {
             if (progress.IsDanceCrazeSongAvailable(cur8))
                 return true;

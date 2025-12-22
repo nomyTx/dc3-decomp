@@ -10,17 +10,14 @@
 #include "meta_ham/MoveRatingHistory.h"
 #include "meta_ham/Playlist.h"
 #include "meta_ham/SongStatusMgr.h"
-#include "obj/Msg.h"
 #include "os/OnlineID.h"
+#include "utl/JobMgr.h"
 
 struct CharacterPref {
     Symbol unk0;
     Symbol unk4;
     int unk8;
 };
-
-DECLARE_MESSAGE(SingleItemEnumCompleteMsg, "single_item_enum_complete")
-END_MESSAGE
 
 class HamProfile : public Profile {
 public:
@@ -42,7 +39,8 @@ public:
     void SetFitnessMode(bool);
     HamUser *GetHamUser() const;
     SongStatusMgr *GetSongStatusMgr() const;
-    CampaignProgress &GetCampaignProgress(Difficulty) const;
+    const CampaignProgress &GetCampaignProgress(Difficulty) const;
+    CampaignProgress &AccessCampaignProgress(Difficulty);
     const AccomplishmentProgress &GetAccomplishmentProgress() const;
     AccomplishmentProgress &AccessAccomplishmentProgress();
     void EarnAccomplishment(Symbol);
@@ -79,7 +77,9 @@ public:
     void ResetNags();
     bool IsFitnessDaysGoalMet() const;
     bool IsFitnessCaloriesGoalMet() const;
-    void IncrementSkippedSongCount() { unk328++; }
+    bool IsOkToUpdateProfile();
+
+    void IncrementSkippedSongCount() { mSkippedSongCount++; }
     void UpdateNag() { unk368++; }
 
 private:
@@ -92,20 +92,20 @@ private:
 
     DataNode OnMsg(const SingleItemEnumCompleteMsg &);
 
-    SongStatusMgr *unk18; // 0x18
-    std::vector<Symbol> unk1c;
-    std::vector<Symbol> unk28;
-    AccomplishmentProgress unk34;
-    CampaignProgress unk158[4];
-    MetagameStats *unk208;
-    MetagameRank *unk20c;
-    MoveRatingHistory *unk210;
-    std::vector<CharacterPref> unk214;
-    CustomPlaylist unk220[5];
+    SongStatusMgr *mSongStatusMgr; // 0x18
+    std::vector<Symbol> unk1c; // 0x1c
+    std::vector<Symbol> unk28; // 0x28
+    AccomplishmentProgress mAccProgress; // 0x34
+    CampaignProgress mCampaignProgress[kNumDifficulties]; // 0x158
+    MetagameStats *mStats; // 0x208
+    MetagameRank *mRank; // 0x20c
+    MoveRatingHistory *unk210; // 0x210
+    std::vector<CharacterPref> unk214; // 0x214
+    CustomPlaylist unk220[5]; // 0x220
     bool unk2fc;
-    bool unk2fd;
-    float unk300;
-    bool unk304;
+    bool mInFitnessMode; // 0x2fd
+    float mFitnessPounds; // 0x300
+    bool mIsFitnessWeightEntered; // 0x304
     float unk308;
     float unk30c;
     float unk310;
@@ -114,12 +114,12 @@ private:
     bool unk31c;
     int unk320;
     int unk324;
-    int unk328;
+    int mSkippedSongCount; // 0x328
     int unk32c;
     int unk330;
     bool unk334;
     Symbol unk338;
-    bool unk33c;
+    bool mIsFitnessGoalSet; // 0x33c
     int unk340;
     int unk344;
     int unk348;

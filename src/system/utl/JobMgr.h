@@ -31,3 +31,8 @@ public:
 private:
     void CancelAllJobs();
 };
+
+#include "obj/Msg.h"
+
+DECLARE_MESSAGE(SingleItemEnumCompleteMsg, "single_item_enum_complete")
+END_MESSAGE
