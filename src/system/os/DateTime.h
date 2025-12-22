@@ -21,12 +21,12 @@ struct DateTime {
     DateTime() { memset(&mSec, 0, 6); }
     DateTime(unsigned int);
     DateTime(
-        unsigned short,
-        unsigned char,
-        unsigned char,
-        unsigned char,
-        unsigned char,
-        unsigned char
+        unsigned short year,
+        unsigned char month,
+        unsigned char day,
+        unsigned char hr,
+        unsigned char min,
+        unsigned char sec
     );
     void GetDateAndTime(DateTime &);
     unsigned int ToCode() const;

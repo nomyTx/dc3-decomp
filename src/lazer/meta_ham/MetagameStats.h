@@ -14,6 +14,9 @@ public:
         std::map<int, int> mCounts;
     };
     enum CountStatID {
+        // 0xD - num calories burnt?
+        // 0x15 - num flaunts?
+        // 0x16 - num challenges met?
         kNumCountStats = 0x17
     };
     enum FavoriteStatID {

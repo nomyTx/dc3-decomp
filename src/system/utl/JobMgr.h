@@ -1,6 +1,7 @@
 #pragma once
-
 #include "obj/Object.h"
+#include "utl/MemMgr.h"
+#include "xdk/xapilibi/xbase.h"
 
 class Job {
 public:
@@ -13,6 +14,9 @@ public:
 
     int ID() const { return mID; }
 
+    MEM_OVERLOAD(Job, 0x11);
+
+private:
     int mID;
 };
 
@@ -30,6 +34,26 @@ public:
 
 private:
     void CancelAllJobs();
+};
+
+class SingleItemEnumJob : public Job {
+public:
+    SingleItemEnumJob(Hmx::Object *, int, u64);
+    virtual ~SingleItemEnumJob();
+    virtual void Start();
+    virtual bool IsFinished();
+    virtual void Cancel(Hmx::Object *);
+    virtual void OnCompletion(Hmx::Object *);
+
+protected:
+    Hmx::Object *unk8;
+    int unkc;
+    u64 unk10;
+    int unk18;
+    bool unk1c;
+    int unk20;
+    int unk24;
+    XOVERLAPPED unk28;
 };
 
 #include "obj/Msg.h"

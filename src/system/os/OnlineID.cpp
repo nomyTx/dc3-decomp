@@ -4,9 +4,9 @@
 
 OnlineID::OnlineID() : mValid(false) {}
 void OnlineID::Clear() { mValid = false; }
-OnlineID::OnlineID(const unsigned long long &id) : mXUID(id), mValid(true) {}
+OnlineID::OnlineID(const XUID &id) : mXUID(id), mValid(true) {}
 
-void OnlineID::SetXUID(const unsigned long long &id) {
+void OnlineID::SetXUID(const XUID &id) {
     mValid = true;
     mXUID = id;
 }
@@ -17,7 +17,7 @@ void OnlineID::SetPlayerName(const char *player_name) {
     mPlayerName = player_name;
 }
 
-u64 OnlineID::GetXUID() const {
+XUID OnlineID::GetXUID() const {
     MILO_ASSERT(mValid, 0x6C);
     return mXUID;
 }
