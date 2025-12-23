@@ -1,11 +1,10 @@
 #pragma once
 #include "net/json-c/json_object.h"
-#include "net/json-c/json_object_private.h"
-#include "stl/_vector.h"
 #include "types.h"
 #include "utl/Str.h"
 
 class JsonObject {
+public:
     enum EType { // From RB3
         kType_Null = 0,
         kType_Boolean = 1,
@@ -16,43 +15,47 @@ class JsonObject {
         kType_String = 6
     };
 
-public:
-    JsonObject();
-    ~JsonObject();
-    JsonObject::EType GetType() const;
+    JsonObject() : mObject(nullptr) {}
+    virtual ~JsonObject() { Release(); }
+
+    lh_table *Get() const { return json_object_get_object(mObject); }
+    void Set(json_object *o) { mObject = o; }
+    void AddRef() { json_object_get(mObject); }
+    void Release() { json_object_put(mObject); }
+
+    EType GetType() const;
     char const *Str() const;
     bool Bool() const;
     int Int() const;
 
-    friend class JsonConverter;
-
-    u32 unk0;
-    json_object *mObject;
+protected:
+    json_object *mObject; // 0x4
 };
 
-class JsonArray {
-public:
-    int GetSize() const;
-
-    json_object *unk4;
-
+class JsonArray : public JsonObject {
     friend class JsonConverter;
 
 private:
-    virtual ~JsonArray();
     JsonArray();
+    virtual ~JsonArray();
+
+    json_object *operator[](int idx) { return json_object_array_get_idx(mObject, idx); }
+
+public:
+    int GetSize() const;
 };
 
 class JsonConverter : public JsonArray {
 public:
+    JsonConverter();
     virtual ~JsonConverter();
 
-    JsonConverter();
     JsonObject *LoadFromString(String const &);
     JsonObject *GetValue(JsonArray *, int);
-    char const *Str(JsonArray *, int);
+    const char *Str(JsonArray *, int);
     JsonObject *GetByName(JsonObject *, char const *);
     void PushObject(JsonObject *);
 
-    std::vector<JsonObject *> objects;
+private:
+    std::vector<JsonObject *> mObjects; // 0x8
 };

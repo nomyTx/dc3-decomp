@@ -2,19 +2,17 @@
 #include "json-c/json_object_private.h"
 #include "net/json-c/json_object.h"
 #include "net/json-c/json_tokener.h"
+#include "net/json-c/linkhash.h"
 #include "net/json-c/printbuf.h"
 #include "os/Debug.h"
 
 #pragma region JsonObject
 
-JsonObject::JsonObject() {}
-
-JsonObject::~JsonObject() {}
-
 JsonObject::EType JsonObject::GetType() const {
-    if (mObject != nullptr)
+    if (mObject)
         return (JsonObject::EType)json_object_get_type(mObject);
-    return kType_Null;
+    else
+        return kType_Null;
 }
 
 char const *JsonObject::Str() const {
@@ -35,16 +33,15 @@ int JsonObject::Int() const {
 #pragma endregion JsonObject
 #pragma region JsonArray
 
-JsonArray::JsonArray() : unk4() { unk4 = json_object_new_array(); }
+JsonArray::JsonArray() { mObject = json_object_new_array(); }
 
 JsonArray::~JsonArray() {
-    for (int i = 0; i < json_object_array_length(unk4); i++) {
-        // json_object_array_entry_free(json_object_array_get_idx(unk4, i));
+    for (int i = json_object_array_length(mObject) - 1; i >= 0; i--) {
+        json_object_put(json_object_array_get_idx(mObject, i));
     }
-    // json_object_array_entry_free(unk4);
 }
 
-int JsonArray::GetSize() const { return json_object_array_length(unk4); }
+int JsonArray::GetSize() const { return json_object_array_length(mObject); }
 
 #pragma endregion JsonArray
 #pragma region JsonConverter
@@ -52,38 +49,69 @@ int JsonArray::GetSize() const { return json_object_array_length(unk4); }
 JsonConverter::JsonConverter() {}
 
 JsonConverter::~JsonConverter() {
-    if (!objects.empty()) {
-        int count = objects.size() - 1;
-        while (count >= 0) {
-            JsonObject *o = objects[count];
-            delete o;
-            count--;
+    if (mObjects.size() > 0) {
+        for (int i = mObjects.size() - 1; i >= 0; i--) {
+            mObjects[i]->Release();
+            delete mObjects[i];
         }
     }
 }
 
-JsonObject *JsonConverter::LoadFromString(String const &str) { return 0; }
+JsonObject *JsonConverter::LoadFromString(const String &str) {
+    printbuf *buf = printbuf_new();
+    if (!buf) {
+        return nullptr;
+    } else {
+        printbuf_memappend(buf, str.c_str(), str.length());
+        json_object *obj = json_tokener_parse(buf->buf);
+        if ((int)obj > 0xfffff060) { // ???
+            printbuf_free(buf);
+            return nullptr;
+        } else {
+            JsonObject *jObj = new JsonObject();
+            jObj->Set(obj);
+            printbuf_free(buf);
+            jObj->AddRef();
+            mObjects.push_back(jObj);
+            return jObj;
+        }
+    }
+}
 
 JsonObject *JsonConverter::GetValue(JsonArray *inArray, int inIdx) {
     MILO_ASSERT(0 <= inIdx && inIdx <= inArray->GetSize(), 0x10a);
     JsonObject *obj = new JsonObject();
-    obj->mObject = json_object_array_get_idx(inArray->unk4, inIdx);
-    json_object_get(obj->mObject);
+    obj->Set((*inArray)[inIdx]);
+    obj->AddRef();
     PushObject(obj);
     return obj;
 }
 
-char const *JsonConverter::Str(JsonArray *j, int i) { return GetValue(j, i)->Str(); }
+const char *JsonConverter::Str(JsonArray *j, int i) { return GetValue(j, i)->Str(); }
 
-JsonObject *JsonConverter::GetByName(JsonObject *j, char const *i) {
-    if (j->GetType() == JsonObject::kType_Object) {
+JsonObject *JsonConverter::GetByName(JsonObject *j, const char *cc) {
+    if (j->GetType() != JsonObject::kType_Object) {
+        return nullptr;
+    } else {
+        lh_table *lh = j->Get();
+        const void *v = lh_table_lookup(lh, cc);
+        if (v) {
+            json_object *obj = (json_object *)v;
+            json_object_get(obj);
+            JsonObject *jObj = new JsonObject();
+            jObj->Set(obj);
+            jObj->AddRef();
+            mObjects.push_back(jObj);
+            return jObj;
+        } else {
+            return nullptr;
+        }
     }
-    return nullptr;
 }
 
 void JsonConverter::PushObject(JsonObject *obj) {
-    json_object_get(obj->mObject);
-    objects.push_back(obj);
+    obj->AddRef();
+    mObjects.push_back(obj);
 }
 
 #pragma endregion JsonConverter
