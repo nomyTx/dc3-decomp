@@ -1,5 +1,6 @@
 #ifndef __CURL_EASY_H
 #define __CURL_EASY_H
+#include "curl.h"
 /***************************************************************************
  *                                  _   _ ____  _
  *  Project                     ___| | | |  _ \| |
@@ -25,10 +26,10 @@
 extern "C" {
 #endif
 
-// CURL_EXTERN CURL *curl_easy_init(void);
-// CURL_EXTERN CURLcode curl_easy_setopt(CURL *curl, CURLoption option, ...);
-// CURL_EXTERN CURLcode curl_easy_perform(CURL *curl);
-// CURL_EXTERN void curl_easy_cleanup(CURL *curl);
+CURL_EXTERN CURL *curl_easy_init(void);
+CURL_EXTERN CURLcode curl_easy_setopt(CURL *curl, CURLoption option, ...);
+CURL_EXTERN CURLcode curl_easy_perform(CURL *curl);
+CURL_EXTERN void curl_easy_cleanup(CURL *curl);
 
 /*
  * NAME curl_easy_getinfo()
@@ -43,7 +44,7 @@ extern "C" {
  * performed transfer, all results from this function are undefined until the
  * transfer is completed.
  */
-// CURL_EXTERN CURLcode curl_easy_getinfo(CURL *curl, CURLINFO info, ...);
+CURL_EXTERN CURLcode curl_easy_getinfo(CURL *curl, CURLINFO info, ...);
 
 /*
  * NAME curl_easy_duphandle()

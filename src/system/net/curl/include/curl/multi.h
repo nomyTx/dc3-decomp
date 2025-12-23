@@ -96,7 +96,7 @@ typedef struct CURLMsg CURLMsg;
  *
  * Returns: a new CURLM handle to use in all 'curl_multi' functions.
  */
-// CURL_EXTERN CURLM *curl_multi_init(void);
+CURL_EXTERN CURLM *curl_multi_init(void);
 
 /*
  * Name:    curl_multi_add_handle()
@@ -105,7 +105,7 @@ typedef struct CURLMsg CURLMsg;
  *
  * Returns: CURLMcode type, general multi error code.
  */
-// CURL_EXTERN CURLMcode curl_multi_add_handle(CURLM *multi_handle, CURL *curl_handle);
+CURL_EXTERN CURLMcode curl_multi_add_handle(CURLM *multi_handle, CURL *curl_handle);
 
 /*
  * Name:    curl_multi_remove_handle()
@@ -149,7 +149,7 @@ typedef struct CURLMsg CURLMsg;
  *          still have occurred problems on invidual transfers even when this
  *          returns OK.
  */
-// CURL_EXTERN CURLMcode curl_multi_perform(CURLM *multi_handle, int *running_handles);
+CURL_EXTERN CURLMcode curl_multi_perform(CURLM *multi_handle, int *running_handles);
 
 /*
  * Name:    curl_multi_cleanup()
@@ -161,7 +161,7 @@ typedef struct CURLMsg CURLMsg;
  *
  * Returns: CURLMcode type, general multi error code.
  */
-// CURL_EXTERN CURLMcode curl_multi_cleanup(CURLM *multi_handle);
+CURL_EXTERN CURLMcode curl_multi_cleanup(CURLM *multi_handle);
 
 /*
  * Name:    curl_multi_info_read()
@@ -191,7 +191,7 @@ typedef struct CURLMsg CURLMsg;
  *          queue (after this read) in the integer the second argument points
  *          to.
  */
-// CURL_EXTERN CURLMsg *curl_multi_info_read(CURLM *multi_handle, int *msgs_in_queue);
+CURL_EXTERN CURLMsg *curl_multi_info_read(CURLM *multi_handle, int *msgs_in_queue);
 
 /*
  * Name:    curl_multi_strerror()

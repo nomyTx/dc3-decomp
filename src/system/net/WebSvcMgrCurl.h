@@ -1,10 +1,12 @@
 #pragma once
 #include "WebSvcReq.h"
+#include "curl/multi.h"
 #include "net/HttpReq.h"
 #include "net/WebSvcMgr.h"
 
 class WebSvcMgrCurl : public WebSvcMgr {
 public:
+    WebSvcMgrCurl() : mCurlMultiHandle(0) {}
     virtual ~WebSvcMgrCurl();
     virtual void Init();
     virtual void Poll();
@@ -12,18 +14,17 @@ public:
         ReqType,
         unsigned int,
         unsigned short,
-        char const *,
-        char const *,
+        const char *,
+        const char *,
         unsigned int,
-        char const *,
+        const char *,
         unsigned int
     );
     virtual bool InitRequest(
-        WebSvcRequest *, ReqType, unsigned int, unsigned short, char const *, unsigned int
+        WebSvcRequest *, ReqType, const char *, unsigned short, const char *, unsigned int
     );
-
     virtual bool InitRequest(
-        WebSvcRequest *, ReqType, char const *, unsigned short, char const *, unsigned int
+        WebSvcRequest *, ReqType, unsigned int, unsigned short, const char *, unsigned int
     );
 
     void InitCurl();
@@ -34,13 +35,17 @@ private:
     bool InitRequest(
         WebSvcRequest *,
         ReqType,
-        char const *,
+        const char *,
         unsigned int,
         unsigned short,
-        char const *,
+        const char *,
         unsigned int
     );
 
 protected:
     virtual void Start(WebSvcRequest *);
+
+    CURLM *mCurlMultiHandle; // 0x4c
 };
+
+extern WebSvcMgrCurl gWebSvcMgr;

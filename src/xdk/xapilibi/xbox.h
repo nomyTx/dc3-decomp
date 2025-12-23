@@ -2,6 +2,7 @@
 #include "../win_types.h"
 #include "minwinbase.h"
 #include "wtypesbase.h"
+#include "winsockx.h"
 #include "xinput.h"
 #include "xbase.h"
 
@@ -106,6 +107,14 @@ DWORD XUserAwardGamerPicture(
 DWORD XUserAwardAvatarAssets(
     DWORD dwNumAssets, const XUSER_AVATARASSET *pAssets, XOVERLAPPED *pOverlapped
 );
+
+DWORD XTitleServerCreateEnumerator(
+    LPCSTR pszServerInfo, DWORD cItem, DWORD *pcbBuffer, HANDLE *hEnum
+);
+
+DWORD XNetGetConnectStatus(const in_addr ina);
+INT XNetUnregisterInAddr(const in_addr ina);
+INT XNetConnect(const in_addr ina);
 
 #ifdef __cplusplus
 }

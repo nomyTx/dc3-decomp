@@ -23,10 +23,10 @@ public:
     ) = 0;
     virtual void OnReqFinished(WebSvcRequest *);
     virtual bool InitRequest(
-        WebSvcRequest *, ReqType, unsigned int, unsigned short, const char *, unsigned int
+        WebSvcRequest *, ReqType, const char *, unsigned short, const char *, unsigned int
     ) = 0;
     virtual bool InitRequest(
-        WebSvcRequest *, ReqType, const char *, unsigned short, const char *, unsigned int
+        WebSvcRequest *, ReqType, unsigned int, unsigned short, const char *, unsigned int
     ) = 0;
     virtual int NumRequestsStarted();
     virtual int NumRequests();

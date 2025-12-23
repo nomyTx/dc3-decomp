@@ -1,4 +1,5 @@
 #pragma once
+#include "curl/curl.h"
 #include "net/HttpReq.h"
 #include "utl/Str.h"
 
@@ -19,13 +20,13 @@ public:
     virtual void SetSSLVerifyHost(unsigned short);
 
 private:
-    int unk50;
-    int mReq; // 0x54
-    int unk58;
-    unsigned int unk5c;
-    String unk60;
-    String unk68;
-    unsigned short unk70;
-    unsigned short unk72;
-    int unk74;
+    curl_slist *mHeaders; // 0x50
+    CURL *mReq; // 0x54
+    char *mBuffer; // 0x58 - file the output should be written to
+    unsigned int mBufferLength; // 0x5c
+    String mSSLCertPath; // 0x60
+    String mSSLCertName; // 0x68
+    unsigned short mSSLVerifyPeer; // 0x70
+    unsigned short mSSLVerifyHost; // 0x72
+    unsigned int mTimeout; // 0x74
 };

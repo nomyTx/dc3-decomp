@@ -2,6 +2,7 @@
 #include "os/ThreadCall.h"
 #include "os/Timer.h"
 #include "utl/Str.h"
+#include "xdk/xapilibi/winsockx.h"
 
 class XLSPConnection : public ThreadCallback {
 public:
@@ -18,14 +19,23 @@ public:
     void Connect(const char *, unsigned int);
     void Disconnect();
 
+    static std::map<unsigned long, int> mXLSPRefCountMap;
+    static bool SecureDisconnect(in_addr);
+    static int StartGatewayConnection(in_addr);
+
 private:
+    void SetState(State);
+    void StartEnumeration();
+
+    static const int kTitleServerEnumMaxCount;
+
     State unk4;
     int unk8;
     String unkc;
     unsigned int unk14;
-    int unk18;
-    int unk1c;
-    int unk20;
+    HANDLE unk18;
+    void *unk1c;
+    DWORD unk20;
     int unk24;
     XOVERLAPPED mXOverlapped; // 0x28
     int unk44;

@@ -464,7 +464,7 @@
             "system/net/WebSvcMgr.cpp": "NonMatching",
             "system/net/WebSvcMgrCurl.cpp": "NonMatching",
             "system/net/WebSvcReq.cpp": "NonMatching",
-            "system/net/XLSPConnection.cpp": "MISSING",
+            "system/net/XLSPConnection.cpp": "NonMatching",
             "system/net/json-c/arraylist.c": "NonMatching",
             "system/net/json-c/json_object.c": "NonMatching",
             "system/net/json-c/json_tokener.c": "NonMatching",
