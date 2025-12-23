@@ -11,45 +11,86 @@
 
 class DingoServer : public Hmx::Object {
 public:
-    virtual DataNode Handle(DataArray *, bool);
-    virtual void Logout();
-    virtual void Init();
-    virtual void ManageJob(DingoJob *);
-
+    enum AuthState {
+        kServerAuthed = 4
+    };
     DingoServer();
+    virtual ~DingoServer() {}
+    virtual DataNode Handle(DataArray *, bool);
+    virtual void Init();
+    virtual void Terminate() {}
+    virtual void CreateAccount() = 0;
+    virtual bool Authenticate(int) = 0;
+    virtual void Logout();
+    virtual void Disconnect() {}
+    virtual void Poll() {}
+    virtual void ManageJob(DingoJob *);
+    virtual bool IsAuthenticated() { return mAuthState == kServerAuthed && unk74 != -1; }
+    virtual bool IsAuthenticating() { return mAuthState == 3; }
+    virtual const char *GetPlatform() = 0;
+    virtual const char *GetHostName() const { return mHostName.c_str(); }
+    virtual unsigned int GetIPAddr() { return mIPAddr; }
+    virtual unsigned int GetPort() const { return mPort; }
+
+    // SSL vfunc positions are tentative
+    virtual const char *GetSSLCertPath() { return ""; }
+    virtual const char *GetSSLCertName() { return ""; }
+    virtual unsigned short GetSSLVerifyPeer() { return 0; }
+    virtual unsigned short GetSSLVerifyHost() { return 0; }
+    virtual bool GetSSLEnable() const { return false; }
+
+    virtual void SetLBView(unsigned int) {}
+    virtual void SetLBScoreProperty(unsigned int) {}
+    virtual void SetLoginName(const char *) {}
+    virtual void SetLoginPassword(const char *) {}
+    virtual const char *GetLoginName() { return nullptr; }
+    virtual bool HasValidLoginCandidate() const { return true; }
+    virtual bool IsValidLoginCandidate(int) const { return true; }
+    virtual void MakeSessionJobComplete(bool) {}
+    virtual void JoinSessionComplete(bool) {}
+    virtual void StartSessionComplete(bool) {}
+    virtual void WriteCareerLeaderboardComplete(bool) {}
+    virtual void LeaveSessionComplete(bool) {}
+    virtual void EndSessionComplete(bool) {}
+    virtual void DeleteSessionComplete(bool) {}
+    virtual void StartUploadCareerScore(u64) {}
+
     void DelayJob(DingoJob *);
     void CancelDelayedCalls();
     void AddDelayedCalls();
 
+private:
+    bool SendAuthenticateMsg(char const *, DataPoint &, Hmx::Object *);
+
+protected:
+    virtual void FillAuthParams(DataPoint &);
+    virtual bool FillAuthParamsFromPadNum(DataPoint &, int) { return false; }
+    virtual void OnAuthSuccess() {}
+    virtual void DoAdditionalLogin();
+
+    DataNode OnMsg(const SigninChangedMsg &);
+    DataNode OnMsg(const ConnectionStatusChangedMsg &);
+    DataNode OnMsg(const DingoJobCompleteMsg &);
+
+    bool InitAndAddJob(DingoJob *, bool, bool);
+    bool Authenticate(int, char const *);
+
     int mAuthState; // 0x2c
-    String unk30;
-    u32 unk38;
-    int unk3c;
+    String mHostName; // 0x30
+    unsigned int mIPAddr; // 0x38
+    unsigned int mPort; // 0x3c
     String unk40;
     String mAuthUrl; // 0x48
     String unk50;
-    String unk58;
-    String unk60;
+    String mRegion; // 0x58
+    String mLanguage; // 0x60
     String unk68;
     int unk70;
     int unk74;
     bool unk78[4];
     OnlineID unk80;
-    std::vector<DingoJob *> unk98;
-    std::vector<DingoJob *> unka4;
-
-protected:
-    virtual void FillAuthParams(DataPoint &);
-    virtual void DoAdditionalLogin();
-
-    DataNode OnMsg(SigninChangedMsg const &);
-    DataNode OnMsg(ConnectionStatusChangedMsg const &);
-    DataNode OnMsg(DingoJobCompleteMsg const &);
-    bool InitAndAddJob(DingoJob *, bool, bool);
-    bool Authenticate(int, char const *);
-
-private:
-    bool SendAuthenticateMsg(char const *, DataPoint &, Hmx::Object *);
+    std::vector<String> unk98; // 0x98 - urls?
+    std::vector<DingoJob *> mDelayedJobs; // 0xa4
 };
 
 extern DingoServer &TheServer;

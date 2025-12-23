@@ -1,68 +1,114 @@
 #include "net/DingoSvr.h"
 #include "DingoJob.h"
 #include "WebSvcReq.h"
+#include "meta/ConnectionStatusPanel.h"
 #include "obj/Data.h"
+#include "obj/Dir.h"
 #include "obj/Object.h"
 #include "os/Debug.h"
 #include "os/PlatformMgr.h"
+#include "os/System.h"
 #include "utl/DataPointMgr.h"
 #include "utl/Std.h"
 #include "utl/Symbol.h"
+#include <cstring>
 
-DingoServer::DingoServer() : mAuthState(0), unk3c(0), unk70(-1), unk74(-1) {
-    for (int i = 0; i < sizeof(unk78); i++) {
+DingoServer::DingoServer() : mAuthState(0), mPort(0), unk70(-1), unk74(-1) {
+    for (int i = 0; i < DIM(unk78); i++) {
         unk78[i] = false;
     }
+}
+
+BEGIN_HANDLERS(DingoServer)
+    HANDLE_MESSAGE(SigninChangedMsg)
+    HANDLE_MESSAGE(ConnectionStatusChangedMsg)
+    HANDLE_EXPR(is_authed, IsAuthenticated())
+    HANDLE_SUPERCLASS(Hmx::Object)
+END_HANDLERS
+
+void DingoServer::Init() {
+    SetName("server", ObjectDir::Main());
+    mRegion = PlatformRegionToSymbol(ThePlatformMgr.GetRegion());
+    ThePlatformMgr.AddSink(this, SigninChangedMsg::Type());
+    ThePlatformMgr.AddSink(this, ConnectionStatusChangedMsg::Type());
+    mLanguage = SystemLanguage();
 }
 
 void DingoServer::Logout() {
     unk40 = "";
     mAuthState = 0;
     unk74 = -1;
-    for (int i = 0; i < sizeof(unk78); i++) {
+    for (int i = 0; i < DIM(unk78); i++) {
         unk78[i] = false;
     }
     unk80.Clear();
 }
 
-void DingoServer::Init() {}
-
-void DingoServer::ManageJob(DingoJob *job) { MILO_ASSERT(job, 0xd0); }
-
-void DingoServer::DelayJob(DingoJob *job) { unka4.push_back(job); }
-
-void DingoServer::CancelDelayedCalls() {
-    FOREACH (it, unka4) {
+void DingoServer::ManageJob(DingoJob *job) {
+    MILO_ASSERT(job, 0xd0);
+    bool b5 = false;
+    FOREACH (it, unk98) {
+        String cur(*it);
+        if (strncmp(job->GetBaseURL(), cur.c_str(), cur.length()) == 0) {
+            b5 = true;
+            break;
+        }
+    }
+    bool u7 = true;
+    bool c4 = true;
+    bool b8 = false;
+    if (!b5) {
+        if (!IsAuthenticated()) {
+            MILO_NOTIFY("ManageJob without authentication.");
+            if (ThePlatformMgr.IsConnected()) {
+                c4 = TheServer.Authenticate(unk74);
+                b8 = true;
+            } else {
+                c4 = false;
+            }
+            if (c4 && !job->GetHttpReq()) {
+                u7 = !InitAndAddJob(job, false, b8);
+            }
+        }
+        if (u7) {
+            job->SendCallback(false, false);
+            delete job;
+        }
     }
 }
 
-void DingoServer::AddDelayedCalls() {}
-
 void DingoServer::FillAuthParams(DataPoint &point) {
     static Symbol locale("locale");
-    point.AddPair(locale, unk58.c_str());
+    point.AddPair(locale, mRegion.c_str());
     static Symbol language("language");
-    point.AddPair(language, unk60.c_str());
+    point.AddPair(language, mLanguage.c_str());
 }
 
 void DingoServer::DoAdditionalLogin() {
     MILO_ASSERT(mAuthUrl.length() > 0, 0xa9);
-    // MILO_ASSERT(mAuthState == kServerAuthed, line);
+    MILO_ASSERT(mAuthState == kServerAuthed, 0xAA);
+    if (mAuthState == kServerAuthed) {
+        if (mAuthUrl.length() != 0) {
+            for (int i = 0; i < 4; i++) {
+                if (!unk78[i]) {
+                    DataPoint pt;
+                    if (FillAuthParamsFromPadNum(pt, i)
+                        && SendAuthenticateMsg(mAuthUrl.c_str(), pt, nullptr)) {
+                        unk78[i] = true;
+                    }
+                }
+            }
+        }
+    }
 }
 
-DataNode DingoServer::OnMsg(SigninChangedMsg const &) { return NULL_OBJ; }
+void DingoServer::DelayJob(DingoJob *job) { mDelayedJobs.push_back(job); }
 
-DataNode DingoServer::OnMsg(ConnectionStatusChangedMsg const &) { return NULL_OBJ; }
-
-DataNode DingoServer::OnMsg(DingoJobCompleteMsg const &) { return NULL_OBJ; }
-
-bool DingoServer::InitAndAddJob(DingoJob *, bool, bool) { return false; }
-
-bool DingoServer::Authenticate(int, char const *) { return false; }
-
-bool DingoServer::SendAuthenticateMsg(char const *, DataPoint &, Hmx::Object *) {
-    return false;
+void DingoServer::CancelDelayedCalls() {
+    FOREACH (it, mDelayedJobs) {
+        DingoJob *cur = *it;
+        cur->Cancel(true);
+        delete cur;
+    }
+    mDelayedJobs.clear();
 }
-
-BEGIN_HANDLERS(DingoServer)
-END_HANDLERS

@@ -38,6 +38,8 @@ public:
     bool StateZero() const { return unk54 == 0; } // rename once context known
     bool StateOne() const { return unk54 == 1; }
     void UpdateIP(unsigned int ip) { SetIPAddr(ip); }
+    const char *GetBaseURL() const { return mBaseUrl.c_str(); }
+    HttpReq *GetHttpReq() const { return mHttpReq; }
 
 protected:
     virtual void CleanUp(bool);
