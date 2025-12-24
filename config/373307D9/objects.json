@@ -170,8 +170,8 @@
             "lazer/net_ham/MotdJobs.cpp": "MISSING",
             "lazer/net_ham/PartyModeJobs.cpp": "MISSING",
             "lazer/net_ham/PlaylistJobs.cpp": "MISSING",
-            "lazer/net_ham/RCJobDingo.cpp": "MISSING",
-            "lazer/net_ham/RockCentral.cpp": "MISSING",
+            "lazer/net_ham/RCJobDingo.cpp": "NonMatching",
+            "lazer/net_ham/RockCentral.cpp": "NonMatching",
             "lazer/net_ham/ScoreJobs.cpp": "MISSING",
             "lazer/net_ham/TokenJobs.cpp": "MISSING",
             "lazer/net_ham/WebLinkJobs.cpp": "MISSING"

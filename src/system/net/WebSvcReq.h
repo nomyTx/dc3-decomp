@@ -37,6 +37,7 @@ public:
     bool IsDeleteReady() const { return unk54 == 4; }
     bool StateZero() const { return unk54 == 0; } // rename once context known
     bool StateOne() const { return unk54 == 1; }
+    bool IsFinished() const { return unk54 == 2; }
     void UpdateIP(unsigned int ip) { SetIPAddr(ip); }
     const char *GetBaseURL() const { return mBaseUrl.c_str(); }
     HttpReq *GetHttpReq() const { return mHttpReq; }

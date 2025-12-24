@@ -2,7 +2,7 @@
 #include "NavListSortMgr.h"
 #include "meta/SongPreview.h"
 #include "meta_ham/Playlist.h"
-#include "net_ham/RockCentral.h"
+#include "net_ham/RCJobDingo.h"
 #include "obj/Data.h"
 #include "stl/_vector.h"
 #include "utl/Str.h"
