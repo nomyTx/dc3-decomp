@@ -7,20 +7,22 @@
 class HttpGet {
 public:
     enum State {
+        kHttpGet_Nil = -1,
     };
 
-    HttpGet(unsigned int, unsigned short, const char *, const char *);
-    HttpGet(unsigned int, unsigned short, const char *, unsigned char, const char *);
+    HttpGet(unsigned int ip, unsigned short port, const char *, const char *);
+    HttpGet(
+        unsigned int ip, unsigned short port, const char *, unsigned char, const char *
+    );
     virtual ~HttpGet();
-    virtual void SetContent(const char *) {}
-    virtual void SetContentLength(unsigned int) {}
+    virtual void SetContent(const char *content) {}
+    virtual void SetContentLength(unsigned int len) {}
 
     bool IsDownloaded();
     bool HasFailed();
     char *DetachBuffer();
     void Send();
     void Poll();
-    void SetTimeout(float);
     unsigned int GetBufferSize();
 
     MEM_OVERLOAD(HttpGet, 0x1C);
@@ -48,12 +50,12 @@ protected:
 
     NetworkSocket *mSocket; // 0x8
     String unkc; // 0xc
-    unsigned short unk14; // 0x14
-    int unk18;
+    unsigned short mPort; // 0x14
+    int mState; // 0x18
     bool unk1c;
     Timer unk20;
-    float unk50;
-    unsigned int unk54;
+    float mTimeoutMs; // 0x50
+    unsigned int mIP; // 0x54
     String unk58;
     void *unk60;
     int mRecvBufPos; // 0x64

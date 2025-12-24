@@ -40,6 +40,7 @@ public:
     void ForceLogout();
     bool IsOnline();
     void ManageJob(RCJob *);
+    void CancelOutstandingCalls(Hmx::Object *);
 
     DataNode OnMsg(const ServerStatusChangedMsg &);
     DataNode OnMsg(const ConnectionStatusChangedMsg &);

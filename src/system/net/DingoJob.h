@@ -44,5 +44,5 @@ private:
 };
 
 DECLARE_MESSAGE(DingoJobCompleteMsg, "dingo_job_complete")
-DingoJobCompleteMsg(DingoJob *dj, bool b) : Message(Type(), dj, b) {}
+DingoJobCompleteMsg(DingoJob *job, bool success) : Message(Type(), job, success) {}
 END_MESSAGE

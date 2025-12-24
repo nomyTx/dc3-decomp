@@ -42,11 +42,11 @@ void DingoJob::SendCallback(bool b1, bool b2) {
             b1 = false;
         }
     }
-    if (unk34) {
+    if (mCallback) {
         static DingoJobCompleteMsg msg(this, false);
         msg[0] = this;
         msg[1] = b1;
-        unk34->Handle(msg, true);
+        mCallback->Handle(msg, true);
         if (!b1) {
             if (!b2) {
                 DataPoint pt("dingo_job_failed");
