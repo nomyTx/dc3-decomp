@@ -4,19 +4,19 @@
 
 class GetMotdJob : public RCJob {
 public:
-    GetMotdJob(Hmx::Object *);
+    GetMotdJob(Hmx::Object *callback);
     void GetMotdData(
-        unsigned int &,
-        int &,
-        bool &,
-        int &,
-        std::vector<String> &,
-        String &,
-        String &,
-        String &,
-        String &,
-        String &,
-        String &,
-        String &
+        unsigned int &challengeInterval,
+        int &lastNewSongDt,
+        bool &motdXPFlag,
+        int &motdFreq,
+        std::vector<String> &toasts,
+        String &motd,
+        String &motdImage,
+        String &motdSound,
+        String &motdAux,
+        String &motdImageAux,
+        String &motdSoundAux,
+        String &motdMiscImage
     );
 };

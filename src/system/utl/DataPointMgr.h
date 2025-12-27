@@ -15,6 +15,7 @@ public:
     void AddPair(const char *, DataNode);
     void AddPair(Symbol, DataNode);
     void ToJSON(String &) const;
+    const char *Type() const { return mType.Str(); }
 };
 
 typedef void DataPointRecordFunc(DataPoint &);

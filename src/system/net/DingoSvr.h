@@ -115,4 +115,5 @@ enum ServerStatusResult {
 
 DECLARE_MESSAGE(ServerStatusChangedMsg, "server_status_changed")
 ServerStatusChangedMsg(ServerStatusResult r) : Message(Type(), r) {}
+ServerStatusResult Result() const { return (ServerStatusResult)mData->Int(2); }
 END_MESSAGE

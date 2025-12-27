@@ -14,4 +14,6 @@ protected:
 
 DECLARE_MESSAGE(RCJobCompleteMsg, "rc_job_complete")
 RCJobCompleteMsg(RCJob *job, bool success) : Message(Type(), job, success) {}
+RCJob *Job() const { return mData->Obj<RCJob>(2); }
+bool Success() const { return mData->Int(3); }
 END_MESSAGE

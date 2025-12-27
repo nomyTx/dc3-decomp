@@ -96,6 +96,7 @@ unsigned long long __strtoull(
 int atoi(const char *str);
 long atol(const char *str);
 long long atoll(const char *str);
+char *itoa(int value, char *str, int base);
 
 long strtol(const char *str, char **str_end, int base);
 long long strtoll(const char *str, char **str_end, int base);

@@ -21,6 +21,7 @@ namespace std {
     using ::atof;
     using ::atoi;
     using ::atol;
+    using ::itoa;
     using ::strtod;
     using ::strtof;
     using ::strtol;

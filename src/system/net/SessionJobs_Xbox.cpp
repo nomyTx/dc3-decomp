@@ -3,7 +3,7 @@
 #include "obj/Object.h"
 #include "xdk/win_types.h"
 #include "xdk/XAPILIB.h"
-#include "xdk/xapilibi/xbox.h"
+#include "xdk/XNET.h"
 
 XboxSessionJob::XboxSessionJob(void *v) : mSession(v), mSuccess(true) {
     memset(&mXOverlapped, 0, sizeof(XOVERLAPPED));

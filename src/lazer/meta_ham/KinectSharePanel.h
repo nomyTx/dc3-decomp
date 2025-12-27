@@ -6,7 +6,6 @@
 #include "ui/UIPanel.h"
 #include "xdk/XAPILIB.h"
 #include "xdk/XSOCIAL.h"
-#include "xdk/xsocial/xsocial.h"
 
 class KinectSharePanel : public UIPanel {
 public:

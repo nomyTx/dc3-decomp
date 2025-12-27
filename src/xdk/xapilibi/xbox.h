@@ -154,6 +154,10 @@ DWORD XUserGetName(DWORD dwUserIndex, LPSTR szUserName, DWORD cchUserName);
 
 DWORD XShowTokenRedemptionUI(DWORD dwUserIndex);
 
+// TODO: needs to be moved to XNET
+DWORD XNetGetTitleXnAddr(XNADDR *pxna);
+INT XNetXnAddrToMachineId(const XNADDR *pxnaddr, ULONGLONG *pqwMachineId);
+
 #ifdef __cplusplus
 }
 #endif

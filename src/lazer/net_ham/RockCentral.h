@@ -1,11 +1,15 @@
 #pragma once
 #include "meta/ConnectionStatusPanel.h"
 #include "net/DingoSvr.h"
+#include "net_ham/KinectShare.h"
+#include "net_ham/MotdJobs.h"
 #include "net_ham/RCJobDingo.h"
 #include "obj/Data.h"
 #include "obj/Msg.h"
 #include "obj/Object.h"
 #include "os/Timer.h"
+#include "rndobj/Bitmap.h"
+#include "rndobj/Tex.h"
 #include "utl/HxGuid.h"
 #include "utl/Str.h"
 
@@ -41,12 +45,16 @@ public:
     bool IsOnline();
     void ManageJob(RCJob *);
     void CancelOutstandingCalls(Hmx::Object *);
+    void SetMiscArtBitMap(RndBitmap &);
+    void DeleteMiscArt();
 
     DataNode OnMsg(const ServerStatusChangedMsg &);
     DataNode OnMsg(const ConnectionStatusChangedMsg &);
     DataNode OnMsg(const TmsDownloadedMsg &);
     DataNode OnMsg(const RCJobCompleteMsg &);
     DataNode OnMsg(const UserLoginMsg &);
+
+    bool IsLoginBlocked() const { return mLoginBlocked; }
 
 private:
     static const String kServerVer;
@@ -60,8 +68,8 @@ protected:
     Timer unk48;
     float unk78;
     float unk7c;
-    int unk80;
-    int unk84;
+    GetMotdJob *mMOTDJob; // 0x80
+    unsigned int unk84;
     int unk88;
     bool unk8c;
     int unk90;
@@ -73,14 +81,13 @@ protected:
     String unkc0;
     String unkc8;
     String unkd0;
-    int unkd8;
+    RndTex *mMiscArt; // 0xd8
     bool mLoginBlocked; // 0xdc
     bool unkdd;
     HxGuid unke0;
-    int unkf0, unkf4, unkf8, unkfc;
-    int unk100, unk104, unk108, unk10c;
-    int unk110, unk114, unk118, unk11c;
-    int unk120; // 0x120 - KinectShareConnection*
+    XNADDR mXNetAddr; // 0xf0
+    ULONGLONG mMachineID; // 0x118
+    KinectShareConnection *mKinectShareConnection; // 0x120
     int unk124;
     int unk128;
     int unk12c;
