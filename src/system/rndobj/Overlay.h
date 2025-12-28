@@ -37,7 +37,7 @@ public:
     static void Terminate();
     static void TogglePosition();
     static void DrawAll(bool);
-    static RndOverlay *Find(Symbol, bool);
+    static RndOverlay *Find(Symbol name, bool fail = true);
 
 private:
     RndOverlay(const DataArray *);

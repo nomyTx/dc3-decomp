@@ -1,10 +1,9 @@
 #pragma once
-
 #include "os/Timer.h"
 
 class Profiler {
 public:
-    Profiler(char const *, int);
+    Profiler(const char *, int);
     void Start();
     void Stop();
 

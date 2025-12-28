@@ -24,7 +24,7 @@
             "lazer/game/BustAMovePanel.cpp": "NonMatching",
             "lazer/game/Game.cpp": "NonMatching",
             "lazer/game/GameMode.cpp": "NonMatching",
-            "lazer/game/GamePanel.cpp": "MISSING",
+            "lazer/game/GamePanel.cpp": "NonMatching",
             "lazer/game/HamUser.cpp": "NonMatching",
             "lazer/game/HamUserMgr.cpp": "NonMatching",
             "lazer/game/LiveInput.cpp": "NonMatching",

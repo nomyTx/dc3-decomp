@@ -8,13 +8,16 @@
 #include "meta_ham/Overshell.h"
 #include "obj/Data.h"
 #include "obj/Object.h"
-#include "stl/_vector.h"
+#include "obj/Msg.h"
 #include "utl/SongInfoCopy.h"
 #include "utl/SongPos.h"
 #include "utl/Symbol.h"
 
 enum EndGameResult {
 };
+
+DECLARE_MESSAGE(EndGameMsg, "end_game")
+END_MESSAGE
 
 class Game : public Hmx::Object, public SkeletonCallback {
 public:
