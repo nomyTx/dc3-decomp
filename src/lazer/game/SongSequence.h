@@ -8,23 +8,30 @@
 
 class SongSequence : public RndPollable {
 public:
+    // size 0x3c
     struct Entry {
-        int unk0;
-        int unk4;
-        int unk8;
-        int unkc;
-        int unk10;
-        int unk14;
-        int unk18;
-        int unk1c;
-        int unk20;
+        Symbol unk0;
+        Symbol unk4;
+        Symbol unk8;
+        float unkc;
+        float unk10;
+        Symbol unk14;
+        float unk18;
+        float unk1c;
+        bool unk20;
+        bool unk21;
         Symbol unk24;
+        Symbol unk28;
+        Symbol unk2c;
+        Symbol unk30;
+        int unk34;
+        int unk38;
     };
 
+    SongSequence();
     virtual ~SongSequence();
     virtual DataNode Handle(DataArray *, bool);
 
-    SongSequence();
     bool Done() const;
     void LoadNextSongAudio();
     Symbol GetIntroCamShot() const;
@@ -33,17 +40,17 @@ public:
     void Clear();
     bool DoNext(bool, bool);
     void Init();
-    void Add(DataArray const *);
+    void Add(const DataArray *);
 
 protected:
-    std::vector<Entry> unk8;
+    std::vector<Entry> mEntries; // 0x8
     int mCurrentIndex; // 0x14
     float unk18;
     float unk1c;
     u32 unk20;
-    u32 unk24;
-    u32 unk28;
-    FileCache *unk2c;
+    float unk24;
+    bool unk28;
+    FileCache *mFileCache; // 0x2c
 };
 
 extern SongSequence TheSongSequence;

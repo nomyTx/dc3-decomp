@@ -10,8 +10,9 @@ public:
 
     MEM_OVERLOAD(Shuttle, 0x12);
 
-    float unk0;
-    float unk4;
-    bool unk8;
-    int unkc;
+private:
+    float mMs; // 0x0
+    float mEndMs; // 0x4
+    bool mActive; // 0x8
+    int mController; // 0xc
 };
