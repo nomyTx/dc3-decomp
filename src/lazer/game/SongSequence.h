@@ -20,10 +20,10 @@ public:
         float unk1c;
         bool unk20;
         bool unk21;
-        Symbol unk24;
-        Symbol unk28;
-        Symbol unk2c;
-        Symbol unk30;
+        Symbol mIntroCamShot; // 0x24
+        Symbol mOutroCamShot; // 0x28
+        Symbol unk2c; // 0x2c - crew1?
+        Symbol unk30; // 0x30 - crew2?
         int unk34;
         int unk38;
     };

@@ -73,8 +73,8 @@ void SongSequence::Add(const DataArray *a) {
         entry.unk1c = aSize > 9 ? a->Float(9) : -1;
         entry.unk20 = aSize > 10 ? a->Int(10) : false;
         entry.unk21 = aSize > 11 ? a->Int(11) : entry.unk20;
-        entry.unk24 = aSize > 12 ? a->Sym(12) : "";
-        entry.unk28 = aSize > 13 ? a->Sym(13) : "";
+        entry.mIntroCamShot = aSize > 12 ? a->Sym(12) : "";
+        entry.mOutroCamShot = aSize > 13 ? a->Sym(13) : "";
         entry.unk2c = aSize > 14 ? a->Sym(14) : "";
         entry.unk30 = aSize > 15 ? a->Sym(15) : "";
         entry.unk34 = entry.unk38 = 0;
@@ -96,7 +96,7 @@ Symbol SongSequence::GetIntroCamShot() const {
     if (Done()) {
         return "";
     } else {
-        return mEntries[mCurrentIndex].unk24;
+        return mEntries[mCurrentIndex].mIntroCamShot;
     }
 }
 
@@ -104,7 +104,7 @@ Symbol SongSequence::GetOutroCamShot() const {
     if (Done()) {
         return "";
     } else {
-        return mEntries[mCurrentIndex].unk28;
+        return mEntries[mCurrentIndex].mOutroCamShot;
     }
 }
 

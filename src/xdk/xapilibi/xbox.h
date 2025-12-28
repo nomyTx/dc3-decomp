@@ -122,6 +122,13 @@ DWORD XUserAwardAvatarAssets(
 );
 DWORD XUserGetName(DWORD dwUserIndex, LPSTR szUserName, DWORD cchUserName);
 DWORD XShowTokenRedemptionUI(DWORD dwUserIndex);
+DWORD XUserAreUsersFriends(
+    DWORD dxUserIndex,
+    XUID *pXuids,
+    DWORD dwXuidCount,
+    BOOL *pfResult,
+    XOVERLAPPED *pOverlapped
+);
 
 #ifdef __cplusplus
 }
