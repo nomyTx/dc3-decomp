@@ -30,6 +30,16 @@ END_PROPSYNCS
 
 void BustAMovePanel::QueueMovePromptVO() { float vo_length = GetMovePromptVOLength(); }
 
+void BustAMovePanel::PlayMovePromptVO() {
+    int i = unk_0xA0;
+    Symbol vo;
+
+    DataArray *movedata = GetMoveNameData(unk_0x84);
+
+    vo = movedata->Sym(i + 2);
+    PlayVO(vo);
+}
+
 void BustAMovePanel::PlayIntroVO() {}
 
 void BustAMovePanel::Poll() {
