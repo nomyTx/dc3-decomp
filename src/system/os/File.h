@@ -131,7 +131,7 @@ int FileDelete(const char *iFilename);
  */
 int FileMkDir(const char *iDirname);
 
-void FileDiscSpinUp();
+bool FileDiscSpinUp();
 
 /** Normalize the path of a given file.
     (i.e. change '\'s to '/'s and make every letter lowercase.)

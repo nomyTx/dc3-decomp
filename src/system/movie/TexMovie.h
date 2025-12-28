@@ -42,6 +42,7 @@ public:
 
     void SetVolume(float vol) { mMovie.SetVolume(vol); }
     void AddFader(Fader *f) { mMovie.Faders()->Add(f); }
+    bool IsOpen() const { return mMovie.IsOpen(); }
 
 protected:
     ObjOwnerPtr<RndTex> mTex; // 0x48 ObjOwnerPtr | 0x54, RndTex

@@ -20,6 +20,7 @@ SongPos SongDB::CalcSongPos(HxMaster *hx, float f) {
     return mSongData->CalcSongPos(hx, f);
 }
 void SongDB::PostLoad(DataEventList *list) { ParseEvents(list); }
+float SongDB::GetSongDurationMs() const { return mSongDurationMs; }
 
 void SongDB::ParseEvents(DataEventList *list) {
     mSongDurationMs = 0.0f;

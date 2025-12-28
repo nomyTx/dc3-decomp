@@ -440,6 +440,10 @@ void HamProfile::SetFitnessPounds(float lbs) {
     }
 }
 
+// per GamePanel::UpdateFitnessOverlay:
+// float 1: total time
+// float 2: total calories
+// float 3: calories for this song
 void HamProfile::GetFitnessStats(float &time, float &calories, float &f3) {
     time = mFitnessTime;
     calories = mFitnessCalories;

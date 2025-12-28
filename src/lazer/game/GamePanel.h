@@ -9,6 +9,11 @@
 
 class GamePanel : public UIPanel {
 public:
+    enum State {
+        kGameInIntro = 1,
+        kGamePlaying = 2,
+        kGameOver = 3,
+    };
     GamePanel();
     // Hmx::Object
     virtual ~GamePanel();
@@ -18,44 +23,54 @@ public:
     virtual bool SyncProperty(DataNode &, DataArray *, int, PropOp);
     virtual void SetTypeDef(DataArray *);
     // UIPanel
-    virtual void Load();
     virtual void Enter();
     virtual void Exit();
     virtual void Poll();
     virtual void SetPaused(bool);
-    virtual bool IsLoaded() const;
-    virtual void Unload();
-    virtual void PollForLoading();
     virtual void FinishLoad();
 
     void SetGameOver(bool);
     bool IsPastStreamJumpPointOfNoReturn();
     void ResetLimbFeedback();
     void SetLimbFeedbackVisible(bool);
+    FitnessFilter *GetFitnessFilter(int);
+    void ResetJitter();
 
     DataNode OnGetFitnessData(const DataArray *);
 
 private:
+    void CreateGame();
     void StartGame();
     void SetPausedHelper(bool, bool);
     void CheatPause(bool);
+    void Reset();
+    void UpdateFitnessOverlay();
+    void StartIntro();
+    void SetSoundEventReceiver();
+    void UpdateNowBar();
 
     DataNode OnStartLoadSong(DataArray *);
     DataNode OnStartSongNow(DataArray *);
-    DataNode OnMsg(const EndGameMsg &);
 
 protected:
+    virtual void Load();
+    virtual bool IsLoaded() const;
+    virtual void Unload();
+    virtual void PollForLoading();
+
     void ClearDrawGlitch();
     void ReloadData();
 
-    int unk38; // 0x38
+    DataNode OnMsg(const EndGameMsg &);
+
+    Game *mGame; // 0x38
     FitnessFilter mFitnessFilters[2]; // 0x3c
-    RndOverlay *unk6c; // 0x6c
-    RndOverlay *unk70; // 0x70
-    RndOverlay *unk74; // 0x74
-    RndOverlay *unk78; // 0x78
+    RndOverlay *mTimeOverlay; // 0x6c
+    RndOverlay *mLatencyOverlay; // 0x70
+    RndOverlay *mFitnessOverlay; // 0x74
+    RndOverlay *mLoopVizOverlay; // 0x78
     bool unk7c;
-    int unk80;
+    State mState; // 0x80
     int unk84;
     Profiler unk88;
     bool unkd8;
@@ -73,3 +88,18 @@ protected:
 };
 
 extern GamePanel *TheGamePanel;
+
+class LatencyCallback : public RndOverlay::Callback {
+public:
+    virtual ~LatencyCallback() {}
+    virtual float UpdateOverlay(RndOverlay *o, float y);
+};
+
+class LoopVizCallback : public RndOverlay::Callback {
+public:
+    LoopVizCallback();
+    virtual ~LoopVizCallback() {}
+    virtual float UpdateOverlay(RndOverlay *o, float y);
+
+private:
+};

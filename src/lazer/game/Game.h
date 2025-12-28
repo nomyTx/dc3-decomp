@@ -12,12 +12,7 @@
 #include "utl/SongInfoCopy.h"
 #include "utl/SongPos.h"
 #include "utl/Symbol.h"
-
-enum EndGameResult {
-};
-
-DECLARE_MESSAGE(EndGameMsg, "end_game")
-END_MESSAGE
+#include "meta_ham/MetaPerformer.h"
 
 class Game : public Hmx::Object, public SkeletonCallback {
 public:
@@ -28,7 +23,10 @@ public:
     virtual bool SyncProperty(DataNode &, DataArray *, int, PropOp);
 
     // SkeletonCallback
+    virtual void Clear() {}
+    virtual void Update(const struct SkeletonUpdateData &) {}
     virtual void PostUpdate(const SkeletonUpdateData *);
+    virtual void Draw(const BaseSkeleton &, class SkeletonViz &) {}
 
     void Start();
     bool HasIntro();
@@ -56,6 +54,7 @@ public:
     void LoadNewSongMoves(Symbol, bool);
     void SetGamePaused(bool, bool, bool);
     void LoadNewSong(Symbol, Symbol);
+    void StartIntro();
 
 private:
     void PostWaitStart();

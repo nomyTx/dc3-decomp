@@ -56,6 +56,8 @@ public:
     bool IsMoggReady() const;
     SynthSample *Sample();
 
+    void SetSoundEventReceiver(Hmx::Object *rcvr) { unkb8 = rcvr; }
+
     OBJ_MEM_OVERLOAD(0x16)
     NEW_OBJ(Sound)
 

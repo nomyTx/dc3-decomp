@@ -232,3 +232,5 @@ void GameTerminate() {
     TheHamSongMgr.Terminate();
     GameModeTerminate();
 }
+
+void Game::StartIntro() {}

@@ -15,6 +15,8 @@
 #include "utl/Symbol.h"
 #include "utl/UTF8.h"
 
+PresenceMgr ThePresenceMgr;
+
 void PresenceMgr::Init() {
     static Symbol presence_mgr("presence_mgr");
     DataArray *presenceArray = SystemConfig()->FindArray(presence_mgr, false);

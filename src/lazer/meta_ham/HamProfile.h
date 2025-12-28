@@ -114,6 +114,8 @@ public:
     MetagameStats *GetMetagameStats() const { return mStats; }
     OnlineID *GetOnlineID() { return mOnlineID; }
     bool IsSignedIn() const { return mSignedIn; }
+    float FitnessTime() const { return mFitnessTime; }
+    float FitnessCalories() const { return mFitnessCalories; }
 
 private:
     // FixedSizeSaveable

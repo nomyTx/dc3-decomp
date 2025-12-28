@@ -14,6 +14,8 @@ public:
     SongPos CalcSongPos(HxMaster *, float);
     void PostLoad(DataEventList *);
 
+    float GetSongDurationMs() const;
+
     HamSongData *SongData() const { return mSongData; }
     MEM_OVERLOAD(SongDB, 0x1c);
 

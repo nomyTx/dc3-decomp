@@ -17,6 +17,14 @@
 enum PlayerFlag {
 };
 
+enum EndGameResult {
+};
+
+DECLARE_MESSAGE(EndGameMsg, "end_game")
+EndGameMsg(EndGameResult r) : Message(Type(), r) {}
+EndGameResult Result() const { return (EndGameResult)mData->Int(2); }
+END_MESSAGE
+
 class MetaPerformer : public virtual Hmx::Object {
 public:
     MetaPerformer(const HamSongMgr &, const char *);
@@ -104,6 +112,7 @@ public:
     void SetDefaultSongCharacter(int);
     void SetupCharacters();
     void SetPlaylist(Playlist *);
+    void HandleGameplayEnded(const EndGameResult &);
 
     bool HasPlaylist() const { return mPlaylist; }
     Playlist *GetPlaylist() { return mPlaylist; }

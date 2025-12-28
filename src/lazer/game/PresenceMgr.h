@@ -1,9 +1,9 @@
 #pragma once
-
 #include "obj/Data.h"
 #include "obj/Msg.h"
 #include "obj/Object.h"
 #include "utl/Symbol.h"
+
 class PresenceMgr : public Hmx::Object {
 public:
     virtual DataNode Handle(DataArray *, bool);
@@ -28,6 +28,8 @@ protected:
     int mSongID; // 0x3c
     bool mInGame; // 0x40
 };
+
+extern PresenceMgr ThePresenceMgr;
 
 DECLARE_MESSAGE(CurrentScreenChangedMsg, "current_screen_changed")
 END_MESSAGE
