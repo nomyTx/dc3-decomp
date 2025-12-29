@@ -23,20 +23,20 @@ void PresenceMgr::Init() {
     if (presenceArray) {
         static Symbol presence_modes("presence_modes");
         DataArray *presenceModesArray = presenceArray->FindArray(presence_modes, false);
-        unk2c = presenceModesArray;
+        mPresenceModes = presenceModesArray;
         if (presenceModesArray) {
             static Symbol presence_mode_contexts("presence_mode_contexts");
             DataArray *presenceModeContextArray =
                 presenceArray->FindArray(presence_mode_contexts);
-            unk30 = presenceModeContextArray;
+            mPresenceModeContexts = presenceModeContextArray;
             static Symbol instrument_play_mode_contexts("instrument_play_mode_contexts");
             DataArray *instrumentPlayModeContextsArray =
                 presenceArray->FindArray(instrument_play_mode_contexts);
-            unk34 = instrumentPlayModeContextsArray;
+            mInstrumentPlayModeContexts = instrumentPlayModeContextsArray;
         }
     }
 
-    if (unk2c) {
+    if (mPresenceModes) {
         static Symbol signin_changed("signin_changed");
         ThePlatformMgr.AddSink(this, signin_changed);
         TheHamUI.AddSink(this, CurrentScreenChangedMsg::Type());
@@ -55,7 +55,7 @@ void PresenceMgr::Init() {
 }
 
 void PresenceMgr::UpdatePresence() {
-    if (unk2c) {
+    if (mPresenceModes) {
         Symbol presenceMode = GetPresenceMode();
         for (int i = 0; i < 4; i++) {
             if (ThePlatformMgr.IsSignedIn(i)) {
@@ -76,11 +76,11 @@ void PresenceMgr::UpdatePresence() {
 }
 
 int PresenceMgr::GetPlayModeContext() {
-    if (!unk2c)
+    if (!mPresenceModes)
         return -1;
     else {
-        static Symbol Default("default");
-        DataArray *defaultArray = unk34->FindArray(Default);
+        static Symbol defaultSym("default");
+        DataArray *defaultArray = mInstrumentPlayModeContexts->FindArray(defaultSym);
         static Symbol learn("learn");
         static Symbol multiplayer("multiplayer");
         static Symbol party("party");
@@ -93,14 +93,23 @@ int PresenceMgr::GetPlayModeContext() {
         static Symbol is_in_infinite_party_mode("is_in_infinite_party_mode");
         static Symbol is_in_party_mode("is_in_party_mode");
         static Symbol perform("perform");
-        if (!TheGameMode->InMode(practice, true)) {
-            const DataNode *isInPartyNode =
-                TheHamDirector->Property(is_in_party_mode, true);
-            if (isInPartyNode->Int() == 0) {
-                const DataNode *isInInfPartyNode =
-                    TheHamDirector->Property(is_in_infinite_party_mode, true);
-            }
+        Symbol tag;
+        if (TheGameMode->InMode(practice, true)) {
+            tag = learn;
+        } else if (TheHamProvider->Property(is_in_party_mode)->Int()) {
+            tag = throwdown;
+        } else if (TheHamProvider->Property(is_in_infinite_party_mode)->Int()) {
+            tag = party;
+        } else if (TheGameMode->InMode(dance_battle, true)) {
+            tag = multiplayer;
+        } else if (TheGameMode->InMode(challenge, true)) {
+            tag = challenge;
+        } else if (TheGameMode->InMode(perform, true)) {
+            tag = play;
+        } else {
+            tag = none;
         }
+        return defaultArray->FindInt(tag);
     }
 }
 
@@ -110,7 +119,7 @@ DataNode PresenceMgr::OnPlayerPresentChange(DataArray *) {
 }
 
 DataNode PresenceMgr::OnPresenceChange(DataArray *) {
-    if (!unk2c)
+    if (!mPresenceModes)
         return 0;
     else {
         UpdatePresence();
@@ -119,7 +128,7 @@ DataNode PresenceMgr::OnPresenceChange(DataArray *) {
 }
 
 void PresenceMgr::SetNotInGame() {
-    if (!unk2c) {
+    if (!mPresenceModes) {
         return;
     }
     mInGame = false;
@@ -128,7 +137,7 @@ void PresenceMgr::SetNotInGame() {
 }
 
 void PresenceMgr::SetInGame(int id) {
-    if (!unk2c)
+    if (!mPresenceModes)
         return;
     mSongID = id;
     mInGame = true;
@@ -136,10 +145,10 @@ void PresenceMgr::SetInGame(int id) {
 }
 
 int PresenceMgr::GetPresenceContextFromMode(Symbol s, bool b) {
-    if (!unk2c)
+    if (!mPresenceModes)
         return -1;
     else {
-        DataArray *presenceArray = unk30->FindArray(s, true);
+        DataArray *presenceArray = mPresenceModeContexts->FindArray(s, true);
         return presenceArray->Int(b ? 1 : 2);
     }
 }
