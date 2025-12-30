@@ -3,7 +3,6 @@
 #include "types.h"
 #include "utl/Str.h"
 
-// likely included in PartyModeMgr instead
 class SongQueueRow {
 public:
     int unk0;

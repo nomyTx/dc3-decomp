@@ -28,7 +28,7 @@
             "lazer/game/HamUser.cpp": "NonMatching",
             "lazer/game/HamUserMgr.cpp": "NonMatching",
             "lazer/game/LiveInput.cpp": "NonMatching",
-            "lazer/game/PartyModeMgr.cpp": "MISSING",
+            "lazer/game/PartyModeMgr.cpp": "NonMatching",
             "lazer/game/PresenceMgr.cpp": "NonMatching",
             "lazer/game/Shuttle.cpp": "NonMatching",
             "lazer/game/SongDB.cpp": "NonMatching",
