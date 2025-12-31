@@ -64,20 +64,24 @@ private:
 class PartyModeMgr : public Hmx::Object, public ContentMgr::Callback {
 public:
     struct ConfigHistory {
-        int unk0;
-        int unk4;
-        int unk8;
-        int unkc;
+        int mTimeStamp; // 0x0 - system ms
+        Symbol mSong; // 0x4 - song
+        Symbol mMode; // 0x8 - mode
+        bool mForceCrewOutfit; // 0xc
     };
     struct SubMode {
         SubMode() : mPlayers(0) {}
-        ~SubMode();
+        ~SubMode() {
+            if (mPlayers) {
+                mPlayers->Release();
+            }
+        }
 
         MEM_OVERLOAD(SubMode, 0xE3);
 
-        Symbol mName; // 0x0
-        Symbol mMicrogameName; // 0x4
-        Symbol unk8;
+        Symbol mModeName; // 0x0 - mode name
+        Symbol mSubModeName; // 0x4 - sub mode name
+        Symbol mSongName; // 0x8 - song shortname
         int mSongID; // 0xc
         int mPlayerFlags; // 0x10
         int mNumPlayers; // 0x14
@@ -130,6 +134,7 @@ public:
     bool RightTeamMaxWins() const;
     void SetLeftTeamStarBonus();
     void SetRightTeamStarBonus();
+    void SetPlaylist(Playlist *);
 
 private:
     void InitCharacters();
@@ -179,6 +184,9 @@ private:
     void SetSongsFromPlaylist();
     void ResetSongs();
     void ResetModes(bool);
+    void SetSongAndDefaults(Symbol, Symbol, bool);
+    SubMode *CreateEventA();
+    void DetermineSubModePlayers(Symbol, int *, int *, std::vector<int> *);
 
     Symbol GetCurrEventDisplayName() { return GetCurrEventName(); }
     bool IsUsingPlaylist() const { return mPlaylist; }
@@ -221,8 +229,8 @@ private:
     PseudoRandomPicker<Symbol> unkf8;
     PseudoRandomPicker<Symbol> mModePicker; // 0x10c
     PseudoRandomPicker<Symbol> mSubModePicker; // 0x120
-    PseudoRandomPicker<Symbol> unk134; // 0x134 - good items
-    PseudoRandomPicker<Symbol> unk148; // 0x148 - bad items
+    PseudoRandomPicker<Symbol> mGoodTitlePicker; // 0x134
+    PseudoRandomPicker<Symbol> mBadTitlePicker; // 0x148
     // indexed by dj intensity rank
     PseudoRandomPicker<Symbol> mSubModeSongPickers[4]; // 0x15c
     std::vector<Symbol> mCharacters; // 0x1ac
@@ -234,7 +242,7 @@ private:
     DataArray *mGoodTitles; // 0x1cc
     DataArray *mBadTitles; // 0x1d0
     std::vector<int> unk1d4;
-    Vector2DESmoother unk1e0[6];
+    Vector2DESmoother mFrameSmoothers[6]; // 0x1e0
     Difficulty mDifficulty; // 0x2d0
     Playlist *mPlaylist; // 0x2d4
     bool mIsPlaylistShuffled; // 0x2d8
@@ -246,7 +254,7 @@ private:
     float unk2e4;
     float unk2e8;
     float unk2ec;
-    int unk2f0;
+    float mSixStarBonus; // 0x2f0
     SetPartyOptionsJob *mSetPartyOptionsJob; // 0x2f4
     GetPartyOptionsJob *mGetPartyOptionsJob; // 0x2f8
     GetPartySongQueueJob *mGetPartySongQueueJob; // 0x2fc
@@ -260,7 +268,7 @@ private:
     DataArray *unk324; // 0x324 - intensity sequences
     DataArray *unk328; // 0x328 - bucket sequences
     DataArray *unk32c;
-    std::vector<ConfigHistory> unk330;
+    std::vector<ConfigHistory> mCfgHistories; // 0x330
 };
 
 extern PartyModeMgr *ThePartyModeMgr;

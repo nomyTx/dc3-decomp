@@ -83,7 +83,9 @@ public:
     bool CanUpdateScoreLeaderboards(bool);
     void SetVenuePref(Symbol);
     void StartGameplayTimer();
-    void CalcPrimarySongCharacter(const HamSongMetadata *, Symbol &, Symbol &, Symbol &);
+    void CalcPrimarySongCharacter(
+        const HamSongMetadata *data, Symbol &crew, Symbol &charSym, Symbol &outfit
+    );
     void CalcSecondarySongCharacter(
         const HamSongMetadata *, bool, Symbol, Symbol &, Symbol &, Symbol &
     );

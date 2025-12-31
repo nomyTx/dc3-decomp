@@ -7,6 +7,7 @@
 #include "meta_ham/HamProfile.h"
 #include "meta_ham/HamSongMetadata.h"
 #include "meta_ham/HamSongMgr.h"
+#include "meta_ham/MetaPerformer.h"
 #include "meta_ham/ProfileMgr.h"
 #include "meta_ham/SongRecord.h"
 #include "meta_ham/Utl.h"
@@ -117,7 +118,7 @@ void PartyModePlayer::PushTitle(Symbol s) {
 #pragma endregion
 #pragma region PartyModeMgr
 
-PartyModeMgr::PartyModeMgr() : unk1e0() {
+PartyModeMgr::PartyModeMgr() : mFrameSmoothers() {
     unk40 = false;
     unk328 = 0;
     static Symbol party_mode("party_mode");
@@ -152,15 +153,15 @@ PartyModeMgr::PartyModeMgr() : unk1e0() {
     for (int i = 1; i < numGoodTitles; i++) {
         vec[i - 1] = mGoodTitles->Sym(i);
     }
-    unk134.AddItems(vec);
-    // unk134.unk8 = 0;
+    mGoodTitlePicker.AddItems(vec);
+    mGoodTitlePicker.SetMode(0);
     int numBadTitles = mBadTitles->Size();
     vec.resize(numBadTitles);
     for (int i = 1; i < numBadTitles; i++) {
         vec[i - 1] = mBadTitles->Sym(i);
     }
-    unk148.AddItems(vec);
-    // unk148.unk8 = 0;
+    mBadTitlePicker.AddItems(vec);
+    mBadTitlePicker.SetMode(0);
     int numARObjects = mARObjects->Size() - 1;
     for (int i = 1; i <= numARObjects; i++) {
         unkb0.push_back(i);
@@ -174,8 +175,8 @@ PartyModeMgr::PartyModeMgr() : unk1e0() {
     mCurrEvent = nullptr;
     InitCharacters();
     for (int i = 0; i < 6; i++) {
-        unk1e0[i].SetSmoothParameters(10, 1);
-        unk1e0[i].ForceValue(Vector2(0.5, 0.5));
+        mFrameSmoothers[i].SetSmoothParameters(10, 1);
+        mFrameSmoothers[i].ForceValue(Vector2(0.5, 0.5));
     }
     mDifficulty = DefaultDifficulty();
     mPlaylist = 0;
@@ -497,12 +498,13 @@ float PartyModeMgr::GetPointsForWin() {
     static Symbol win("win");
     DataArray *winPoints = mEventScoring->FindArray(win);
     MILO_ASSERT(winPoints, 0x427);
-    DataArray *winData = winPoints->FindArray(mCurrEvent->mName, false);
+    DataArray *winData = winPoints->FindArray(mCurrEvent->mModeName, false);
     if (winData) {
         return winData->Float(1);
     } else {
         MILO_NOTIFY(
-            "Party mode event %s does not have win scoring data", mCurrEvent->mName.Str()
+            "Party mode event %s does not have win scoring data",
+            mCurrEvent->mModeName.Str()
         );
         return 0;
     }
@@ -512,12 +514,13 @@ float PartyModeMgr::GetPointsForLoss() {
     static Symbol lose("lose");
     DataArray *losePoints = mEventScoring->FindArray(lose);
     MILO_ASSERT(losePoints, 0x43D);
-    DataArray *loseData = losePoints->FindArray(mCurrEvent->mName, false);
+    DataArray *loseData = losePoints->FindArray(mCurrEvent->mModeName, false);
     if (loseData) {
         return loseData->Float(1);
     } else {
         MILO_NOTIFY(
-            "Party mode event %s does not have lose scoring data", mCurrEvent->mName.Str()
+            "Party mode event %s does not have lose scoring data",
+            mCurrEvent->mModeName.Str()
         );
         return 0;
     }
@@ -540,14 +543,14 @@ void PartyModeMgr::UpdateRoundsPlayed() {
 Symbol PartyModeMgr::GetCurrEventName() {
     MILO_ASSERT(mCurrEvent, 0x4BC);
     Symbol ret(gNullStr);
-    ret = mCurrEvent->mName;
+    ret = mCurrEvent->mModeName;
     return ret;
 }
 
 Symbol PartyModeMgr::GetCurrEventMicrogameName() {
     MILO_ASSERT(mCurrEvent, 0x4CB);
     Symbol ret(gNullStr);
-    ret = mCurrEvent->mMicrogameName;
+    ret = mCurrEvent->mSubModeName;
     return ret;
 }
 
@@ -574,7 +577,7 @@ Symbol PartyModeMgr::GetCurrEventSongArtistName() {
     MILO_ASSERT(mCurrEvent, 0x4F3);
     Symbol ret(gNullStr);
     static Symbol partymode_intermission("partymode_intermission");
-    if (mCurrEvent->mName == partymode_intermission) {
+    if (mCurrEvent->mModeName == partymode_intermission) {
         return ret;
     } else {
         const HamSongMetadata *data = TheHamSongMgr.Data(mCurrEvent->mSongID);
@@ -624,12 +627,12 @@ void PartyModeMgr::SetupCharacterData() {
 
 void PartyModeMgr::SmoothFrameMotion(int frame_idx, float f2, float f3) {
     MILO_ASSERT_RANGE(frame_idx, 0, 6, 0x64E);
-    unk1e0[frame_idx].Smooth(Vector2(f2, f3), TheTaskMgr.DeltaUISeconds(), false);
+    mFrameSmoothers[frame_idx].Smooth(Vector2(f2, f3), TheTaskMgr.DeltaUISeconds(), false);
 }
 
 void PartyModeMgr::ForceFrameSmootherPos(int frame_idx, float f2, float f3) {
     MILO_ASSERT_RANGE(frame_idx, 0, 6, 0x656);
-    unk1e0[frame_idx].ForceValue(Vector2(f2, f3));
+    mFrameSmoothers[frame_idx].ForceValue(Vector2(f2, f3));
 }
 
 const char *PartyModeMgr::GetPlaylistString() {
@@ -744,13 +747,13 @@ Symbol PartyModeMgr::GetRightCrewCharOutfit(int char_idx, int outfit_idx) {
 }
 
 void PartyModeMgr::ChangeToAnotherGameMode() {
-    int i1 = (GetEnumFromModeName(mCurrEvent->mName) + 1) % 5;
+    int i1 = (GetEnumFromModeName(mCurrEvent->mModeName) + 1) % 5;
     Symbol name = GetModeNameFromEnum(i1);
     while (!IsModeIncluded(name)) {
         i1 = (i1 + 1) % 5;
         name = GetModeNameFromEnum(i1);
     }
-    mCurrEvent->mName = name;
+    mCurrEvent->mModeName = name;
 }
 
 void PartyModeMgr::EndPartyStats() {
@@ -875,18 +878,18 @@ Symbol PartyModeMgr::GetNextMode() {
     return mModePicker.GetNext();
 }
 
-void PartyModeMgr::DetermineSubMode(Symbol *s1, Symbol *s2) {
+void PartyModeMgr::DetermineSubMode(Symbol *pMode, Symbol *pSubMode) {
     if (mUsePlaytestData) {
-        *s1 = mModePicker.GetNext();
-        *s2 = mSubModePicker.GetNext();
+        *pMode = mModePicker.GetNext();
+        *pSubMode = mSubModePicker.GetNext();
     } else if (TheHamProvider->Property("is_in_party_mode")->Int()
                && !mRoundsUntilShowdown) {
         static Symbol showdown("showdown");
         static Symbol ffa("ffa");
-        *s1 = showdown;
-        *s2 = ffa;
+        *pMode = showdown;
+        *pSubMode = ffa;
     } else {
-        *s1 = mModePicker.GetNext();
+        *pMode = mModePicker.GetNext();
         if (unk328) {
             Symbol sym = unk328->Sym(mRoundsPlayed + 1);
             static Symbol event_buckets("event_buckets");
@@ -907,16 +910,16 @@ void PartyModeMgr::DetermineSubMode(Symbol *s1, Symbol *s2) {
                 if (IsModeIncluded(curArr->Sym(0))) {
                     i4 += curArr->Int(1);
                     if (i12 < i4) {
-                        *s1 = curArr->Sym(0);
+                        *pMode = curArr->Sym(0);
                         break;
                     }
                 }
             }
         }
         static Symbol dance_battle("dance_battle");
-        if (*s1 == dance_battle) {
+        if (*pMode == dance_battle) {
             static Symbol ffa("ffa");
-            *s2 = ffa;
+            *pSubMode = ffa;
         }
     }
 }
@@ -1127,7 +1130,7 @@ void PartyModeMgr::CrewShowdownRematch() {
 void PartyModeMgr::SetupInfinitePartyMode() {
     TheHamSongMgr.GetRandomlySelectableRankedSongs(unk1d4);
     if (mPlaylist) {
-        // unkf8.unk8 = 0;
+        unkf8.SetMode(0);
     } else {
         ResetSongs();
     }
@@ -1140,10 +1143,190 @@ void PartyModeMgr::SetupInfinitePartyMode() {
 
 void PartyModeMgr::SetModes() {
     ResetModes(false);
-    if (mCurrEvent && !IsModeIncluded(mCurrEvent->mName)) {
-        Symbol s1, s2;
-        DetermineSubMode(&s1, &s2);
-        mCurrEvent->mName = s1;
-        mCurrEvent->mMicrogameName = s2;
+    if (mCurrEvent && !IsModeIncluded(mCurrEvent->mModeName)) {
+        Symbol mode, submode;
+        DetermineSubMode(&mode, &submode);
+        mCurrEvent->mModeName = mode;
+        mCurrEvent->mSubModeName = submode;
     }
+}
+
+void PartyModeMgr::SetSongAndDefaults(Symbol song, Symbol mode, bool force_crew_outfit) {
+    static Symbol dance_battle("dance_battle");
+    static Symbol strike_a_pose("strike_a_pose");
+    if (mCurrEvent) {
+        RELEASE(mCurrEvent);
+    }
+    mCurrEvent = new SubMode();
+    if (song.Null()) {
+        song = unkf8.GetNext();
+    }
+    mCurrEvent->mSongName = song;
+    if (mode.Null()) {
+        mode = GetNextMode();
+    }
+    mCurrEvent->mModeName = mode;
+    int songID = TheHamSongMgr.GetSongIDFromShortName(song);
+    mCurrEvent->mSongID = songID;
+    const HamSongMetadata *data = TheHamSongMgr.Data(songID);
+    HamPlayerData *songPlayerData;
+    Symbol songCrew;
+    Symbol songChar;
+    Symbol songOutfit;
+    HamPlayerData *altPlayerData;
+    Symbol altCrew;
+    Symbol altChar;
+    Symbol altOutfit;
+    MetaPerformer::Current()->CalcCharacters(
+        data,
+        mode == dance_battle || mode == strike_a_pose,
+        (PlayerFlag)2,
+        songPlayerData,
+        songCrew,
+        songChar,
+        songOutfit,
+        altPlayerData,
+        altCrew,
+        altChar,
+        altOutfit
+    );
+    if (force_crew_outfit) {
+        songOutfit = GetCrewLookOutfit(songChar);
+        altOutfit = GetCrewLookOutfit(altChar);
+    }
+    songPlayerData->SetCharacter(songChar);
+    songPlayerData->SetOutfit(songOutfit);
+    songPlayerData->SetCrew(songCrew);
+    altPlayerData->SetCharacter(altChar);
+    altPlayerData->SetOutfit(altOutfit);
+    altPlayerData->SetCrew(altCrew);
+    MILO_LOG(
+        "PartyModeMgr::SetSongAndDefaults(Symbol song = '%s', Symbol mode = '%s', bool force_crew_outfit = %d)\n",
+        song,
+        mode,
+        force_crew_outfit
+    );
+    MILO_LOG(
+        "   %s: songChar = '%s' songCrew = '%s' songOutfit = %s\n",
+        songPlayerData->Side() == kSkeletonLeft ? "left" : "right",
+        songChar,
+        songCrew,
+        songOutfit
+    );
+    MILO_LOG(
+        "   %s: altChar  = '%s' altCrew  = '%s' altOutfit  = %s\n",
+        altPlayerData->Side() == kSkeletonLeft ? "left" : "right",
+        altChar,
+        altCrew,
+        altOutfit
+    );
+    TheGameData->SetSong(song);
+    MetaPerformer::Current()->SetVenuePref("default");
+    MetaPerformer::Current()->Handle(Message("setup_venue"), true);
+    ConfigHistory ch;
+    ch.mForceCrewOutfit = force_crew_outfit;
+    ch.mMode = mode;
+    ch.mSong = song;
+    ch.mTimeStamp = SystemMs();
+    mCfgHistories.push_back(ch);
+    PruneHistory();
+}
+
+PartyModeMgr::SubMode *PartyModeMgr::CreateEventA() {
+    Symbol mode;
+    Symbol submode;
+    DetermineSubMode(&mode, &submode);
+    int flags = 0;
+    int numPlayers = 0;
+    std::vector<int> vec;
+    DetermineSubModePlayers(mode, &flags, &numPlayers, &vec);
+    int songID = 0;
+    Symbol shortname;
+    DetermineSubModeSong(&shortname, &songID);
+    SubMode *event = new SubMode();
+    event->mModeName = mode;
+    event->mSubModeName = submode;
+    event->mSongName = shortname;
+    event->mSongID = songID;
+    event->mPlayerFlags = flags;
+    event->mNumPlayers = numPlayers;
+    event->unk1c.insert(event->unk1c.begin(), vec.begin(), vec.end());
+    DataArray *a = new DataArray(numPlayers);
+    for (int i = 0; i < numPlayers; i++) {
+        a->Node(i) = event->unk1c[i];
+    }
+    event->mPlayers = a;
+    return event;
+}
+
+void PartyModeMgr::ToggleIncludedMode(Symbol mode) {
+    unk2dc ^= 1 << GetEnumFromModeName(mode);
+    bool high = (1 << GetEnumFromModeName(mode)) & unk2dc;
+    MILO_LOG("----- TOGGLING %s to %s\n", mode.Str(), high ? "true" : "false");
+    static Symbol is_in_infinite_party_mode("is_in_infinite_party_mode");
+    if (!unk40) {
+        if (TheHamProvider->Property(is_in_infinite_party_mode)->Int() != 0) {
+            SendDataPoint("partymode/mode_toggle", mode, high);
+        } else {
+            SendDataPoint("crew_throwdown/mode_toggle", mode, high);
+        }
+    }
+}
+
+void PartyModeMgr::UseSelectedPlaylist(bool b1) {
+    if (b1) {
+        MetaPerformer *pPerformer = MetaPerformer::Current();
+        MILO_ASSERT(pPerformer, 0x6F1);
+        mPlaylist = pPerformer->GetPlaylist();
+        MILO_ASSERT(mPlaylist, 0x6F4);
+        SetSongsFromPlaylist();
+    } else {
+        if (mPlaylist) {
+            ResetSongs();
+        }
+        mPlaylist = nullptr;
+    }
+}
+
+void PartyModeMgr::SetPlaylist(Playlist *playlist) {
+    MILO_ASSERT(playlist, 0x706);
+    mPlaylist = playlist;
+    SetSongsFromPlaylist();
+}
+
+void PartyModeMgr::SetCurrEvent() {
+    if (mCurrEvent) {
+        RELEASE(mCurrEvent);
+    }
+    mCurrEvent = CreateEventA();
+    static Symbol showdown("showdown");
+    mIsShowdown = mCurrEvent->mModeName == showdown;
+    mLeftPlayer = mCurrEvent->mNumPlayers > 0 ? mPlayers[mCurrEvent->unk1c[0]] : nullptr;
+    mRightPlayer = mCurrEvent->mNumPlayers > 1 ? mPlayers[mCurrEvent->unk1c[1]] : nullptr;
+}
+
+DataNode PartyModeMgr::OnGetSmoothedFramePos(const DataArray *a) {
+    MILO_ASSERT(a->Size() == 5, 0x65E);
+    int idx = a->Int(2);
+    Vector2 v = mFrameSmoothers[idx].Value();
+    *a->Var(3) = v.x;
+    *a->Var(4) = v.y;
+    return 0;
+}
+
+DataNode PartyModeMgr::OnStableSong() {
+    return mCfgHistories.empty() ? Symbol("") : mCfgHistories[0].mSong;
+}
+
+DataNode PartyModeMgr::OnStableMode() {
+    return mCfgHistories.empty() ? Symbol("") : mCfgHistories[0].mMode;
+}
+
+DataNode PartyModeMgr::OnMsg(const SmartGlassMsg &msg) {
+    MILO_LOG("SmartGlass: I should update Party Mode options/song from RC\n");
+    SendDataPoint("smartglass/party");
+    GetPartyOptionsFromRC();
+    GetPartySongQueueFromRC();
+    BroadcastSyncMsg("update_party_from_rc");
+    return 1;
 }
