@@ -2,8 +2,12 @@
 #include "FreestyleMove.h"
 #include "gesture/BaseSkeleton.h"
 #include "gesture/Skeleton.h"
+#include "os/Debug.h"
 #include "rndobj/Tex.h"
+#include "utl/MemMgr.h"
 #include "utl/Str.h"
+
+#define MAX_FREESTYLE_MOVES 4
 
 // size 0x110
 class FreestyleMoveRecorder : public SkeletonCallback {
@@ -33,8 +37,17 @@ public:
     void ClearDancerTake();
     BaseSkeleton *GetLiveSkeleton();
     void AssignStaticInstance();
+    void DrawDebug();
 
     void SetVal44(int i) { unk44 = i; } // change once context found
+
+    void SetFreestyleMove(int index) {
+        MILO_ASSERT(index >= 0 && index < MAX_FREESTYLE_MOVES, 0x50);
+        unkb8 = index;
+    }
+
+    MEM_OVERLOAD(FreestyleMoveRecorder, 0x2E);
+    static FreestyleMoveRecorder *sInstance;
 
 private:
     float unk4;

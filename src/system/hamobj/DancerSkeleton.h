@@ -8,12 +8,12 @@ public:
     DancerSkeleton();
     virtual ~DancerSkeleton() {} // 0x0
     virtual void JointPos(SkeletonCoordSys, SkeletonJoint, Vector3 &) const; // 0x4
-    virtual bool
-    Displacement(const SkeletonHistory *, SkeletonCoordSys, SkeletonJoint, int, Vector3 &, int &)
-        const; // 0x8
-    virtual bool
-    Displacements(const SkeletonHistory *, SkeletonCoordSys, int, Vector3 *, int &)
-        const; // 0xc
+    virtual bool Displacement(
+        const SkeletonHistory *, SkeletonCoordSys, SkeletonJoint, int, Vector3 &, int &
+    ) const; // 0x8
+    virtual bool Displacements(
+        const SkeletonHistory *, SkeletonCoordSys, int, Vector3 *, int &
+    ) const; // 0xc
     virtual JointConfidence JointConf(SkeletonJoint) const {
         return kConfidenceTracked;
     } // 0x10
@@ -35,6 +35,7 @@ public:
     const Vector3 &CamJointDisplacement(SkeletonJoint) const;
     void SetCamJointPos(SkeletonJoint, const Vector3 &);
     void SetCamJointDisplacement(SkeletonJoint, const Vector3 &);
+    bool Tracked() const { return mTracked; }
 
 private:
     Vector3 mCamJointPositions[kNumJoints]; // 0x4

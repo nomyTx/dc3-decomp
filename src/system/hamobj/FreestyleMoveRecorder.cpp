@@ -2,8 +2,6 @@
 #include "obj/Object.h"
 #include "rndobj/Tex.h"
 
-FreestyleMoveRecorder *TheFreestyleMoveRecorder;
-
 FreestyleMoveRecorder::FreestyleMoveRecorder()
     : unk4(0), unk8(0), unkc(0), unk18(0), unk20(-1), unk24(60), unk28(-1), unk2c(-1),
       unk30(15), unk34(-1), unk38(0), unk39(0), unk44(-1), unkb8(0) {
@@ -52,4 +50,4 @@ void FreestyleMoveRecorder::StopPlayback() { unk2c = -1; }
 
 void FreestyleMoveRecorder::ClearDancerTake() { unkc4 = 0; }
 
-void FreestyleMoveRecorder::AssignStaticInstance() { TheFreestyleMoveRecorder = this; }
+void FreestyleMoveRecorder::AssignStaticInstance() { sInstance = this; }
