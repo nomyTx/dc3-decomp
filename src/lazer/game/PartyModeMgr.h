@@ -18,6 +18,7 @@ END_MESSAGE
 
 class PartyModeARObject {
 public:
+    PartyModeARObject(DataArray *a) : unk8(a) {}
     const char *GetTexPath();
 
     MEM_OVERLOAD(PartyModeARObject, 0x4C);
@@ -35,6 +36,16 @@ public:
     void PushTitle(Symbol);
     int Index() const { return unk1c; }
     void IncScore(int score) { unk14 += score; }
+    void StoreFramePos(float x, float y) {
+        unk20 = x;
+        unk24 = y;
+    }
+    void StoreFrameScale(float scale) { unk28 = scale; }
+    const char *GetTexPath() { return unk0->GetTexPath(); }
+    int GetPhotoIndex() const { return unk2c; }
+    void SetIndex(int idx) { unk1c = idx; }
+    void SetSym(Symbol s) { unk4 = s; } // rename once context known
+    void SetPhotoIndex(int idx) { unk2c = idx; }
 
 private:
     PartyModeARObject *unk0;
@@ -44,6 +55,10 @@ private:
     int unk14;
     int unk18;
     int unk1c;
+    float unk20;
+    float unk24;
+    float unk28;
+    int unk2c;
 };
 
 class PartyModeMgr : public Hmx::Object, public ContentMgr::Callback {
@@ -152,6 +167,17 @@ private:
     void OnSmartGlassListen(int);
     void PruneHistory();
     HamProfile *GetValidProfile();
+    void BroadcastSyncMsg(Symbol);
+    void ReadPartyOptions();
+    void DeleteSongFromRCPartySongQueue(int);
+    void AddNextSongToRCPartySongQueue();
+    Symbol GetNextMode();
+    void DetermineSubMode(Symbol *, Symbol *);
+    void DetermineSubModeSong(Symbol *, int *);
+    PartyModePlayer *CreatePartyModePlayer();
+    void ResetMicrogames();
+    int PickNextPlayer();
+    void SetSongsFromPlaylist();
 
     Symbol GetCurrEventDisplayName() { return GetCurrEventName(); }
     bool IsUsingPlaylist() const { return unk2d4 != 0; }
@@ -174,7 +200,7 @@ private:
     int unk50;
     bool unk54;
     DataArray *mARObjects; // 0x58
-    std::vector<PartyModePlayer *> unk5c;
+    std::vector<PartyModePlayer *> mPlayers; // 0x5c
     std::vector<PartyModePlayer *> unk68;
     std::vector<PartyModePlayer *> unk74;
     float unk80;
@@ -192,7 +218,7 @@ private:
     PseudoRandomPicker<int> unkd0;
     PseudoRandomPicker<int> unke4;
     PseudoRandomPicker<Symbol> unkf8;
-    PseudoRandomPicker<Symbol> unk10c;
+    PseudoRandomPicker<Symbol> mModePicker; // 0x10c
     PseudoRandomPicker<Symbol> unk120;
     PseudoRandomPicker<Symbol> unk134; // 0x134 - good items
     PseudoRandomPicker<Symbol> unk148; // 0x148 - bad items
@@ -219,19 +245,19 @@ private:
     float unk2e8;
     float unk2ec;
     int unk2f0;
-    int unk2f4;
-    int unk2f8;
-    int unk2fc;
-    int unk300;
-    int unk304;
+    SetPartyOptionsJob *unk2f4;
+    GetPartyOptionsJob *unk2f8;
+    GetPartySongQueueJob *unk2fc;
+    AddSongToPartySongQueueJob *unk300;
+    DeleteSongFromPartySongQueueJob *unk304;
     std::list<SongQueueRow> unk308;
     int unk310;
     bool unk314;
     DateTime unk315;
     DateTime unk31b;
-    int unk324;
-    int unk328;
-    int unk32c;
+    DataArray *unk324;
+    DataArray *unk328;
+    DataArray *unk32c;
     std::vector<ConfigHistory> unk330;
 };
 
