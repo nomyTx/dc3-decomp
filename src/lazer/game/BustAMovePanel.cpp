@@ -7,17 +7,24 @@
 #include "hamobj/HamGameData.h"
 #include "hamobj/HamLabel.h"
 #include "hamobj/HamMaster.h"
+#include "hamobj/HamPhraseMeter.h"
 #include "hamobj/ScoreUtl.h"
 #include "lazer/game/GameMode.h"
 #include "lazer/meta_ham/HamPanel.h"
 #include "math/Easing.h"
+#include "math/Rand.h"
+#include "meta_ham/DepthBuffer.h"
+#include "meta_ham/MetaPerformer.h"
 #include "obj/Data.h"
+#include "obj/Dir.h"
 #include "obj/Msg.h"
 #include "obj/Object.h"
 #include "obj/Task.h"
 #include "os/Debug.h"
+#include "os/System.h"
 #include "rndobj/Anim.h"
 #include "rndobj/Dir.h"
+#include "rndobj/Mat.h"
 #include "rndobj/Tex.h"
 #include "rndobj/TexRenderer.h"
 #include "ui/UIColor.h"
@@ -25,8 +32,13 @@
 #include "utl/Symbol.h"
 #include <float.h>
 
+namespace {
+    void GetShuffledInts(std::vector<int> &, int);
+
+}
+
 BustAMovePanel::BustAMovePanel()
-    : unk40(0), unk44(0), unk58(-1), unk5c(0), unk60(0), unk64(0), unk68(4), unk6c(0),
+    : unk40(0), unk44(0), unk58(-1), unk5c(0), mHUDPanel(0), unk64(0), unk68(4), unk6c(0),
       unk70(10), unk80(0), unka0(1), unk92c(0), unk930(0), unk934(0), unk958(-1),
       unk95c(-1), unk968(-1), unk970(0), unk988(0), unk98c(0), unk99c(0), unk9a0(FLT_MAX),
       unk9b9(0), unk9bc(-1) {
@@ -83,7 +95,7 @@ void BustAMovePanel::Draw() {
 
 void BustAMovePanel::Enter() {
     HamPanel::Enter();
-    unk60 = 0;
+    mHUDPanel = 0;
     if (InBustAMove()) {
         CacheObjects();
         unk9b8 = true;
@@ -137,11 +149,13 @@ MoveRating BustAMovePanel::GetMoveRating(float f1) {
     }
 }
 
-void BustAMovePanel::SetFlashcardText(int i1, int i2, Symbol s3) {
-    HamLabel *label = unk98[i1]->Find<HamLabel>(MakeString("flashcard_%d.lbl", i2));
+void BustAMovePanel::SetFlashcardText(int side, int index, Symbol s3) {
+    HamLabel *label =
+        mBAMColumns[side]->Find<HamLabel>(MakeString("flashcard_%d.lbl", index));
     label->SetTextToken(s3);
-    label = unk98[i1 == 0]->Find<HamLabel>(MakeString("flashcard_%d.lbl", i2));
-    if (unk3c == 8 || unk3c == 7) {
+    label = mBAMColumns[side == 0]->Find<HamLabel>(MakeString("flashcard_%d.lbl", index));
+    if (mState == kBAMState_ShowMoveSequence
+        || mState == kBAMState_ShowMoveSequenceSetup) {
         label->SetTextToken(s3);
     } else {
         label->SetTextToken(gNullStr);
@@ -159,7 +173,7 @@ DataArray *BustAMovePanel::GetMoveNameData(int index) {
 
 void BustAMovePanel::SetMovePrompt() {
     Symbol sym = GetMoveNameData(unk84)->Sym(0);
-    // unk78->SetTextToken(sym);
+    mMovePromptLabel->SetTextToken(sym);
     UIColor *movePromptColor = DataDir()->Find<UIColor>("move_prompt.color");
     UIColor *playerColor =
         DataDir()->Find<UIColor>(MakeString("%s.color", GetPlayerColor(unk64)));
@@ -167,10 +181,10 @@ void BustAMovePanel::SetMovePrompt() {
     movePromptColor->SetColor(color);
 }
 
-void BustAMovePanel::IncreaseScore(int i1, int i2) {
+void BustAMovePanel::IncreaseScore(int player, int scoreToAdd) {
     static Symbol score("score");
-    int oldScore = TheGameData->Player(i1)->Provider()->Property(score)->Int();
-    TheGameData->Player(i1)->Provider()->SetProperty(score, oldScore + i2);
+    int oldScore = TheGameData->Player(player)->Provider()->Property(score)->Int();
+    TheGameData->Player(player)->Provider()->SetProperty(score, oldScore + scoreToAdd);
 }
 
 void BustAMovePanel::ResetScores() {
@@ -179,15 +193,19 @@ void BustAMovePanel::ResetScores() {
     TheGameData->Player(1)->Provider()->SetProperty(score, 0);
 }
 
-void BustAMovePanel::SetFlashcardName(int i1, int i2, int i3) {
+void BustAMovePanel::SetFlashcardName(int side, int index, int i3) {
     Symbol s(gNullStr);
     if (i3 >= 0) {
         s = GetMoveNameData(i3)->Sym(1);
     }
-    HamLabel *label = unk98[i1]->Find<HamLabel>(MakeString("flashcard_name_%d.lbl", i2));
+    HamLabel *label =
+        mBAMColumns[side]->Find<HamLabel>(MakeString("flashcard_name_%d.lbl", index));
     label->SetTextToken(s);
-    label = unk98[i1 == 0]->Find<HamLabel>(MakeString("flashcard_name_%d.lbl", i2));
-    if (unk3c == 8 || unk3c == 7) {
+    label = mBAMColumns[side == 0]->Find<HamLabel>(
+        MakeString("flashcard_name_%d.lbl", index)
+    );
+    if (mState == kBAMState_ShowMoveSequence
+        || mState == kBAMState_ShowMoveSequenceSetup) {
         label->SetTextToken(s);
     } else {
         label->SetTextToken(gNullStr);
@@ -248,13 +266,88 @@ float BustAMovePanel::GetMovePromptVOLength() {
     Symbol sym = GetMoveNameData(unk84)->Sym(unka0 + 2);
     static Message voLengthMsg("get_seq_length", 0);
     voLengthMsg[0] = sym;
-    // unk60->Handle
+    DataNode handled = mHUDPanel->Handle(voLengthMsg, true);
+    if (handled != DataNode(kDataUnhandled, 0)) {
+        len = handled.Float();
+    }
     return len;
 }
 
 void BustAMovePanel::ShowGetReadyCard(Symbol s, SkeletonSide side) {
-    unk98[side]->Find<HamLabel>("get_ready.lbl")->SetTextToken(s);
+    mBAMColumns[side]->Find<HamLabel>("get_ready.lbl")->SetTextToken(s);
     static Message getReadyMsg("bustamove_get_ready", 0);
     getReadyMsg[0] = side;
     TheHamProvider->Handle(getReadyMsg, false);
+}
+
+void BustAMovePanel::CacheObjects() {
+    mBAMVisualizerPanel = ObjectDir::Main()->Find<HamPanel>("bustamove_visualizer_panel");
+    mBAMVisualizerPanel->DataDir()
+        ->Find<RndAnimatable>("num_players.anim")
+        ->SetFrame(1, 1);
+    // for (ObjDirItr<DepthBuffer3D> it(mBAMVisualizerPanel->DataDir(), true); it !=
+    // nullptr; ++it) {
+    // }
+    TheMaster->AddSink(this, "beat");
+    mStatusLabel = DataDir()->Find<HamLabel>("status.lbl");
+    mMovePromptLabel = DataDir()->Find<HamLabel>("move_prompt.lbl");
+    mStatusLabel->SetTextToken(gNullStr);
+    mMovePromptLabel->SetTextToken(gNullStr);
+    if (SystemLanguage() == "jpn" || SystemLanguage() == "kor"
+        || SystemLanguage() == "cht") {
+        DataDir()
+            ->Find<RndAnimatable>("asian_prompt_adjust.anim")
+            ->Animate(0, false, 0, nullptr, kEaseLinear, 0, false);
+    }
+    mState = kBAMState_CountIn;
+    unk44 = 0;
+    unk6c = 0;
+    unk84 = 0;
+    unk64 = RandomInt(0, 2);
+    unk7c = false;
+    mHUDPanel = DataVariable("hud_panel").Obj<ObjectDir>();
+    for (int i = 0; i < 4; i++) {
+        String flashcard = MakeString("flashcard_slot%i.mat", i);
+        RndMat *flashcardMat = DataDir()->Find<RndMat>(flashcard.c_str());
+        RndTex *blank = DataDir()->Find<RndTex>("blank.tex");
+        flashcardMat->SetDiffuseTex(blank);
+    }
+    mBAMColumns[kSkeletonRight] = DataDir()->Find<RndDir>("bustamove_column_right");
+    mBAMColumns[kSkeletonLeft] = DataDir()->Find<RndDir>("bustamove_column_left");
+    unk48.clear();
+    unk50.clear();
+    ResetScores();
+    unk954 = 1;
+    unk950 = 0;
+    unk94c = 0;
+    mPhraseMeters[kSkeletonRight] = DataDir()->Find<HamPhraseMeter>("phrase_meter_right");
+    mPhraseMeters[kSkeletonLeft] = DataDir()->Find<HamPhraseMeter>("phrase_meter_left");
+    unk9a0 = FLT_MAX;
+    DataDir()->Find<RndAnimatable>("num_players.anim")->SetFrame(1, 1);
+    for (int i = 0; i < 4; i++) {
+        String flashcardSlot = MakeString("flashcard_slot%i.lbl", i);
+        HamLabel *label = DataDir()->Find<HamLabel>(flashcardSlot.c_str());
+        label->SetTextToken(gNullStr);
+        String flashcardSlotBG = MakeString("flashcard_slot_background%i.mat", i);
+        RndMat *mat = DataDir()->Find<RndMat>(flashcardSlotBG.c_str());
+        UIColor *gray = DataDir()->Find<UIColor>("gray.color");
+        const Hmx::Color &color = gray->GetColor();
+        mat->SetColor(color.red, color.green, color.blue);
+    }
+    Symbol song = MetaPerformer::Current()->GetSong();
+    unk9bc = -1;
+}
+
+void BustAMovePanel::SetUpMoveNames() {
+    mShuffledMoveNames.clear();
+    static Symbol bustamove_move_names("bustamove_move_names");
+    GetShuffledInts(
+        mShuffledMoveNames, TheGamePanel->Property(bustamove_move_names)->Array()->Size()
+    );
+}
+
+void BustAMovePanel::PlayVO(Symbol s) {
+    static Message playVOMsg("play", 0);
+    playVOMsg[0] = s;
+    mHUDPanel->Handle(playVOMsg, true);
 }
