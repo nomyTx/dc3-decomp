@@ -2,6 +2,7 @@
 #include "FreestyleMove.h"
 #include "gesture/BaseSkeleton.h"
 #include "gesture/Skeleton.h"
+#include "obj/Data.h"
 #include "os/Debug.h"
 #include "rndobj/Tex.h"
 #include "utl/MemMgr.h"
@@ -13,10 +14,10 @@
 class FreestyleMoveRecorder : public SkeletonCallback {
 public:
     struct JointAngle {
-        int unk0;
+        SkeletonJoint mJoint;
     };
     struct JointPos {
-        int unk0;
+        int unk0; // SkeletonJoint?
         int unk4;
     };
     FreestyleMoveRecorder();
@@ -38,6 +39,9 @@ public:
     BaseSkeleton *GetLiveSkeleton();
     void AssignStaticInstance();
     void DrawDebug();
+    void PlaybackComplete();
+    void ClearFrameScores();
+    void ReadFreestyleMoveClip(String, int &, FreestyleMoveFrame *);
 
     void SetVal44(int i) { unk44 = i; } // change once context found
 
@@ -50,11 +54,23 @@ public:
     static FreestyleMoveRecorder *sInstance;
 
 private:
+    void UpdateRecordingAttempt(const BaseSkeleton *, float);
+    void RecordMoveAttempt(String);
+    void WriteRecordedMoveAttempt();
+    void WriteFreestyleMoveClip(String, int, FreestyleMoveFrame *);
+    void ClearFreestyleMoveClip();
+
+    static DataNode OnRecordAttempt(DataArray *);
+    static DataNode OnWriteCreated(DataArray *);
+    static DataNode OnReadCreated(DataArray *);
+    static DataNode OnReadAttempt(DataArray *);
+    static DataNode OnClearAttempt(DataArray *);
+
     float unk4;
-    int unk8;
-    int unkc;
+    FreestyleMoveFrame *unk8; // 0x8 - frames
+    int unkc; // 0xc - frame count for unk8
     String unk10;
-    int unk18;
+    FreestyleMoveFrame *unk18;
     int unk1c;
     int unk20;
     int unk24;
@@ -75,8 +91,6 @@ private:
     int unkc8;
     std::vector<JointAngle> unkcc;
     std::vector<SkeletonJoint> unkd8;
-    FreeStyleFrameScores unke4[2];
+    FreestyleFrameScores unke4[2];
     std::vector<JointPos> unk104;
 };
-
-extern FreestyleMoveRecorder *TheFreestyleMoveRecorder;
