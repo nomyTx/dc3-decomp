@@ -37,7 +37,7 @@ public:
     UIPanel *EventDialogPanel() const { return mEventDialogPanel; }
     OverlayPanel *GetOverlayPanel() const { return mOverlayPanel; }
     LetterboxPanel *GetLetterboxPanel() const { return mLetterbox; }
-    UIPanel *GetBlacklightPanel() const { return mBlacklight; }
+    BlacklightPanel *GetBlacklightPanel() const { return mBlacklight; }
 
     void SetOverlayPanel(OverlayPanel *op) { mOverlayPanel = op; }
 
