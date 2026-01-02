@@ -50,7 +50,8 @@ public:
 
     int Compare(const NavListNode *, NavListNodeType) const;
     void GetID(DataArray *);
-
+    NavListItemSortCmp *GetCmp() { return mCmp; }
+    NavListNode *Parent() const { return mParent; }
 protected:
     NavListItemSortCmp *mCmp; // 0x2c
     NavListNode *mParent; // 0x30
@@ -86,8 +87,10 @@ public:
 
     void SetShortcut(NavListShortcutNode *);
     int StartIndex() const { return mStartIx; }
+    void SetStartIndex(int idx) { mStartIx = idx; }
     NavListShortcutNode *GetShortcut() const { return mShortcut; }
     const std::list<NavListSortNode *> &Children() const { return mChildren; }
+    int GetStartIx() { return mStartIx; }
 
 protected:
     std::list<NavListSortNode *> mChildren; // 0x34

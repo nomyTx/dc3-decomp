@@ -62,14 +62,15 @@ public:
     void FinalizeHeaders();
     void ClearHeaders();
 
-    bool IsInHeaderMode() { return mHeaderMode; }
-    bool EnteringHeaderMode() { return mEnteringHeaderMode; }
-    bool HeadersSelectable() { return mHeadersSelectable; }
-    std::vector<NavListSort *> Sorts() { return mSorts; };
-    std::vector<int> GetHeadersA() { return mHeadersA; };
-    std::vector<int> GetHeadersB() { return mHeadersB; };
-    int GetHeadersBAtIdx(int idx) { return mHeadersB[idx]; };
+    bool &IsInHeaderMode() { return mHeaderMode; }
+    bool &EnteringHeaderMode() { return mEnteringHeaderMode; }
+    bool &HeadersSelectable() { return mHeadersSelectable; }
+    std::vector<NavListSort *> &Sorts() { return mSorts; };
+    std::vector<int> &GetHeadersA() { return mHeadersA; };
+    std::vector<int> &GetHeadersB() { return mHeadersB; };
+    int &GetHeadersBAtIdx(int idx) { return mHeadersB[idx]; };
     int GetCurrentSortIdx() const { return mCurrentSortIdx; };
+    SongPreview *GetSongPreview() { return mSongPreview; };
 
 protected:
     std::vector<NavListSort *> mSorts; // 0x34
