@@ -24,6 +24,8 @@ DECLARE_MESSAGE(SkeletonEnrollmentChangedMsg, "skeleton_enrollment_changed")
 SkeletonEnrollmentChangedMsg() : Message(Type()) {}
 END_MESSAGE
 
+#define NUM_SKELETONS 6
+
 // size 0x4294
 class GestureMgr : public Hmx::Object, public SkeletonCallback {
 public:
@@ -109,11 +111,11 @@ private:
     static float sConfidenceLossThreshold;
     static float sConfidenceRegainThreshold;
 
-    SkeletonCallback *mCallbacks[6]; // 0x30
+    SkeletonCallback *mCallbacks[NUM_SKELETONS]; // 0x30
     LiveCameraInput *mLiveCamInput; // 0x48
-    Skeleton mSkeletons[6]; // 0x4c
-    IdentityInfo mIdentityInfos[6]; // 0x4144
-    SkeletonQualityFilter mFilters[6]; // 0x41a4
+    Skeleton mSkeletons[NUM_SKELETONS]; // 0x4c
+    IdentityInfo mIdentityInfos[NUM_SKELETONS]; // 0x4144
+    SkeletonQualityFilter mFilters[NUM_SKELETONS]; // 0x41a4
     bool mTrackingAllSkeletons; // 0x424c
     SkeletonRecoverer mRecoverer; // 0x4250
     int unk425c;

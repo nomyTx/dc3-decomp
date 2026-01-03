@@ -7,6 +7,7 @@
 
 class LetterboxPanel : public HamPanel {
 public:
+    LetterboxPanel();
     // Hmx::Object
     virtual ~LetterboxPanel();
     OBJ_CLASSNAME(LetterboxPanel)
@@ -24,7 +25,6 @@ public:
 
     static LetterboxPanel *sInstance;
 
-    LetterboxPanel();
     bool ShouldHideLetterbox() const;
     bool ShouldShowHandHelp() const;
     bool IsBlacklightMode();
@@ -39,6 +39,7 @@ public:
     void SetBlacklightModeImmediately(bool);
     void ToggleBlacklightMode(bool);
 
+private:
     UIPanel *unk3c;
     RndGroup *unk40;
     bool mIsBlacklightMode; // 0x44

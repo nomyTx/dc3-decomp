@@ -10,28 +10,31 @@ DECLARE_MESSAGE(SkeletonIdentifiedMsg, "skeleton_identified")
 END_MESSAGE
 
 enum IdentityStatus {
-    kIdentityStatus_0,
-    kIdentityStatus_Identifying,
-    kIdentityStatus_2
+    kIdentityStatus_0 = 0,
+    kIdentityStatus_Identifying = 1,
+    kIdentityStatus_2 = 2,
 };
 
 class SkeletonIdentifier : public Hmx::Object {
 public:
+    enum {
+        user_max_count = 4
+    };
     class EnrolledPlayer {
     public:
-        EnrolledPlayer();
+        EnrolledPlayer() : mPadNum(-1) {}
         bool UpdatePlayerBinding();
 
-        int unk0;
+        int mPadNum; // 0x0 - padnum/user index
         String unk4;
         int mEnrollmentIndex; // 0xc
     };
 
+    SkeletonIdentifier();
     // Hmx::Object
     virtual ~SkeletonIdentifier();
     virtual DataNode Handle(DataArray *, bool);
 
-    SkeletonIdentifier();
     void Init();
     void Poll();
     String GetPlayerName(int) const;
@@ -43,25 +46,25 @@ public:
     void UpdateEnrolledPlayers();
     void DrawDebug();
 
-protected:
-    IdentityStatus mIdentityStatus; // 0x2c
-    int unk30;
-    int unk34;
-    int unk38;
-    int unk3c;
-    int unk40;
-    int unk44;
-    EnrolledPlayer unk48[8];
-    bool unkc8;
-
 private:
     void SetEnrolling();
     void RequestIdentity();
     void SearchForIdentity();
     void NotifyOfRecognition(int) const;
-    DataNode OnMsg(SigninChangedMsg const &);
-    DataNode OnMsg(SkeletonEnrollmentChangedMsg const &);
-    DataNode OnMsg(SkeletonIdentifiedMsg const &);
+
+    DataNode OnMsg(const SigninChangedMsg &);
+    DataNode OnMsg(const SkeletonEnrollmentChangedMsg &);
+    DataNode OnMsg(const SkeletonIdentifiedMsg &);
+
+    IdentityStatus mIdentityStatus; // 0x2c
+    int unk30; // 0x30 - skeleton idx
+    int unk34; // 0x34 - player from skeleton
+    int unk38;
+    int unk3c;
+    int unk40; // 0x40 - skeleton tracking id
+    int unk44;
+    EnrolledPlayer unk48[8];
+    bool mDrawDebug; // 0xc8
 };
 
 String EnrollmentIndexString(int idx);
