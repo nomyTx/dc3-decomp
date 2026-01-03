@@ -19,8 +19,8 @@
 #include "utl/Symbol.h"
 
 HelpBarPanel::HelpBarPanel()
-    : mLeftHandNavList(0), mAll(0), unk44(false), unk78(false), unk79(true), unk7a(false),
-      unk7b(false), unk7c(false), unkb0(0) {
+    : mLeftHandNavList(0), mAll(0), unk44(false), unk78(false), mAllowController(true),
+      unk7a(false), unk7b(false), mWaveGestureEnabled(false), unkb0(0) {
     sInstance = this;
 }
 
@@ -130,7 +130,7 @@ void HelpBarPanel::ExitControllerMode(bool b) {
 
 void HelpBarPanel::ShowWaveGestureIcon() {
     MILO_LOG("HelpBarPanel: <<<OnWaveGestureEnabled>>>\n");
-    unk7c = true;
+    mWaveGestureEnabled = true;
     Flow *f = DataDir()->Find<Flow>("start_wave_icon_display.flow", false);
     if (f)
         f->Activate();
@@ -160,7 +160,7 @@ void HelpBarPanel::DeactivatePhysicalWriteIcon() {
 
 void HelpBarPanel::HideWaveGestureIcon() {
     MILO_LOG("HelpBarPanel: <<<OnWaveGestureDisabled>>>\n");
-    unk7c = false;
+    mWaveGestureEnabled = false;
     Flow *f = DataDir()->Find<Flow>("end_wave_icon_display.flow", false);
     if (f)
         f->Activate();
@@ -235,7 +235,7 @@ void HelpBarPanel::SyncToPanel(UIPanel *panel) {
     }
     static Symbol helpbar_confirm_label("helpbar_confirm_label");
     static Symbol helpbar_allow_controller("helpbar_allow_controller");
-    unk79 = true;
+    mAllowController = true;
 
     if (!panel) {
     ugh:
@@ -246,14 +246,14 @@ void HelpBarPanel::SyncToPanel(UIPanel *panel) {
         prop = panel->Property(helpbar_confirm_label, false);
         const DataNode *allowProp = panel->Property(helpbar_allow_controller, false);
         if (allowProp) {
-            unk79 = allowProp->Int();
+            mAllowController = allowProp->Int();
         }
         if (!prop) {
             goto ugh;
         }
     }
 
-    if (!unk79) {
+    if (!mAllowController) {
         ShellInput *pShellInput = TheHamUI.GetShellInput();
         MILO_ASSERT(pShellInput, 0xE2);
         pShellInput->ExitControllerMode(true);

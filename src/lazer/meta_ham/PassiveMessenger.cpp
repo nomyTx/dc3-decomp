@@ -6,6 +6,7 @@
 #include "obj/Msg.h"
 #include "obj/Object.h"
 #include "obj/Task.h"
+#include "os/Debug.h"
 #include "os/Timer.h"
 #include "utl/Locale.h"
 #include "utl/Std.h"
@@ -15,28 +16,40 @@ PassiveMessenger *ThePassiveMessenger;
 
 #pragma region PassiveMessage
 
-PassiveMessage::PassiveMessage(String str, PassiveMessageType pmt, Symbol sym, int i)
-    : unk4(str), unk8(pmt), mChannel(sym), unk14(i) {}
+PassiveMessage::PassiveMessage(String text, PassiveMessageType type, Symbol channel, int i)
+    : mText(text), mType(type), mChannel(channel), unk14(i) {}
 
 PassiveMessage::~PassiveMessage() {}
 
-String PassiveMessage::GetText() { return unk4; }
+String PassiveMessage::GetText() { return mText; }
 
-#pragma endregion PassiveMessage
+#pragma endregion
 #pragma region PassiveMessageQueue
 
-PassiveMessageQueue::PassiveMessageQueue(Hmx::Object *o, Symbol sym)
-    : unk8(4000.0f), unkc(0), mCallback(o), unk1c(sym) {}
+PassiveMessageQueue::PassiveMessageQueue(Hmx::Object *callback, Symbol sym)
+    : unk8(4000.0f), unkc(0), mCallback(callback), unk1c(sym) {}
 
-PassiveMessageQueue::~PassiveMessageQueue() { mQueue.clear(); }
+PassiveMessageQueue::~PassiveMessageQueue() {
+    FOREACH (it, mQueue) {
+        delete *it;
+    }
+    mQueue.clear();
+}
 
 PassiveMessage *PassiveMessageQueue::GetAndPreProcessFirstMessage() {
     return mQueue.front();
 }
 
+void PassiveMessageQueue::AddMessage(PassiveMessage *msg) {
+    Symbol symChannel = msg->Channel();
+    if (symChannel == gNullStr || RemoveLowerPriorityMessage(msg)) {
+        mQueue.push_back(msg);
+    }
+}
+
 bool PassiveMessageQueue::HasRecentlyDismissedMessage() const {
-    float uiSeconds = TheTaskMgr.UISeconds();
-    return uiSeconds - unkc > 0 && 10.0f > uiSeconds - unkc;
+    float seconds = TheTaskMgr.UISeconds() - unkc;
+    return seconds > 0 && 10.0f > seconds;
 }
 
 void PassiveMessageQueue::Poll() {
@@ -64,29 +77,22 @@ void PassiveMessageQueue::Poll() {
     }
 }
 
-void PassiveMessageQueue::AddMessage(PassiveMessage *msg) {
-    Symbol symChannel = msg->mChannel;
-    if (symChannel == gNullStr || RemoveLowerPriorityMessage(msg)) {
-        mQueue.push_back(msg);
+void PassiveMessageQueue::ClearRunningMessage() {
+    if (mTimer.Running()) {
+        mTimer.Stop();
+        ClearPassiveMessage();
     }
 }
 
-void PassiveMessageQueue::ClearRunningMessage() {
-    if (!mTimer.Running())
-        return;
-    mTimer.Stop();
-    ClearPassiveMessage();
-}
-
 bool PassiveMessageQueue::RemoveLowerPriorityMessage(PassiveMessage *msg) {
-    Symbol symChannel = msg->mChannel;
+    Symbol symChannel = msg->Channel();
     MILO_ASSERT(symChannel != gNullStr, 0x10c);
-    int i5 = msg->unk14;
+    int i5 = msg->Unk14();
     FOREACH (it, mQueue) {
         PassiveMessage *queueMessage = *it;
-        MILO_ASSERT(queueMessage, 0x10D);
-        if (queueMessage->mChannel == symChannel) {
-            if (i5 >= queueMessage->unk14)
+        MILO_ASSERT(queueMessage, 0x115);
+        if (queueMessage->Channel() == symChannel) {
+            if (i5 >= queueMessage->Unk14())
                 return false;
             else {
                 PassiveMessage *pMessage = *it;
@@ -104,36 +110,99 @@ void PassiveMessageQueue::ClearPassiveMessage() {
     static Symbol none("none");
     static Symbol p1("p1");
     static Symbol p2("p2");
-    String s = "";
+    Symbol which = none;
+    String str = "";
     unkc = TheTaskMgr.UISeconds();
     if (unk1c == none) {
-        static Message setup_alert("setup_alert");
-        TheHamProvider->Handle(setup_alert, false);
+        static Message cSetupAlertMsg("setup_alert", 0, 0);
+        cSetupAlertMsg[0] = which;
+        cSetupAlertMsg[1] = str;
+        static Symbol setup_alert("setup_alert");
+        TheHamProvider->Handle(cSetupAlertMsg, false);
     } else if (unk1c == p1) {
-        static Message setup_0_alert("setup_0_alert");
-        TheHamProvider->Handle(setup_0_alert, false);
+        static Message cSetup0AlertMsg("setup_0_alert", 0, 0);
+        cSetup0AlertMsg[0] = which;
+        cSetup0AlertMsg[1] = str;
+        TheHamProvider->Handle(cSetup0AlertMsg, false);
     } else if (unk1c == p2) {
-        static Message setup_1_alert("setup_1_alert");
-        TheHamProvider->Handle(setup_1_alert, false);
+        static Message cSetup1AlertMsg("setup_1_alert", 0, 0);
+        cSetup1AlertMsg[0] = which;
+        cSetup1AlertMsg[1] = str;
+        TheHamProvider->Handle(cSetup1AlertMsg, false);
     }
 }
 
-void PassiveMessageQueue::HandlePassiveMessage(PassiveMessage *) {
+void PassiveMessageQueue::HandlePassiveMessage(PassiveMessage *msg) {
     static Symbol none("none");
     static Symbol p1("p1");
     static Symbol p2("p2");
+    Symbol which = none;
+    PassiveMessageType type = msg->Type();
+    String text = msg->GetText();
+    switch (type) {
+    case kPassiveMessageGeneral: {
+        static Symbol general("general");
+        which = general;
+        break;
+    }
+    case kPassiveMessageFitness: {
+        static Symbol fitness("fitness");
+        which = fitness;
+        break;
+    }
+    case kPassiveMessageUnlock: {
+        static Symbol unlock("unlock");
+        which = unlock;
+        break;
+    }
+    case kPassiveMessageServer: {
+        static Symbol server("server");
+        which = server;
+        break;
+    }
+    case kPassiveMessageCampaign: {
+        static Symbol campaign("campaign");
+        which = campaign;
+        break;
+    }
+    case kPassiveMessageFree4All: {
+        static Symbol free4all("free4all");
+        which = free4all;
+        break;
+    }
+    default:
+        MILO_ASSERT(false, 0xE2);
+        break;
+    }
+    if (unk1c == none) {
+        static Message cSetupAlertMsg("setup_alert", 0, 0);
+        cSetupAlertMsg[0] = which;
+        cSetupAlertMsg[1] = text;
+        static Symbol setup_alert("setup_alert");
+        TheHamProvider->Handle(cSetupAlertMsg, false);
+    } else if (unk1c == p1) {
+        static Message cSetup0AlertMsg("setup_0_alert", 0, 0);
+        cSetup0AlertMsg[0] = which;
+        cSetup0AlertMsg[1] = text;
+        TheHamProvider->Handle(cSetup0AlertMsg, false);
+    } else if (unk1c == p2) {
+        static Message cSetup1AlertMsg("setup_1_alert", 0, 0);
+        cSetup1AlertMsg[0] = which;
+        cSetup1AlertMsg[1] = text;
+        TheHamProvider->Handle(cSetup1AlertMsg, false);
+    }
 }
 
-#pragma endregion PassiveMessageQueue
+#pragma endregion
 #pragma region PassiveMessenger
 
-PassiveMessenger::PassiveMessenger(Hmx::Object *o) {
+PassiveMessenger::PassiveMessenger(Hmx::Object *callback) {
     static Symbol none("none");
     static Symbol p1("p1");
     static Symbol p2("p2");
-    mMessageQueueP1 = new PassiveMessageQueue(o, p1);
-    mMessageQueueP2 = new PassiveMessageQueue(o, p2);
-    mMessageQueueNone = new PassiveMessageQueue(o, none);
+    mMessageQueueP1 = new PassiveMessageQueue(callback, p1);
+    mMessageQueueP2 = new PassiveMessageQueue(callback, p2);
+    mMessageQueueNone = new PassiveMessageQueue(callback, none);
     mEnabled = true;
     MILO_ASSERT(!ThePassiveMessenger, 0x159);
     ThePassiveMessenger = this;
@@ -147,6 +216,20 @@ PassiveMessenger::~PassiveMessenger() {
     MILO_ASSERT(ThePassiveMessenger, 0x164);
     ThePassiveMessenger = nullptr;
 }
+
+BEGIN_HANDLERS(PassiveMessenger)
+    HANDLE_ACTION(
+        trigger_message,
+        TriggerGenericMsg(_msg->Sym(2), _msg->Sym(3), kPassiveMessageGeneral, gNullStr, -1)
+    )
+    HANDLE_ACTION(
+        trigger_campaign_message,
+        TriggerGenericMsg(
+            _msg->Sym(2), _msg->Sym(3), kPassiveMessageCampaign, gNullStr, -1
+        )
+    )
+    HANDLE_EXPR(has_messages, HasMessages())
+END_HANDLERS
 
 BEGIN_PROPSYNCS(PassiveMessenger)
     SYNC_PROP(enabled, mEnabled)
@@ -176,7 +259,8 @@ bool PassiveMessenger::HasRecentlyDismissedMessage() const {
         || mMessageQueueP1->HasRecentlyDismissedMessage()
         || mMessageQueueP2->HasRecentlyDismissedMessage())
         return true;
-    return false;
+    else
+        return false;
 }
 
 bool PassiveMessenger::AreSideMessagesAllowed() const {
@@ -184,7 +268,7 @@ bool PassiveMessenger::AreSideMessagesAllowed() const {
         return false;
     else {
         static Symbol ui_nav_mode("ui_nav_mode");
-        const DataNode *pNavModeNode = TheHamProvider->Property(ui_nav_mode, true);
+        const DataNode *pNavModeNode = TheHamProvider->Property(ui_nav_mode);
         MILO_ASSERT(pNavModeNode, 0x33);
         Symbol sym = pNavModeNode->Sym();
         static Symbol init("init");
@@ -202,7 +286,7 @@ bool PassiveMessenger::AreGlobalMessagesAllowed() const {
         return false;
     else {
         static Symbol ui_nav_mode("ui_nav_mode");
-        const DataNode *pNavModeNode = TheHamProvider->Property(ui_nav_mode, true);
+        const DataNode *pNavModeNode = TheHamProvider->Property(ui_nav_mode);
         MILO_ASSERT(pNavModeNode, 0x4c);
         Symbol sym = pNavModeNode->Sym();
         static Symbol init("init");
@@ -249,43 +333,19 @@ void PassiveMessenger::TriggerStringMsg(
 }
 
 bool PassiveMessenger::HasMessages() const {
-    int queueNone = 0;
-    FOREACH (it, mMessageQueueNone->mQueue) {
-        queueNone++;
-    }
-    if (0 < queueNone)
+    if (mMessageQueueNone->NumMessagesInQueue() > 0) {
         return true;
-
-    int queueP1 = 0;
-    FOREACH (it, mMessageQueueP1->mQueue) {
-        queueP1++;
     }
-    if (0 < queueP1)
+    if (mMessageQueueP1->NumMessagesInQueue() > 0) {
         return true;
-
-    int queueP2 = 0;
-    FOREACH (it, mMessageQueueP2->mQueue) {
-        queueP2++;
     }
-    if (0 < queueP2)
+    if (mMessageQueueP2->NumMessagesInQueue() > 0) {
         return true;
-
-    if (!mMessageQueueNone->mTimer.Running() && !mMessageQueueP1->mTimer.Running()
-        && !mMessageQueueP2->mTimer.Running())
+    }
+    if (!mMessageQueueNone->Running() && !mMessageQueueP1->Running()
+        && !mMessageQueueP2->Running())
         return false;
     return true;
 }
 
-BEGIN_HANDLERS(PassiveMessenger)
-    HANDLE_ACTION(
-        trigger_message,
-        TriggerGenericMsg(_msg->Sym(2), _msg->Sym(3), passivemessagetype0, gNullStr, -1)
-    )
-    HANDLE_ACTION(
-        trigger_campaign_message,
-        TriggerGenericMsg(_msg->Sym(2), _msg->Sym(3), passivemessagetype4, gNullStr, -1)
-    )
-    HANDLE_EXPR(has_messages, HasMessages())
-END_HANDLERS
-
-#pragma endregion PassiveMessenger
+#pragma endregion

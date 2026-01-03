@@ -61,10 +61,10 @@ private:
     bool unk44;
     Timer unk48;
     bool unk78;
-    bool unk79;
+    bool mAllowController; // 0x79
     bool unk7a;
     bool unk7b;
-    bool unk7c;
+    bool mWaveGestureEnabled; // 0x7c
     Timer unk80;
     UIPanel *unkb0;
 };
