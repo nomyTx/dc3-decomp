@@ -144,4 +144,5 @@ extern SaveLoadManager *TheSaveLoadMgr;
 
 DECLARE_MESSAGE(SaveLoadMgrStatusUpdateMsg, "saveloadmgr_status_update_msg")
 SaveLoadMgrStatusUpdateMsg(int status) : Message(Type(), status) {}
+int Status() const { return mData->Int(2); }
 END_MESSAGE

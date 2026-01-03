@@ -11,14 +11,13 @@
 
 class HelpBarPanel : public HamPanel {
 public:
+    HelpBarPanel();
     // Hmx::Object
     virtual ~HelpBarPanel();
     OBJ_CLASSNAME(HelpBarPanel)
     OBJ_SET_TYPE(HelpBarPanel)
     virtual DataNode Handle(DataArray *, bool);
     virtual bool SyncProperty(DataNode &, DataArray *, int, PropOp);
-
-    NEW_OBJ(HelpBarPanel)
 
     // UIPanel
     virtual void Draw();
@@ -29,29 +28,20 @@ public:
     virtual void FinishLoad();
 
     static HelpBarPanel *sInstance;
+    NEW_OBJ(HelpBarPanel)
 
-    HelpBarPanel();
     bool IsAnimating();
     bool UpdateBackButton(UIPanel *);
     bool UpdateTertiaryButton(UIPanel *);
     void EnterControllerMode();
     void ExitControllerMode(bool);
     bool IsWriteIconShowing();
+    bool IsWriteIconUp() const;
     void SyncToPanel(UIPanel *);
-    DataNode OnEnterBlacklightMode(DataArray const *);
-    DataNode OnExitBlacklightMode(DataArray const *);
+    void SetTertiaryLabels(DataArray *);
 
-    UIPanel *unk3c;
-    RndGroup *unk40;
-    bool unk44;
-    Timer unk48;
-    bool unk78;
-    bool unk79;
-    bool unk7a;
-    bool unk7b;
-    bool unk7c;
-    Timer unk80;
-    HamNavList *unkb0;
+    DataNode OnEnterBlacklightMode(const DataArray *);
+    DataNode OnExitBlacklightMode(const DataArray *);
 
 private:
     bool ShouldHideHelpbar() const;
@@ -61,8 +51,20 @@ private:
     void ShowWaveGestureIcon();
     void HideWaveGestureIcon();
     void PollSaveDeactivation();
-    DataNode OnWaveGestureEnabled(DataArray const *);
-    DataNode OnWaveGestureDisabled(DataArray const *);
-    DataNode OnMsg(ButtonDownMsg const &);
-    DataNode OnMsg(SaveLoadMgrStatusUpdateMsg const &);
+    DataNode OnWaveGestureEnabled(const DataArray *);
+    DataNode OnWaveGestureDisabled(const DataArray *);
+    DataNode OnMsg(const ButtonDownMsg &);
+    DataNode OnMsg(const SaveLoadMgrStatusUpdateMsg &);
+
+    HamNavList *mLeftHandNavList; // 0x3c
+    RndGroup *mAll; // 0x40
+    bool unk44;
+    Timer unk48;
+    bool unk78;
+    bool unk79;
+    bool unk7a;
+    bool unk7b;
+    bool unk7c;
+    Timer unk80;
+    UIPanel *unkb0;
 };

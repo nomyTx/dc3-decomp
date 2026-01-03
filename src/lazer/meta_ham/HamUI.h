@@ -96,7 +96,7 @@ private:
     bool unk_0xFD;
     UIScreen *mEventScreen; // 0x100
     ShellInput *mShellInput; // 0x104
-    s32 mPadNum; // 0x108
+    int mPadNum; // 0x108
     LiveCameraInput::BufferType mBufferType; // 0x10C
     bool mFullScreenDrawActive;
     float mSkelRot; // 0x114

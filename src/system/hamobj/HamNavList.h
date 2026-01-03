@@ -90,6 +90,8 @@ public:
     void DrawDebug() const;
 
     void Enable() { mEnabled = true; }
+    void Disable() { mEnabled = false; }
+    bool Enabled() const { return mEnabled; }
     HamNavProvider *GetHelpbarProvider() { return mNavProvider; }
 
     static void Init();

@@ -80,13 +80,11 @@ protected:
     int unk50;
     RndCam *mCam; // 0x54
     RndEnviron *mEnv; // 0x58
-    int unk5c;
     Timer mTimer; // 0x60
     bool mOverloadHorizontalNav; // 0x90
     bool mCancelTransitionNotify; // 0x91
     bool mDefaultAllowEditText; // 0x92
     bool mDisableScreenBlacklight; // 0x93
-    int unk94;
     Timer mLoadTimer; // 0x98
     RndOverlay *mOverlay; // 0xc8
     Automator *mAutomator; // 0xcc
