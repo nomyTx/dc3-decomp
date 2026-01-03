@@ -1,10 +1,14 @@
 #include "lazer/meta_ham/HamUI.h"
 #include "game/Game.h"
+#include "game/GamePanel.h"
+#include "game/PresenceMgr.h"
 #include "gesture/BaseSkeleton.h"
 #include "gesture/DrawUtl.h"
 #include "gesture/GestureMgr.h"
+#include "gesture/LiveCameraInput.h"
 #include "gesture/SkeletonViz.h"
 #include "gesture/StreamRenderer.h"
+#include "hamobj/HamDirector.h"
 #include "hamobj/HamGameData.h"
 #include "hamobj/HamPlayerData.h"
 #include "math/Rot.h"
@@ -34,9 +38,11 @@
 #include "rndobj/TexRenderer.h"
 #include "rndobj/Text.h"
 #include "ui/UI.h"
+#include "ui/UILabel.h"
 #include "ui/UIPanel.h"
 #include "ui/UIScreen.h"
 #include "utl/Symbol.h"
+#include "xdk/xapilibi/xbox.h"
 
 namespace {
     UIPanel *FindPanel(const char *name) {
@@ -52,8 +58,8 @@ HamUI::HamUI()
       mEventDialogPanel(nullptr), mBackgroundPanel(nullptr),
       mContentLoadingPanel(nullptr), mOverlayPanel(nullptr), mGamePanel(nullptr),
       mAugmentedPhoto(nullptr), unk_0xFC(false), unk_0xFD(false), mEventScreen(nullptr),
-      mShellInput(new ShellInput()), unk_0x108(0), unk_0x10C(-1), mSkelRot(0),
-      mButtonSpam(false), mUIOverlay(nullptr) {
+      mShellInput(new ShellInput()), mPadNum(0), mBufferType(LiveCameraInput::kBufferOff),
+      mSkelRot(0), mButtonSpam(false), mUIOverlay(nullptr) {
     SetFullScreenDraw(false);
 }
 
@@ -464,28 +470,22 @@ void HamUI::StoreDepthBufferClipAt(float f1, float f2, float f3, float f4, int i
         TheGestureMgr->GetLiveCameraInput()->StoreDepthBufferClip(f1, f2, f3, f4, i1);
 }
 
-// Symbol HamUI::DisplayNextCameraOutput() { return Symbol(); }
-
-DataNode HamUI::OnMsg(const UITransitionCompleteMsg &msg) {
-    HAQManager::Print(HAQType::kHAQType_Screen);
-    HAQManager::Print(HAQType::kHAQType_Focus);
-    UIScreen *scr = msg->Obj<UIScreen>(2);
-    if (scr) {
-        Symbol scrname(scr->Name()), disable_screen_saver("disable_screen_saver");
-        auto prop = scr->Property(disable_screen_saver, false);
-    }
-
-    return 1;
-}
-
-DataNode HamUI::OnMsg(DiskErrorMsg const &) {
-    static Symbol disc_error("disc_error");
-    TheUIEventMgr->TriggerEvent(disc_error, 0);
-    return 1;
-}
-
 void HamUI::ReloadStrings() {
-    Message reload("reload_strings");
+    Message reload_string("reload_string");
+    UIPanel *panels[] = { mHelpBar,          mLetterbox,       mBlacklight,
+                          mEventDialogPanel, mBackgroundPanel, mContentLoadingPanel,
+                          mOverlayPanel,     mGamePanel };
+    for (int i = 0; i < DIM(panels); i++) {
+        UIPanel *cur = panels[i];
+        if (cur) {
+            ObjectDir *dataDir = cur->DataDir();
+            if (dataDir) {
+                for (ObjDirItr<UILabel> it(dataDir, true); it != nullptr; ++it) {
+                    it->Handle(reload_string, true);
+                }
+            }
+        }
+    }
 
     UIManager::ReloadStrings();
 }
@@ -534,10 +534,154 @@ void HamUI::InitPanels() {
         mEventDialogPanel = FindPanel("event_dialog_panel");
         mContentLoadingPanel = FindPanel("content_loading_panel");
         mBackgroundPanel = ObjectDir::Main()->Find<UIPanel>("background_panel");
-        // gamepanel find
+        mGamePanel = ObjectDir::Main()->Find<GamePanel>("game_panel");
         mLetterbox = dynamic_cast<LetterboxPanel *>(FindPanel("letterbox"));
         mBlacklight = dynamic_cast<BlacklightPanel *>(FindPanel("blacklight"));
     }
+}
+
+bool HamUI::IsGameActive() const {
+    if (!mGamePanel) {
+        return false;
+    } else {
+        return mShellInput->IsGameplayPanel() && mGamePanel->GetState() == UIPanel::kUp
+            && !mGamePanel->Paused();
+    }
+}
+
+void HamUI::DrawDebug() {
+    if (mBufferType < 4 || NumSnapshots() <= 0) {
+        LiveCameraInput::BufferType bt = mBufferType;
+        if (bt < 0) {
+            bt = (LiveCameraInput::BufferType)4;
+        }
+        DrawGestureMgr(*TheGestureMgr, bt, mSkelRot);
+    } else {
+        DrawSnapshot(*TheGestureMgr, mBufferType - 4);
+    }
+    mShellInput->DrawDebug();
+    TheHamDirector->DrawDebug();
+}
+
+Symbol HamUI::DisplayNextCameraOutput() {
+    do {
+        do {
+            mBufferType = (LiveCameraInput::BufferType)(mBufferType + 1);
+        } while (mBufferType == 1);
+    } while (mBufferType == 2);
+    if (mBufferType >= NumSnapshots() + 4) {
+        mBufferType = (LiveCameraInput::BufferType)-1;
+    }
+    switch (mBufferType) {
+    case LiveCameraInput::kBufferColor:
+        return "color";
+    case LiveCameraInput::kBufferDepth:
+        return "depth";
+    case LiveCameraInput::kBufferPlayer:
+        return "player";
+    case LiveCameraInput::kBufferPlayerColor:
+        return "player color";
+    case LiveCameraInput::kBufferOff:
+        return "off";
+    default:
+        return MakeString("snapshot %d", mBufferType - 4);
+    }
+}
+
+void HamUI::UpdateUIOverlay() {
+    if (mUIOverlay && mUIOverlay->Showing()) {
+        int lines = 0;
+        mUIOverlay->Clear();
+        std::vector<UIScreen *> screens;
+        if (PushDepth() > 0) {
+            screens.push_back(BottomScreen());
+        }
+        if (mCurrentScreen) {
+            screens.push_back(mCurrentScreen);
+        }
+        FOREACH (it, screens) {
+            *mUIOverlay << "screen " << (*it)->Name() << "\n";
+            UIPanel *focusPanel = (*it)->FocusPanel();
+            for (auto panelIt = (*it)->PanelList().begin();
+                 panelIt != (*it)->PanelList().end();
+                 ++panelIt, ++lines) {
+                UIPanel *panel = panelIt->mPanel;
+                *mUIOverlay << "panel " << panel->IsLoaded()
+                            << (focusPanel == panel ? "* " : "  ") << panel->Name()
+                            << "\n";
+            }
+        }
+        if (mTransitionScreen) {
+            *mUIOverlay << "going to screen " << mTransitionScreen->Name() << "\n";
+            UIPanel *focusPanel = mTransitionScreen->FocusPanel();
+            for (auto panelIt = mTransitionScreen->PanelList().begin();
+                 panelIt != mTransitionScreen->PanelList().end();
+                 ++panelIt, ++lines) {
+                UIPanel *panel = panelIt->mPanel;
+                *mUIOverlay << "panel " << panel->IsLoaded()
+                            << (focusPanel == panel ? "* " : "  ") << panel->Name()
+                            << "\n";
+            }
+        }
+        if (lines != 0) {
+            mUIOverlay->SetLines(lines);
+        }
+    }
+}
+
+DataNode HamUI::OnMsg(const UITransitionCompleteMsg &msg) {
+    HAQManager::Print(HAQType::kHAQType_Screen);
+    HAQManager::Print(HAQType::kHAQType_Focus);
+    Symbol s60(gNullStr);
+    UIScreen *newScreen = msg.GetNewScreen();
+    if (newScreen) {
+        s60 = newScreen->Name();
+        const DataNode *prop = newScreen->Property("disable_screen_saver", false);
+        bool disable = prop && prop->Int();
+        ThePlatformMgr.SetScreenSaver(!disable);
+    }
+    if (TheUIEventMgr->HasActiveTransitionEvent()
+        && TheUIEventMgr->IsTransitionEventFinished()) {
+        TheUIEventMgr->DismissEvent(gNullStr);
+    }
+    if (mHelpBar) {
+        mHelpBar->HandleType(msg);
+    }
+    mShellInput->SyncToCurrentScreen();
+    CurrentScreenChangedMsg screenChangeMsg(s60);
+    Export(screenChangeMsg, true);
+    return DataNode(kDataUnhandled, 0);
+}
+
+DataNode HamUI::OnMsg(const DiskErrorMsg &) {
+    static Symbol disc_error("disc_error");
+    TheUIEventMgr->TriggerEvent(disc_error, 0);
+    return 1;
+}
+
+DataNode HamUI::OnMsg(const KinectGuideGestureMsg &msg) {
+    if (IsGameActive() && !mGamePanel->IsGameOver()) {
+        return DataNode(kDataUnhandled, 0);
+    } else {
+        XShowNuiGuideUI(msg.TrackingID());
+        return 1;
+    }
+}
+
+DataNode HamUI::OnMsg(const ContentReadFailureMsg &msg) {
+    static Message init("init", 0, 0);
+    init[0] = msg.GetBool();
+    init[1] = msg.GetStr();
+    static Symbol data_error("data_error");
+    TheUIEventMgr->TriggerEvent(data_error, init);
+    return 1;
+}
+
+DataNode HamUI::OnMsg(const ButtonDownMsg &msg) {
+    static ResetControllerModeTimeoutMsg resetControllerModeTimeoutMsg;
+    Export(resetControllerModeTimeoutMsg, true);
+    mPadNum = msg.GetPadNum();
+    return DataNode(kDataUnhandled, 0);
 }
 
 bool ToggleDrawSkeletons() {

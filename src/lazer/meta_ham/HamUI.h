@@ -1,5 +1,6 @@
 #pragma once
 #include "game/GamePanel.h"
+#include "gesture/LiveCameraInput.h"
 #include "meta_ham/BlacklightPanel.h"
 #include "meta_ham/HelpBarPanel.h"
 #include "meta_ham/LetterboxPanel.h"
@@ -17,6 +18,7 @@
 #include "ui/UIScreen.h"
 
 DECLARE_MESSAGE(KinectGuideGestureMsg, "kinect_guide_gesture")
+DWORD TrackingID() const { return mData->Int(2); }
 END_MESSAGE
 
 class HamUI : public UIManager {
@@ -38,7 +40,7 @@ public:
     bool IsBlacklightMode();
     ShellInput *GetShellInput() const { return mShellInput; }
     HelpBarPanel *GetHelpBarPanel() const { return mHelpBar; }
-    int Unk108() const { return unk_0x108; }
+    int GetPadNum() const { return mPadNum; }
     UIPanel *EventDialogPanel() const { return mEventDialogPanel; }
     OverlayPanel *GetOverlayPanel() const { return mOverlayPanel; }
     LetterboxPanel *GetLetterboxPanel() const { return mLetterbox; }
@@ -79,6 +81,7 @@ private:
     void ReloadStrings();
     void UpdateUIOverlay();
     void DrawDebug();
+    bool IsGameActive() const;
 
     HelpBarPanel *mHelpBar; // 0xd8
     LetterboxPanel *mLetterbox; // 0xdc
@@ -93,10 +96,10 @@ private:
     bool unk_0xFD;
     UIScreen *mEventScreen; // 0x100
     ShellInput *mShellInput; // 0x104
-    s32 unk_0x108; // 0x108
-    u32 unk_0x10C; // 0x10C - BufferType
+    s32 mPadNum; // 0x108
+    LiveCameraInput::BufferType mBufferType; // 0x10C
     bool mFullScreenDrawActive;
-    float mSkelRot;
+    float mSkelRot; // 0x114
     bool mButtonSpam; // 0x118
     RndOverlay *mUIOverlay; // 0x11c
 };

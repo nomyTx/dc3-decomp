@@ -15,8 +15,11 @@ struct CamTexClip {
 class LiveCameraInput : public CameraInput {
 public:
     enum BufferType {
+        kBufferOff = -1,
         kBufferColor = 0,
-        kBufferDepth = 1
+        kBufferDepth = 1,
+        kBufferPlayer = 2,
+        kBufferPlayerColor = 3,
     };
     class TextureStore {
     public:

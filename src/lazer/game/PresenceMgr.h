@@ -35,4 +35,5 @@ protected:
 extern PresenceMgr ThePresenceMgr;
 
 DECLARE_MESSAGE(CurrentScreenChangedMsg, "current_screen_changed")
+CurrentScreenChangedMsg(Symbol s) : Message(Type(), s) {}
 END_MESSAGE

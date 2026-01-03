@@ -87,8 +87,9 @@ public:
     void ClearBigElements();
     void HideItem(int, bool);
     void SetProviderNavItemLabels(int, DataArray *);
-    void Enable() { mEnabled = true; }
+    void DrawDebug() const;
 
+    void Enable() { mEnabled = true; }
     HamNavProvider *GetHelpbarProvider() { return mNavProvider; }
 
     static void Init();

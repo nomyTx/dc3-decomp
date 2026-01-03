@@ -11,13 +11,20 @@
 #include "meta_ham/DepthBuffer.h"
 #include "meta_ham/HamUI.h"
 #include "meta_ham/HelpBarPanel.h"
+#include "meta_ham/LetterboxPanel.h"
+#include "meta_ham/UIEventMgr.h"
 #include "obj/Data.h"
 #include "obj/Dir.h"
 #include "obj/Object.h"
+#include "obj/Task.h"
 #include "os/Debug.h"
+#include "os/Joypad.h"
 #include "os/JoypadMsgs.h"
 #include "rndobj/Anim.h"
+#include "synth/Synth.h"
+#include "ui/PanelDir.h"
 #include "ui/UI.h"
+#include "ui/UIPanel.h"
 
 ShellInput::ShellInput()
     : mVoiceControlEnabled(0), unk_0x34(this), unk_0x48(0, 15, 0), unk_0x9C(0.2),
@@ -149,9 +156,8 @@ void ShellInput::SyncVoiceControl() {
 }
 
 void ShellInput::ExitControllerMode(bool b) {
-    HelpBarPanel *hbp = TheHamUI.GetHelpBarPanel();
-    if (hbp)
-        hbp->ExitControllerMode(b);
+    if (TheHamUI.GetHelpBarPanel())
+        TheHamUI.GetHelpBarPanel()->ExitControllerMode(b);
     TheGestureMgr->SetInControllerMode(false);
     static Message controllerModeExited("controller_mode_exited");
     TheUI->Handle(controllerModeExited, false);
@@ -160,18 +166,120 @@ void ShellInput::ExitControllerMode(bool b) {
     // TheRockCentral.unk_0x12C++;
 }
 
-void ShellInput::SyncToCurrentScreen() {}
+void ShellInput::DrawDebug() {
+    if (mInputPanel) {
+        HamNavList *list =
+            mInputPanel->DataDir()->Find<HamNavList>("right_hand.hnl", false);
+        if (list) {
+            list->DrawDebug();
+        }
+    }
+    mSkelIdentifier->DrawDebug();
+    mSkelChooser->DrawDebug();
+}
+
+void ShellInput::SetCursorAlpha(float f1) const {
+    if (TheHamUI.GetHelpBarPanel()) {
+        ObjectDir *hbpDataDir = TheHamUI.GetHelpBarPanel()->DataDir();
+        PanelDir *dir = dynamic_cast<PanelDir *>(hbpDataDir);
+        if (dir) {
+            RndAnimatable *anim =
+                dir->DataDir()->Find<RndAnimatable>("cursor_alpha.anim");
+            float frame = anim->GetFrame();
+            frame = TheTaskMgr.DeltaUISeconds() * (f1 - frame) * 10.0f + frame;
+            anim->SetFrame(frame, 1);
+        }
+    }
+}
+
+void ShellInput::SyncToCurrentScreen() {
+    if (TheUIEventMgr->HasActiveDialogEvent()) {
+        UIPanel *input = TheHamUI.EventDialogPanel();
+        if (input->GetState() == UIPanel::kUp) {
+            mInputPanel = input;
+        } else if (TheHamUI.GetOverlayPanel()) {
+            mInputPanel = TheHamUI.GetOverlayPanel();
+        }
+    }
+    // TheGestureMgr->unk4271 = !IsGameplayPanel();
+    TheHamUI.GetHelpBarPanel()->SyncToPanel(mInputPanel);
+    unk_0x98 = 5000;
+    if (TheHamUI.GetHelpBarPanel()) {
+        static Symbol controller_mode_timeout("controller_mode_timeout");
+        const DataNode *prop =
+            TheHamUI.GetHelpBarPanel()->Property(controller_mode_timeout, false);
+        if (prop) {
+            unk_0x98 = prop->Int();
+        }
+    }
+    LetterboxPanel *lbp = TheHamUI.GetLetterboxPanel();
+    if (lbp) {
+        lbp->SyncToPanel(mInputPanel);
+    }
+    static Symbol use_gamertag_bg("use_gamertag_bg");
+    bool use = false;
+    if (mInputPanel) {
+        SyncVoiceControl();
+        const DataNode *prop = mInputPanel->Property(use_gamertag_bg, false);
+
+        if (prop) {
+            use = prop->Int();
+        }
+        static Symbol allow_doubleuser_swipe("allow_doubleuser_swipe");
+        const DataNode *userProp = mInputPanel->Property(allow_doubleuser_swipe, false);
+        if (userProp && userProp->Int() == 1) {
+            TheGestureMgr->SetInDoubleUserMode(true);
+        } else {
+            TheGestureMgr->SetInDoubleUserMode(false);
+        }
+    }
+    TheHamProvider->SetProperty(use_gamertag_bg, use);
+}
 
 DataNode ShellInput::OnMsg(const SpeechEnableMsg &msg) {
     if (msg->Int(2))
         SyncVoiceControl();
     return 0;
 }
-DataNode ShellInput::OnMsg(const ButtonDownMsg &msg) { return 0; }
+DataNode ShellInput::OnMsg(const ButtonDownMsg &msg) {
+    if (msg.GetButton() == kPad_RStickUp || msg.GetButton() == kPad_RStickDown
+        || msg.GetButton() == kPad_RStickLeft || msg.GetButton() == kPad_RStickRight
+        || msg.GetButton() == kPad_Xbox_LT || msg.GetButton() == kPad_Xbox_RT) {
+        TheSynth->RunFlow("invalid_select.flow");
+    } else {
+        if (TheGestureMgr->InControllerMode()) {
+            if (msg.GetButton() == kPad_Start) {
+                ExitControllerMode(false);
+                return 0;
+            } else {
+                if (mInputPanel) {
+                    bool b2 = false;
+                    static Symbol is_gameplay_panel("is_gameplay_panel");
+                    const DataNode *prop =
+                        mInputPanel->Property(is_gameplay_panel, false);
+                    b2 = prop && prop->Int() == 1;
+                    if (!b2 && !TheGestureMgr->InControllerMode()) {
+                        EnterControllerMode(false);
+                        if (msg.GetButton() != kPad_Xbox_B) {
+                            if (!TheHamUI.GetHelpBarPanel()) {
+                                TheSynth->RunFlow("invalid_select.flow");
+                            }
+                            return 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return DataNode(kDataUnhandled, 0);
+}
+
 DataNode ShellInput::OnMsg(const JoypadConnectionMsg &msg) {
-    if (TheGestureMgr->InControllerMode() && msg->Int(3) == 0) {
-        if (msg->Int(5) == TheHamUI.Unk108())
+    if (TheGestureMgr->InControllerMode() && !msg.Connected()) {
+        if (msg->Int(5) == TheHamUI.GetPadNum())
             ExitControllerMode(false);
     }
     return DataNode(kDataUnhandled, 0);
 }
+
+DataNode ShellInput::OnMsg(const SpeechRecoMessage &msg) { return 0; }

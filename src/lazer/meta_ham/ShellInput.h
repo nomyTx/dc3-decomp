@@ -19,6 +19,7 @@ DECLARE_MESSAGE(LeftHandListEngagementMsg, "left_hand_list_engagement")
 END_MESSAGE
 
 DECLARE_MESSAGE(ResetControllerModeTimeoutMsg, "reset_controller_mode_timeout")
+ResetControllerModeTimeoutMsg() : Message(Type()) {}
 END_MESSAGE
 
 class ShellInput : public Hmx::Object, public SkeletonCallback {
@@ -45,6 +46,7 @@ public:
     bool HasSkeleton() const;
     int NumTrackedSkeletons() const;
     void EnterControllerMode(bool);
+    void DrawDebug();
 
     SkeletonChooser *GetSkeletonChooser() { return mSkelChooser; }
 
