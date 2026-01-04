@@ -16,13 +16,15 @@ public:
     };
 
     OBJ_CLASSNAME(StarsDisplay) // bruh
+    OBJ_SET_TYPE(StarsDisplay)
     virtual DataNode Handle(DataArray *, bool);
 
-    HamStarsDisplay();
     void SetSongChallenge(Difficulty);
     void SetSong(int);
     void SetSongCampaign(int);
     void SetSongWithDifficulty(int, Difficulty, bool);
+
+    NEW_OBJ(HamStarsDisplay)
 
 private:
     void SetSongImpl(int, Difficulty, StarDisplayMode);

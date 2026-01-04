@@ -20,8 +20,9 @@ public:
               unk11(0), unk14(0), unk24(0) {}
         NavItem(const NavItem &other)
             : mLabel(other.mLabel), mCheckboxState(other.mCheckboxState),
-              unk8(other.unk8), unkc(other.unkc), unk10(other.unk10), unk11(other.unk11),
-              unk14(other.unk14), mLabels(other.mLabels), unk24(other.unk24) {
+              mSongID(other.mSongID), unkc(other.unkc), unk10(other.unk10),
+              unk11(other.unk11), unk14(other.unk14), mLabels(other.mLabels),
+              unk24(other.unk24) {
             if (unk14)
                 unk14->AddRef();
         }
@@ -35,7 +36,7 @@ public:
         /** "used for a list entry with a single label" */
         Symbol mLabel; // 0x0
         CheckboxMode mCheckboxState; // 0x4
-        int unk8;
+        int mSongID; // 0x8 - song ID
         int unkc;
         bool unk10;
         bool unk11;

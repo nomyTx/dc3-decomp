@@ -6,7 +6,7 @@
 #include "ProfileMgr.h"
 #include "system/ui/UIListProvider.h"
 
-class WeightInputProvider : public UIListProvider, Hmx::Object {
+class WeightInputProvider : public UIListProvider, public Hmx::Object {
 public:
     WeightInputProvider();
     virtual ~WeightInputProvider();
@@ -24,8 +24,8 @@ public:
 
 class WeightInputPanel : public HamPanel {
 public:
-    WeightInputPanel();
-    ~WeightInputPanel();
+    WeightInputPanel() {}
+    virtual ~WeightInputPanel() {}
     OBJ_CLASSNAME(WeightInputPanel)
     OBJ_SET_TYPE(WeightInputPanel)
     virtual DataNode Handle(DataArray *, bool);
@@ -37,5 +37,6 @@ public:
     Symbol GetPreferredUnits();
     void SetPreferredUnits(Symbol);
 
+private:
     WeightInputProvider mWeightInputProvider; // 0x3c
 };

@@ -6,6 +6,8 @@ class FitnessGoalMgr : public Hmx::Object {
 public:
     void DeleteFitnessGoalFromRC(HamProfile *);
     void OnSendFitnessGoalToRC(HamProfile *);
+
+    static void Init();
 };
 
 extern FitnessGoalMgr *TheFitnessGoalMgr;

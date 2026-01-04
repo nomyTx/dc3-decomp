@@ -13,8 +13,6 @@
 #include "ui/UIListLabel.h"
 #include "utl/Symbol.h"
 
-ChooseProfilePanel::ChooseProfilePanel() {}
-
 void ChooseProfilePanel::Enter() {
     UpdateProfiles();
     HamPanel::Enter();
@@ -37,7 +35,7 @@ void ChooseProfilePanel::Text(
     MILO_ASSERT(app_label, 0x61);
     int tag = mPadNums[data];
     if (uiListLabel->Matches("gamertag")) {
-        if (data == -1) {
+        if (tag == -1) {
             app_label->SetTextToken(choose_save_data_sign_in);
         } else {
             app_label->SetUserName(tag);
@@ -45,30 +43,35 @@ void ChooseProfilePanel::Text(
     }
 }
 
-DataNode ChooseProfilePanel::OnMsg(SigninChangedMsg const &s) {
+DataNode ChooseProfilePanel::OnMsg(const SigninChangedMsg &) {
     UpdateProfiles();
-    return DataNode(6);
+    return DataNode(kDataUnhandled, 0);
 }
 
 void ChooseProfilePanel::UpdateProfiles() {
     mPadNums.clear();
-    PanelDir *panDir = dynamic_cast<PanelDir *>(DataDir());
+    PanelDir *panDir = dynamic_cast<PanelDir *>(DataDir()); // goes unused
     static Symbol choose_save_data_sign_in("choose_save_data_sign_in");
     int signInMask = ThePlatformMgr.SignInMask();
-    for (int i = 0; i <= signInMask; i++) {
-        if (!ThePlatformMgr.IsPadAGuest(i))
-            mPadNums.push_back(i);
+    for (int i = 0; signInMask != 0; i++, signInMask >>= 1) {
+        if (signInMask & 1) {
+            if (!ThePlatformMgr.IsPadAGuest(i)) {
+                mPadNums.push_back(i);
+            }
+        }
     }
     mPadNums.push_back(-1);
     static Message refresh_ui("refresh_ui");
-    unk3c->Handle(refresh_ui, true);
+    Handle(refresh_ui, true);
 }
 
 BEGIN_HANDLERS(ChooseProfilePanel)
-    HANDLE_EXPR(profile_selected, !mPadNums[_msg->Int(2)] == 0)
-    HANDLE_EXPR(get_profile, GetProfile(_msg->Int(2)) == 0)
-    HANDLE_ACTION(show_signin, ThePlatformMgr.SignInUsers(0, 0x1000000))
-    HANDLE_ACTION(num_profiles, mPadNums.size())
+    HANDLE_EXPR(profile_selected, ProfileSelected(_msg->Int(2)))
+    HANDLE_EXPR(get_profile, GetProfile(_msg->Int(2)))
+    HANDLE_ACTION(show_signin, ThePlatformMgr.SignInUsers(1, 0x1000000))
+    HANDLE_EXPR(num_profiles, NumData() - 1)
     HANDLE_MESSAGE(SigninChangedMsg)
     HANDLE_SUPERCLASS(HamPanel)
 END_HANDLERS
+
+bool ChooseProfilePanel::ProfileSelected(int idx) const { return mPadNums[idx] != -1; }

@@ -21,21 +21,21 @@
 
 void CampaignDiffProvider::UpdateList(bool b) {
     MILO_ASSERT(TheCampaign, 0x20);
-    unk30.clear();
-    unk30.push_back(kDifficultyEasy);
-    unk30.push_back(kDifficultyMedium);
-    unk30.push_back(kDifficultyExpert);
+    mDifficulties.clear();
+    mDifficulties.push_back(kDifficultyEasy);
+    mDifficulties.push_back(kDifficultyMedium);
+    mDifficulties.push_back(kDifficultyExpert);
     if (b) {
-        unk30.push_back(kDifficultyEasy);
-        unk30.push_back(kDifficultyMedium);
-        unk30.push_back(kDifficultyExpert);
-        unk30.push_back(kDifficultyEasy);
+        mDifficulties.push_back(kDifficultyEasy);
+        mDifficulties.push_back(kDifficultyMedium);
+        mDifficulties.push_back(kDifficultyExpert);
+        mDifficulties.push_back(kDifficultyEasy);
     }
 }
 
 Symbol CampaignDiffProvider::DataSymbol(int i_iData) const {
     MILO_ASSERT_RANGE(i_iData, 0, NumData(), 0x7c);
-    return DifficultyToSym((Difficulty)unk30[i_iData]);
+    return DifficultyToSym((Difficulty)mDifficulties[i_iData]);
 }
 
 void CampaignDiffSelectPanel::Unload() {
@@ -49,7 +49,7 @@ void CampaignDiffProvider::Text(
 ) const {
     MILO_ASSERT(i_iData < NumData(), 0x34);
     Symbol dataSym = DataSymbol(i_iData);
-    Difficulty diff = (Difficulty)unk30[i_iData];
+    Difficulty diff = (Difficulty)mDifficulties[i_iData];
     if (uiListLabel->Matches("diff")) {
         uiLabel->SetTextToken(dataSym);
         if (i_iData <= 2)

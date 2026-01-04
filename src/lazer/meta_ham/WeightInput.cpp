@@ -80,8 +80,6 @@ void WeightInputProvider::Text(
     }
 }
 
-WeightInputPanel::WeightInputPanel() {};
-
 BEGIN_HANDLERS(WeightInputPanel)
     HANDLE_ACTION(set_preferred_units, SetPreferredUnits(_msg->Sym(2)))
     HANDLE_EXPR(get_preferred_units, GetPreferredUnits())

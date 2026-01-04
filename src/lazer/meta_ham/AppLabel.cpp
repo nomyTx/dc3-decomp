@@ -352,11 +352,11 @@ void AppLabel::SetChallengeScoreLabel(int i1) {
     SetDisplayText(label, true);
 }
 
-void AppLabel::SetBestPracticeDifficulty(int i1) {
+void AppLabel::SetBestPracticeDifficulty(int songID) {
     HamProfile *profile = TheProfileMgr.GetActiveProfile(true);
     if (profile) {
-        Difficulty d = profile->GetSongStatusMgr()->GetPracticeDifficulty(i1);
-        if (profile->GetSongStatusMgr()->GetPracticeScore(i1) > 0) {
+        Difficulty d = profile->GetSongStatusMgr()->GetPracticeDifficulty(songID);
+        if (profile->GetSongStatusMgr()->GetPracticeScore(songID) > 0) {
             SetTextToken(MakeString("%s_short", DifficultyToSym(d)));
             return;
         }

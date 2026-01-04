@@ -12,16 +12,18 @@
 class ChooseModeProvider : public UIListProvider, public Hmx::Object {
 public:
     // Hmx::Object
-    virtual ~ChooseModeProvider();
+    virtual ~ChooseModeProvider() {}
     OBJ_CLASSNAME(ChooseModeProvider)
     virtual DataNode Handle(DataArray *, bool);
-
     // UIListProvider
     virtual void Text(int, int, UIListLabel *, UILabel *) const;
     virtual RndMat *Mat(int, int, UIListMesh *) const;
     virtual Symbol DataSymbol(int) const;
+    virtual int NumData() const { return mModes.size(); }
 
     void UpdateList(bool);
+    NEW_OBJ(ChooseModeProvider)
 
-    std::vector<Symbol> unk30;
+private:
+    std::vector<Symbol> mModes; // 0x30
 };

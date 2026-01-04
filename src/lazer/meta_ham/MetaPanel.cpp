@@ -10,6 +10,7 @@
 #include "meta/CreditsPanel.h"
 #include "meta/HAQManager.h"
 #include "meta/MemcardMgr.h"
+#include "meta/Meta.h"
 #include "meta/MetaMusicManager.h"
 #include "meta/MoviePanel.h"
 #include "meta_ham/AppNavProvider.h"
@@ -117,6 +118,7 @@ MetaPanel::~MetaPanel() {
 Hmx::Object *MetaPanel::NewObject() { return new MetaPanel(); }
 
 void MetaPanel::Init() {
+    MetaInit();
     REGISTER_OBJ_FACTORY(AppLabel)
     REGISTER_OBJ_FACTORY(AppMiniLeaderboardDisplay)
     REGISTER_OBJ_FACTORY(HamPanel)
@@ -125,8 +127,8 @@ void MetaPanel::Init() {
     REGISTER_OBJ_FACTORY(CampaignDiffSelectPanel)
     REGISTER_OBJ_FACTORY(CampaignDiffProvider)
     REGISTER_OBJ_FACTORY(CampaignSongSelectPanel)
-    REGISTER_OBJ_FACTORY(CampaignMasterQuestSongSelectPanel)
     REGISTER_OBJ_FACTORY(CampaignMasterQuestCrewSelectPanel)
+    REGISTER_OBJ_FACTORY(CampaignMasterQuestSongSelectPanel)
     REGISTER_OBJ_FACTORY(ChallengeResultPanel)
     REGISTER_OBJ_FACTORY(ChooseProfilePanel)
     REGISTER_OBJ_FACTORY(CorrectIdentityPanel)
@@ -141,6 +143,7 @@ void MetaPanel::Init() {
     REGISTER_OBJ_FACTORY(LoadingPanel)
     REGISTER_OBJ_FACTORY(LockedContentPanel)
     REGISTER_OBJ_FACTORY(MainMenuPanel)
+    REGISTER_OBJ_FACTORY(MetaPanel)
     MetaPerformer::Init();
     REGISTER_OBJ_FACTORY(MoviePanel)
     REGISTER_OBJ_FACTORY(MovieProvider)
@@ -160,7 +163,7 @@ void MetaPanel::Init() {
     TheProfileMgr.Init();
     Leaderboards::Init();
     Challenges::Init();
-    // FitnessGoalMgr::Init();
+    FitnessGoalMgr::Init();
     REGISTER_OBJ_FACTORY(HamStarsDisplay)
     REGISTER_OBJ_FACTORY(WeightInputPanel)
     REGISTER_OBJ_FACTORY(AppNavProvider)

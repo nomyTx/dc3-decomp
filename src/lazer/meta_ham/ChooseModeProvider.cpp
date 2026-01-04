@@ -8,12 +8,10 @@
 #include "ui/UIListMesh.h"
 #include "utl/Symbol.h"
 
-ChooseModeProvider::~ChooseModeProvider() {}
-
-Symbol ChooseModeProvider::DataSymbol(int i_iData) const {
-    MILO_ASSERT_RANGE(i_iData, 0, NumData(), 0xaf);
-    return unk30[i_iData];
-}
+BEGIN_HANDLERS(ChooseModeProvider)
+    HANDLE_ACTION(update_list, UpdateList(_msg->Int(2)))
+    HANDLE_SUPERCLASS(Hmx::Object)
+END_HANDLERS
 
 void ChooseModeProvider::Text(
     int, int i_iData, UIListLabel *listLabel, UILabel *uiLabel
@@ -27,8 +25,13 @@ void ChooseModeProvider::Text(
     }
 }
 
+Symbol ChooseModeProvider::DataSymbol(int i_iData) const {
+    MILO_ASSERT_RANGE(i_iData, 0, NumData(), 0xaf);
+    return mModes[i_iData];
+}
+
 void ChooseModeProvider::UpdateList(bool b) {
-    unk30.clear();
+    mModes.clear();
     static Symbol perform("perform");
     static Symbol practice("practice");
     static Symbol dance_battle("dance_battle");
@@ -46,22 +49,22 @@ void ChooseModeProvider::UpdateList(bool b) {
     static Symbol bustamove("bustamove");
     static Symbol mind_control("mind_control");
 
-    unk30.push_back(perform);
-    unk30.push_back(practice);
+    mModes.push_back(perform);
+    mModes.push_back(practice);
     if (!TheGameMode->InMode("campaign", true)) {
-        unk30.push_back(dance_battle);
-        unk30.push_back(custom_party);
-        unk30.push_back(crew_showdown);
+        mModes.push_back(dance_battle);
+        mModes.push_back(custom_party);
+        mModes.push_back(crew_showdown);
         if (b) {
-            unk30.push_back(perform_legacy);
-            unk30.push_back(rtnbldrproto);
-            unk30.push_back(namethatdance);
-            unk30.push_back(concentration);
-            unk30.push_back(rhythm_battle);
-            unk30.push_back(holla_back_70s_craze);
-            unk30.push_back(dance_battle);
-            unk30.push_back(bustamove);
-            unk30.push_back(mind_control);
+            mModes.push_back(perform_legacy);
+            mModes.push_back(rtnbldrproto);
+            mModes.push_back(namethatdance);
+            mModes.push_back(concentration);
+            mModes.push_back(rhythm_battle);
+            mModes.push_back(holla_back_70s_craze);
+            mModes.push_back(dance_battle);
+            mModes.push_back(bustamove);
+            mModes.push_back(mind_control);
         }
     }
 }
@@ -84,8 +87,3 @@ RndMat *ChooseModeProvider::Mat(int, int i_iData, UIListMesh *) const {
     Symbol dataSym = DataSymbol(i_iData);
     return nullptr;
 }
-
-BEGIN_HANDLERS(ChooseModeProvider)
-    HANDLE_ACTION(update_list, UpdateList(_msg->Int(2)))
-    HANDLE_SUPERCLASS(Hmx::Object)
-END_HANDLERS

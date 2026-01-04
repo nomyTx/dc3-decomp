@@ -13,8 +13,6 @@
 #include "utl/Locale.h"
 #include "utl/Symbol.h"
 
-CorrectIdentityPanel::CorrectIdentityPanel() {}
-
 void CorrectIdentityPanel::Exit() { OverlayPanel::Exit(); }
 
 void CorrectIdentityPanel::Dismiss() {

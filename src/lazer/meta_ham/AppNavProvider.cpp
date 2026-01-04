@@ -1,50 +1,40 @@
 #include "AppNavProvider.h"
 #include "HamStarsDisplay.h"
+#include "hamobj/Difficulty.h"
 #include "ui/UIListCustom.h"
 #include "AppLabel.h"
 
 BEGIN_CUSTOM_HANDLERS(AppNavProvider)
-HANDLE_SUPERCLASS(HamNavProvider)
+    HANDLE_SUPERCLASS(HamNavProvider)
 END_CUSTOM_HANDLERS
 
-void AppNavProvider::Text(int i1, int i2, UIListLabel *listlabel, UILabel *label) const {
+void AppNavProvider::Text(int i1, int data, UIListLabel *slot, UILabel *label) const {
     AppLabel *applabel = dynamic_cast<AppLabel *>(label);
-    if (listlabel->Matches("practice_diff")) {
-        if (mNavItems[i2].unkc != 2) {
-            return;
+    if (slot->Matches("practice_diff")) {
+        const NavItem &cur = mNavItems[data];
+        if (cur.unkc == 2) {
+            applabel->SetBestPracticeDifficulty(cur.mSongID);
         }
-        applabel->SetBestPracticeDifficulty(mNavItems[i2].unk8);
-        return;
-    }
-    if (listlabel->Matches("practice_score")) {
-        if (mNavItems[i2].unkc != 2) {
-            return;
+    } else if (slot->Matches("practice_score")) {
+        const NavItem &cur = mNavItems[data];
+        if (cur.unkc == 2) {
+            applabel->SetPracticeScore(cur.mSongID, kNumDifficulties);
         }
-        applabel->SetPracticeScore(mNavItems[i2].unkc, kNumDifficulties);
-        return;
-    }
-
-    if (listlabel->Matches("song")) {
-        if (mNavItems.size() == 8) {
-            label->SetPrelocalizedString(String(mNavItems[i2].mLabels[0]));
-
-        }
-    }
-    else if (listlabel->Matches("song_length")) {
-        if (mNavItems.size() != 8) {
-            label->SetPrelocalizedString(String(mNavItems[i2].mLabels[1]));
-        }
-    }
-    else
-        HamNavProvider::Text(i1, i2, listlabel, label);
+    } else if (slot->Matches("song") && mNavItems[data].mLabels.size() == 2) {
+        applabel->SetPrelocalizedString(String(mNavItems[data].mLabels[0]));
+    } else if (slot->Matches("song_length") && mNavItems[data].mLabels.size() == 2) {
+        applabel->SetPrelocalizedString(String(mNavItems[data].mLabels[1]));
+    } else
+        HamNavProvider::Text(i1, data, slot, label);
 }
 
-void AppNavProvider::Custom(int i1, int i2, UIListCustom *listcustom, Hmx::Object *obj) const {
+void AppNavProvider::Custom(
+    int i1, int i2, UIListCustom *listcustom, Hmx::Object *obj
+) const {
     if (listcustom->Matches("stars")) {
         HamStarsDisplay *hsd = dynamic_cast<HamStarsDisplay *>(obj);
         if (mNavItems[i2].unkc == 1) {
-            hsd->SetSong(mNavItems[i2].unk8);
+            hsd->SetSong(mNavItems[i2].mSongID);
         }
-
     }
 }

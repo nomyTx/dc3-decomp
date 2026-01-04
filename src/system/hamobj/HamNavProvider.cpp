@@ -252,9 +252,9 @@ void HamNavProvider::SelectRadioButton(Symbol s) {
     }
 }
 
-void HamNavProvider::SetStars(Symbol s, int i2, bool b3) {
+void HamNavProvider::SetStars(Symbol s, int songID, bool b3) {
     int index = FindLabel(s);
-    mNavItems[index].unk8 = i2;
+    mNavItems[index].mSongID = songID;
     if (b3) {
         mNavItems[index].unkc = 3;
     } else {

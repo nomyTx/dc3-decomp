@@ -6,10 +6,6 @@
 #include "ui/UIListLabel.h"
 #include "utl/Symbol.h"
 
-MovieProvider::MovieProvider() {}
-
-MovieProvider::~MovieProvider() {}
-
 void MovieProvider::Text(
     int, int i_iData, UIListLabel *uiListLabel, UILabel *uiLabel
 ) const {
