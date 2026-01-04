@@ -1,4 +1,6 @@
 #include "meta_ham/CrewProvider.h"
+#include "math/Rand.h"
+#include "meta_ham/AppLabel.h"
 #include "meta_ham/MetaPerformer.h"
 #include "meta_ham/ProfileMgr.h"
 #include "flow/PropertyEventProvider.h"
@@ -8,17 +10,65 @@
 #include "obj/Data.h"
 #include "os/Debug.h"
 #include "os/System.h"
+#include "ui/PanelDir.h"
 #include "utl/Symbol.h"
+#include <cstdio>
 
-CrewProvider::CrewProvider() : unk30(0), unk34(0) {}
+CrewProvider::CrewProvider() : mPlayer(0), mPanelDir(0) {}
 
-CrewProvider::~CrewProvider() {}
-
-int CrewProvider::NumData() const { return mCrews.size(); }
+void CrewProvider::Text(int, int data, UIListLabel *slot, UILabel *label) const {
+    MILO_ASSERT_RANGE(data, 0, mCrews.size(), 0x69);
+    AppLabel *app_label = dynamic_cast<AppLabel *>(label);
+    MILO_ASSERT(app_label, 0x6C);
+    Symbol crewSym = mCrews[data];
+    if (slot->Matches("crew")) {
+        static Symbol player_present("player_present");
+        int otherPlayer = !mPlayer;
+        if (TheGameData->Player(mPlayer)->Provider()->Property(player_present)->Int() != 1
+            && TheGameData->Player(otherPlayer)->Provider()->Property(player_present)->Int()
+                != 0) {
+            char buffer[32];
+            buffer[0] = 0;
+            memset(&buffer[1], 0, 31);
+            sprintf(buffer, "%s%s", crewSym.Str(), "_title");
+            app_label->SetTextToken(buffer);
+        } else {
+            app_label->SetTextToken(crewSym);
+        }
+    } else if (slot->Matches("new")) {
+        HamProfile *profile = TheProfileMgr.GetActiveProfile(true);
+        if (profile) {
+            app_label->SetNew(profile->IsContentNew(crewSym));
+        } else {
+            app_label->SetTextToken(gNullStr);
+        }
+    } else if (slot->Matches("lock")) {
+        if (!TheProfileMgr.IsContentUnlocked(crewSym)) {
+            app_label->SetIcon('B');
+        } else {
+            app_label->SetTextToken(gNullStr);
+        }
+    } else if (slot->Matches("taken")) {
+        if (!IsCrewAvailable(crewSym)) {
+            app_label->SetIcon('i');
+        } else {
+            app_label->SetTextToken(gNullStr);
+        }
+    }
+}
 
 Symbol CrewProvider::DataSymbol(int idx) const {
     MILO_ASSERT_RANGE(idx, 0, mCrews.size(), 0xd3);
     return mCrews[idx];
+}
+
+bool CrewProvider::CanSelect(int idx) const {
+    MILO_ASSERT_RANGE(idx, 0, NumData(), 0xf4);
+    Symbol dataSym = DataSymbol(idx);
+    if (!TheProfileMgr.IsContentUnlocked(dataSym))
+        return false;
+    else
+        return IsCrewAvailable(dataSym) != false;
 }
 
 int CrewProvider::DataIndex(Symbol s) const {
@@ -29,33 +79,26 @@ int CrewProvider::DataIndex(Symbol s) const {
     return -1;
 }
 
-bool CrewProvider::IsCrewAvailable(Symbol s) const {
+bool CrewProvider::IsCrewAvailable(Symbol crewSym) const {
     static Symbol random_crew("random_crew");
-    if (s == random_crew) {
+    if (crewSym == random_crew) {
         return true;
     } else {
         MetaPerformer *performer = MetaPerformer::Current();
         MILO_ASSERT(performer, 0xe1);
-        int index = unk30 == 0;
+        int index = mPlayer == 0;
         HamPlayerData *pOtherPlayerData = TheGameData->Player(index);
         MILO_ASSERT(pOtherPlayerData, 0xe5);
         if (!TheGameMode->InMode("dance_battle", true)) {
-            const DataNode *prop = TheHamProvider->Property("is_in_party_mode", true);
+            const DataNode *prop = TheHamProvider->Property("is_in_party_mode");
             if (prop->Int() == 0 && !TheGameData->IsSkeletonPresent(index))
                 return true;
         }
-        if (pOtherPlayerData->Crew() != s)
-            return true;
+        bool ret = false;
+        if (pOtherPlayerData->Crew() != crewSym)
+            ret = true;
+        return ret;
     }
-}
-
-bool CrewProvider::CanSelect(int idx) const {
-    MILO_ASSERT_RANGE(idx, 0, NumData(), 0xf4);
-    Symbol dataSym = DataSymbol(idx);
-    if (!TheProfileMgr.IsContentUnlocked(dataSym))
-        return false;
-    else
-        return !IsCrewAvailable(dataSym) == 0;
 }
 
 void CrewProvider::UpdateList() {
@@ -82,3 +125,18 @@ void CrewProvider::UpdateList() {
         }
     }
 }
+
+Symbol CrewProvider::GetRandomAvailableCrew() const {
+    static Symbol random_crew("random_crew");
+    std::vector<Symbol> vCrews;
+    int num = NumData();
+    for (int i = 0; i < num; i++) {
+        Symbol dataSym = DataSymbol(i);
+        if (CanSelect(i) && dataSym != random_crew) {
+            vCrews.push_back(dataSym);
+        }
+    }
+    return vCrews[RandomInt(0, vCrews.size())];
+}
+
+void CrewProvider::SetPanelDir(PanelDir *dir) { mPanelDir = dir; }

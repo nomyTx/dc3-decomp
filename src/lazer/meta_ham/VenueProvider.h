@@ -6,13 +6,15 @@
 
 class VenueProvider : public UIListProvider, public Hmx::Object {
 public:
-    virtual Symbol DataSymbol(int) const;
+    VenueProvider();
+    virtual ~VenueProvider();
     virtual void Text(int, int, UIListLabel *, UILabel *) const;
+    virtual Symbol DataSymbol(int) const;
     virtual int NumData() const;
 
-    VenueProvider();
     void UpdateList();
 
-    int unk30;
+private:
+    int mPlayer; // 0x30
     std::vector<Symbol> mVenues; // 0x34
 };

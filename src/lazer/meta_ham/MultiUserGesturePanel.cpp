@@ -31,7 +31,7 @@
 MultiUserGesturePanel::MultiUserGesturePanel() {
     for (int i = 0; i < 2; i++) {
         mCharacterProviders[i].SetPlayer(i);
-        mCrewProviders[i].unk30 = i;
+        mCrewProviders[i].SetPlayer(i);
         mDifficultyProviders[i].SetPlayer(i);
     }
 }

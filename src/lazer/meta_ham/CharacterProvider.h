@@ -15,7 +15,7 @@ public:
     virtual Symbol DataSymbol(int) const;
     virtual bool CanSelect(int) const;
     virtual int DataIndex(Symbol) const;
-    virtual int NumData() const;
+    virtual int NumData() const { return mCharacters.size(); }
 
     bool IsCharacterAvailable(Symbol) const;
     String GetColorName() const;
@@ -28,5 +28,5 @@ public:
 private:
     int mPlayer; // 0x30
     std::vector<Symbol> mCharacters; // 0x34
-    ObjectDir *unk40; // not sure if ObjectDir
+    PanelDir *mPanelDir; // 0x40
 };

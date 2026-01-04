@@ -7,33 +7,40 @@
 #include "os/System.h"
 #include "ui/UIListLabel.h"
 #include "utl/Symbol.h"
+#include <cstdio>
 
-VenueProvider::VenueProvider() : unk30(0) {}
+VenueProvider::VenueProvider() : mPlayer(0) {}
+VenueProvider::~VenueProvider() {}
+
+void VenueProvider::Text(int, int data, UIListLabel *uiListLabel, UILabel *uiLabel) const {
+    MILO_ASSERT_RANGE(data, 0, mVenues.size(), 0x4e);
+    Symbol venueSym = DataSymbol(data);
+    if (uiListLabel->Matches("venue")) {
+        static Symbol player_present("player_present");
+        int otherPlayer = !mPlayer;
+        if (TheGameData->Player(mPlayer)->Provider()->Property(player_present)->Int() != 1
+            && TheGameData->Player(otherPlayer)->Provider()->Property(player_present)->Int()
+                != 0) {
+            char buffer[32];
+            buffer[0] = 0;
+            memset(&buffer[1], 0, 31);
+            sprintf(buffer, "%s%s", venueSym.Str(), "_title");
+            uiLabel->SetTextToken(buffer);
+        } else {
+            uiLabel->SetTextToken(venueSym);
+        }
+    } else if (uiListLabel->Matches("lock")) {
+        if (!TheProfileMgr.IsContentUnlocked(venueSym)) {
+            uiLabel->SetIcon('B');
+        } else {
+            uiLabel->SetTextToken(gNullStr);
+        }
+    }
+}
 
 Symbol VenueProvider::DataSymbol(int idx) const {
     MILO_ASSERT_RANGE(idx, 0, mVenues.size(), 0x82);
     return mVenues[idx];
-}
-
-void VenueProvider::Text(int, int data, UIListLabel *uiListLabel, UILabel *uiLabel) const {
-    MILO_ASSERT_RANGE(data, 0, mVenues.size(), 0x4e);
-    Symbol ds = DataSymbol(data);
-    if (uiListLabel->Matches("venue")) {
-        static Symbol player_present("player_present");
-        HamPlayerData *pPlayer = TheGameData->Player(unk30);
-        const DataNode *node = pPlayer->Provider()->Property(player_present, true);
-        if (node->Int() != 0) {
-        }
-    } else {
-        if (!uiListLabel->Matches("lock")) {
-            return;
-        }
-        if (!TheProfileMgr.IsContentUnlocked(ds)) {
-            uiLabel->SetIcon('B');
-            return;
-        }
-        uiLabel->SetTextToken(gNullStr);
-    }
 }
 
 void VenueProvider::UpdateList() {

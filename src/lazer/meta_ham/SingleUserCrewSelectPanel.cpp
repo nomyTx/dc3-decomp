@@ -18,9 +18,9 @@
 
 SingleUserCrewSelectPanel::SingleUserCrewSelectPanel() {
     for (int i = 0; i < 2; i++) {
-        mCrewProviders[i].unk30 = i;
+        mCrewProviders[i].SetPlayer(i);
         mCharProviders[i].SetPlayer(i);
-        mOutfitProviders[i].unk30 = i;
+        mOutfitProviders[i].SetPlayer(i);
     }
 }
 
@@ -64,7 +64,7 @@ void SingleUserCrewSelectPanel::UpdateProviderPlayerIndices() {
     for (int i = 0; i < 2; i++) {
         int playerIndex = GetPlayerIndex(i);
         mCharProviders[i].SetPlayer(playerIndex);
-        mOutfitProviders[i].unk30 = playerIndex;
+        mOutfitProviders[i].SetPlayer(playerIndex);
     }
 }
 
