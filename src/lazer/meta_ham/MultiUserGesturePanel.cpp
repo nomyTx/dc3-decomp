@@ -30,9 +30,9 @@
 
 MultiUserGesturePanel::MultiUserGesturePanel() {
     for (int i = 0; i < 2; i++) {
-        mCharacterProviders[i].unk30 = 0;
+        mCharacterProviders[i].SetPlayer(i);
         mCrewProviders[i].unk30 = i;
-        mDifficultyProviders[i].unk30 = i;
+        mDifficultyProviders[i].SetPlayer(i);
     }
 }
 

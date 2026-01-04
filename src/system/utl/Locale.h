@@ -47,7 +47,7 @@ protected:
 
 extern Locale TheLocale;
 
-const char *Localize(Symbol, bool *, Locale &);
-const char *LocalizeSeparatedInt(int, Locale &);
-const char *LocalizeFloat(const char *, float);
+const char *Localize(Symbol token, bool *success, Locale &locale);
+const char *LocalizeSeparatedInt(int num, Locale &locale);
+const char *LocalizeFloat(const char *fmt, float num);
 void SyncReloadLocale();

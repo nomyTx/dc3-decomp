@@ -38,6 +38,7 @@ public:
     void Init();
     void Poll();
     String GetPlayerName(int idx) const { return unk48[idx].unk4; }
+    int GetPlayerPadNum(int idx) const { return unk48[idx].mPadNum; }
     IdentityStatus GetIdentityStatus(int);
     void CorrectIdentity(int);
     bool IsAssociatedWithProfile(int) const;

@@ -9,6 +9,7 @@
 
 class CharacterProvider : public UIListProvider, public Hmx::Object {
 public:
+    CharacterProvider();
     virtual void Text(int, int, UIListLabel *, UILabel *) const;
     virtual RndMat *Mat(int, int, UIListMesh *) const;
     virtual Symbol DataSymbol(int) const;
@@ -16,16 +17,16 @@ public:
     virtual int DataIndex(Symbol) const;
     virtual int NumData() const;
 
-    CharacterProvider();
     bool IsCharacterAvailable(Symbol) const;
     String GetColorName() const;
     RndMat *GetMatForCharacter(Symbol) const;
     Symbol GetRandomAvailableCharacter() const;
     void UpdateList();
     void SetPanelDir(PanelDir *);
-    void SetPlayerIndex(int i) { unk30 = i; }
+    void SetPlayer(int player) { mPlayer = player; }
 
-    int unk30;
+private:
+    int mPlayer; // 0x30
     std::vector<Symbol> mCharacters; // 0x34
     ObjectDir *unk40; // not sure if ObjectDir
 };

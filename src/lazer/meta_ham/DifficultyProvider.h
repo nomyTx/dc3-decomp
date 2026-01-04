@@ -10,14 +10,16 @@
 
 class DifficultyProvider : public UIListProvider, public Hmx::Object {
 public:
-    virtual Symbol DataSymbol(int) const;
-    virtual void Text(int, int, UIListLabel *, UILabel *) const;
-    virtual void InitData(RndDir *);
-    virtual int NumData() const;
-
     DifficultyProvider();
-    bool IsDifficultyUnlocked(Symbol) const;
+    virtual void Text(int, int, UIListLabel *, UILabel *) const;
+    virtual Symbol DataSymbol(int) const;
+    virtual int NumData() const { return mDifficulties.size(); }
+    virtual void InitData(RndDir *);
 
-    int unk30;
+    bool IsDifficultyUnlocked(Symbol) const;
+    void SetPlayer(int player) { mPlayer = player; }
+
+private:
+    int mPlayer; // 0x30
     std::vector<Difficulty> mDifficulties; // 0x34
 };

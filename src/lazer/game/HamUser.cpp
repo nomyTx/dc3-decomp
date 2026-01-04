@@ -1,10 +1,9 @@
 #include "lazer/game/HamUser.h"
+#include "meta_ham/SkeletonIdentifier.h"
 #include "obj/Object.h"
 #include "os/OnlineID.h"
 #include "os/User.h"
 #include "xdk/XAPILIB.h"
-#include "xdk/xapilibi/winerror.h"
-#include "xdk/xapilibi/xbox.h"
 
 HamUser::HamUser(int i) : unk4(0), unk8(i) {}
 
@@ -22,6 +21,16 @@ END_HANDLERS
 BEGIN_PROPSYNCS(HamUser)
     SYNC_SUPERCLASS(User)
 END_PROPSYNCS
+
+int HamUser::GetPadNum() const {
+    if (TheSkeletonIdentifier->GetPlayerPadNum(unk8) < 4) {
+        return TheSkeletonIdentifier->GetPlayerPadNum(unk8);
+    } else {
+        return -1;
+    }
+}
+
+bool HamUser::CanSaveData() const { return GetPadNum() != -1; }
 
 HamUser *HamUser::NewHamUser(int i) { return new HamUser(i); }
 

@@ -6,10 +6,10 @@ class Instarank : public virtual Hmx::Object {
 public:
     const char *Str() const;
 
-    u32 unk_0x0;
-    bool unk_0x4;
-    u8 unk_0x5;
-    char next_person[255];
-    u32 unk_0x108;
-    u32 unk_0x10C;
+private:
+    bool mFriendsOnly; // 0x4
+    char mToken; // 0x5
+    char mStr[255]; // 0x6
+    int unk_0x108; // 0x108
+    int unk_0x10C; // 0x10c
 };
