@@ -9,7 +9,19 @@
 #pragma pack(push, 1)
 class AllocInfo {
 public:
-    AllocInfo(int requestedSize, int actualSize, const char *type, void *mem, signed char heap, bool pooled, unsigned char strat, const char *file, int line, String &, String &);
+    AllocInfo(
+        int requestedSize,
+        int actualSize,
+        const char *type,
+        void *mem,
+        signed char heap,
+        bool pooled,
+        unsigned char strat,
+        const char *file,
+        int line,
+        String &,
+        String &
+    );
     ~AllocInfo();
 
     int Compare(const AllocInfo &) const;

@@ -26,7 +26,7 @@ public:
         bool UpdatePlayerBinding();
 
         int mPadNum; // 0x0 - padnum/user index
-        String unk4;
+        String unk4; // 0x4 - name
         int mEnrollmentIndex; // 0xc
     };
 
@@ -37,7 +37,7 @@ public:
 
     void Init();
     void Poll();
-    String GetPlayerName(int) const;
+    String GetPlayerName(int idx) const { return unk48[idx].unk4; }
     IdentityStatus GetIdentityStatus(int);
     void CorrectIdentity(int);
     bool IsAssociatedWithProfile(int) const;

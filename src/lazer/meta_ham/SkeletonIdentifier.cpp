@@ -16,7 +16,6 @@
 #include "utl/MakeString.h"
 #include "utl/Symbol.h"
 #include "xdk/NUI.h"
-#include "xdk/nuiapi/identityapi.h"
 
 String EnrollmentIndexString(int idx) {
     String str = MakeString("enrollment index %d", idx);

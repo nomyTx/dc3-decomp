@@ -6,7 +6,7 @@
 #include "os/File.h"
 #include "rndobj/Overlay.h"
 #include "utl/MemMgr.h"
-#include "xdk/nuispeech/xspeechapi.h"
+#include "xdk/NUI.h"
 
 SpeechMgr *TheSpeechMgr;
 

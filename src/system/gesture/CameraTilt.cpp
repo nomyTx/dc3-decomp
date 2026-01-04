@@ -7,6 +7,7 @@
 #include "os/System.h"
 #include "ui/UI.h"
 #include "xdk/NUI.h"
+#include "xdk/XAPILIB.h"
 
 CameraTilt *TheCameraTilt;
 
@@ -29,7 +30,9 @@ void CameraTilt::UpdateGetInitialTiltData() {
 CameraTilt::CameraTilt()
     : unk2c(0), unk60(0), unk68(0), unk6c(0), unk70(0), unk74(0), mDelayBetweenStates(0),
       mDelayBetweenRetry(0), mUpDownCyclesPerScan(1), mAngleWiggleRoom(3),
-      mErrorRepeatedTimes(0), mCycleSafetyTimeout(4), mTiltObjects(), unk180(0) {
+      mErrorRepeatedTimes(0), mCycleSafetyTimeout(4), unk180(0) {
+    memset(&mOverlapped, 0, sizeof(XOVERLAPPED));
+    memset(&mTiltObjects, 0, sizeof(NUI_TILT_OBJECTS));
     DataArray *camArr = SystemConfig()->FindArray("camera_tilt", false);
     if (camArr) {
         mDelayBetweenStates =

@@ -64,7 +64,19 @@ typedef LONG_PTR SSIZE_T, *PSSIZE_T;
 typedef s64 LONGLONG, *PLONGLONG;
 typedef signed long long INT64, *PINT64;
 typedef s64 LONG64, *PLONG64;
-typedef s64 LARGE_INTEGER, *PLARGE_INTEGER;
+
+typedef union _LARGE_INTEGER { /* Size=0x8 */
+    struct {
+        /* 0x0000 */ LONG HighPart;
+        /* 0x0004 */ DWORD LowPart;
+    };
+    /* 0x0000 */
+    struct {
+        /* 0x0000 */ LONG HighPart;
+        /* 0x0004 */ DWORD LowPart;
+    } u;
+    /* 0x0000 */ LONGLONG QuadPart;
+} LARGE_INTEGER, *PLARGE_INTEGER;
 
 typedef u64 QWORD;
 typedef u64 ULONGLONG, *PULONGLONG;
