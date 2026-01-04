@@ -12,7 +12,8 @@
 #include "ui/UIPanel.h"
 #include "utl/Symbol.h"
 
-DECLARE_MESSAGE(XMPStateChangedMsg, "xmp_state_changed") // check type
+DECLARE_MESSAGE(XMPStateChangedMsg, "xmp_state_changed")
+XMPStateChangedMsg(int i) : Message(Type(), i) {}
 END_MESSAGE
 
 class MetaPanel : public UIPanel {

@@ -9,12 +9,10 @@
 class WeightInputProvider : public UIListProvider, public Hmx::Object {
 public:
     WeightInputProvider();
-    virtual ~WeightInputProvider();
-    virtual int NumData() const {
-        return ((TheProfileMgr.GetUnk4c() != 0) & -7) + 80;
-    }; // FIXME: needs to use subfic inst but uses subic
-    virtual DataNode Handle(DataArray *, bool);
+    virtual ~WeightInputProvider() {}
     virtual void Text(int, int, UIListLabel *, UILabel *) const;
+    virtual int NumData() const { return TheProfileMgr.GetUnk4c() ? 80 : 73; };
+    virtual DataNode Handle(DataArray *, bool);
 
     float GetWeight(int) const;
     int GetIndexForWeight(float) const;

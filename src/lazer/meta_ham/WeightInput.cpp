@@ -1,8 +1,43 @@
 #include "WeightInput.h"
-
 #include "HamProfile.h"
+#include "os/Debug.h"
 #include "ui/UIListLabel.h"
-#include "lazer/meta_ham/ProfileMgr.h"
+#include "meta_ham/ProfileMgr.h"
+
+#pragma region WeightInputProvider
+
+WeightInputProvider::WeightInputProvider() {
+    SetName("weight_input_provider", ObjectDir::Main());
+}
+
+void WeightInputProvider::Text(
+    int i1, int data, UIListLabel *listlabel, UILabel *label
+) const {
+    static Symbol weight_done("weight_done");
+    HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
+    MILO_ASSERT(pProfile, 0x22);
+    int units = TheProfileMgr.GetUnk4c();
+    float weight = GetWeight(data);
+    if (listlabel->Matches("label")) {
+        if (units == 0) {
+            static Symbol weight_pounds("weight_pounds");
+            label->SetTokenFmt(weight_pounds, (int)weight);
+        } else {
+            static Symbol weight_kgs("weight_kgs");
+            label->SetTokenFmt(weight_kgs, weight);
+        }
+    } else if (listlabel->Matches("checkbox")) {
+        float pounds = pProfile->GetFitnessPounds();
+        if (units == 1) {
+            pounds = GetKgForPounds(pounds);
+        }
+        if (pounds == weight) {
+            label->SetIcon('b');
+        } else {
+            label->SetTextToken(gNullStr);
+        }
+    }
+}
 
 BEGIN_HANDLERS(WeightInputProvider)
     HANDLE_EXPR(get_weight, GetWeight(_msg->Int(2)))
@@ -11,25 +46,23 @@ BEGIN_HANDLERS(WeightInputProvider)
     HANDLE_EXPR(get_pounds_for_kgs, GetPoundsForKgs(_msg->Float(2)))
 END_HANDLERS
 
-WeightInputProvider::WeightInputProvider() {
-    SetName("weight_input_provider", ObjectDir::Main());
-}
-
 int WeightInputProvider::GetIndexForWeight(float f1) const {
+    int idx = 0;
     for (int i = 0; i < NumData(); i++) {
         if (GetWeight(i) == f1) {
-            return i;
+            idx = i;
+            break;
         }
     }
-    return 0;
+    return idx;
 }
 
 float WeightInputProvider::GetWeight(int i_iIndex) const {
-    MILO_ASSERT((0) <= (i_iIndex) && (i_iIndex) < (NumData()), 0x76);
-    if (TheProfileMgr.GetUnk4c() != 0) {
-        return i_iIndex * 5.0f + 45.0f;
+    MILO_ASSERT_RANGE(i_iIndex, 0, NumData(), 0x76);
+    if (TheProfileMgr.GetUnk4c() == 0) {
+        return (float)i_iIndex * 2.5f + 20.0f;
     } else {
-        return i_iIndex * 2.5f + 20.0f;
+        return (float)i_iIndex * 5.0f + 45.0f;
     }
 }
 
@@ -51,34 +84,8 @@ float WeightInputProvider::GetPoundsForKgs(float kgs) const {
     return result;
 }
 
-void WeightInputProvider::Text(
-    int i1, int i2, UIListLabel *listlabel, UILabel *label
-) const {
-    static Symbol weight_done("weight_done");
-    HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
-    MILO_ASSERT(pProfile, 0x22);
-    int units = TheProfileMgr.GetUnk4c();
-    float weight = GetWeight(i2);
-    if (listlabel->Matches("label")) {
-        if (units == 0) {
-            static Symbol weight_pounds("weight_pounds");
-            label->SetTokenFmt(weight_pounds, weight);
-        } else {
-            static Symbol weight_kgs("weight_kgs");
-            label->SetTokenFmt(weight_kgs, weight);
-        }
-    } else if (listlabel->Matches("checkbox")) {
-        float pounds = pProfile->GetFitnessPounds();
-        if (units == 1) {
-            pounds = GetKgForPounds(pounds);
-        }
-        if (pounds == weight) {
-            label->SetIcon('b');
-        } else {
-            label->SetTextToken(gNullStr);
-        }
-    }
-}
+#pragma endregion
+#pragma region WeightInputPanel
 
 BEGIN_HANDLERS(WeightInputPanel)
     HANDLE_ACTION(set_preferred_units, SetPreferredUnits(_msg->Sym(2)))
@@ -123,8 +130,8 @@ Symbol WeightInputPanel::GetPreferredUnits() {
 void WeightInputPanel::SetPreferredUnits(Symbol units) {
     static Symbol pounds("pounds");
     TheProfileMgr.SetGlobalOptionsDirty(true);
-    int i;
-    if (units == pounds)
+    int i = 0;
+    if (units != pounds)
         i = 1;
     TheProfileMgr.SetUnk4c(i);
 }

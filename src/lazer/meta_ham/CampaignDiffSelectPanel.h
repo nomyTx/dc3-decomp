@@ -11,7 +11,7 @@ public:
     virtual ~CampaignDiffProvider() {}
     virtual void Text(int, int, UIListLabel *, UILabel *) const;
     virtual Symbol DataSymbol(int) const;
-    virtual int NumData() const;
+    virtual int NumData() const { return mDifficulties.size(); }
     OBJ_CLASSNAME(CampaignDiffProvider)
     OBJ_SET_TYPE(CampaignDiffProvider)
     virtual DataNode Handle(DataArray *, bool);
@@ -26,6 +26,7 @@ private:
 
 class CampaignDiffSelectPanel : public HamPanel {
 public:
+    CampaignDiffSelectPanel();
     OBJ_CLASSNAME(CampaignDiffSelectPanel)
     OBJ_SET_TYPE(CampaignDiffSelectPanel)
     virtual DataNode Handle(DataArray *, bool);
@@ -34,7 +35,6 @@ public:
 
     NEW_OBJ(CampaignDiffSelectPanel)
 
-    CampaignDiffSelectPanel();
     Difficulty GetSelectedDiff();
     void SelectDiff();
     void Refresh();
