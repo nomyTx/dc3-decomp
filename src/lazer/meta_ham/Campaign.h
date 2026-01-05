@@ -9,15 +9,42 @@
 #include "obj/Object.h"
 #include "stl/_vector.h"
 #include "utl/Loader.h"
-#include "utl/NetCacheMgr.h"
 #include "utl/Symbol.h"
 
 enum CampaignState {
-    state1 = 0
+    kCampaignStateInactive = 0,
+    kCampaignStateProfileSelect = 1,
+    kCampaignStateDiffSelect = 2,
+    kCampaignStateIntroMovie = 3,
+    kCampaignStateIntroDance = 4,
+    kCampaignStateIntroRetry = 5,
+    kCampaignStateIntroAbort = 6,
+    kCampaignStateEraIntroMovie = 7,
+    kCampaignStateSongSelect = 8,
+    kCampaignStateModeSelect = 9,
+    kCampaignStatePerformSetup = 10,
+    kCampaignStatePracticeSetup = 11,
+    kCampaignStateHollaback = 12,
+    kCampaignStatePerformIt = 13,
+    kCampaignStateBreakItDown = 14,
+    kCampaignStateBidEndgame = 15,
+    kCampaignStateResults = 16,
+    kCampaignStatePostResults = 17,
+    kCampaignStateDciCutscene = 18,
+    kCampaignStateTanBattle = 19,
+    kCampaignStateTanBattleComplete = 20,
+    kCampaignStatePostCreditsGlitterati = 21,
+    kCampaignStateMasterQuestCrewSelect = 22,
+    kCampaignStateMasterQuestSongSelect = 23,
+    kCampaignStateExit = 24,
+    kNumCampaignStates = 25
 };
 
 class CampaignIntroSong {
 public:
+    CampaignIntroSong(Symbol song, Symbol charSym, int stars)
+        : mIntroSong(song), mCharacter(charSym), mStarsRequired(stars) {}
+
     Symbol mIntroSong; // 0x0
     Symbol mCharacter; // 0x4
     int mStarsRequired; // 0x8
@@ -25,6 +52,20 @@ public:
 
 class CampaignOutroSong {
 public:
+    CampaignOutroSong(
+        Symbol song,
+        Symbol charSym,
+        int stars,
+        Symbol mode,
+        int index,
+        bool bid,
+        bool shortened,
+        bool freestyle
+    )
+        : mOutroSong(song), mCharacter(charSym), mStarsEarned(0), mStarsRequired(stars),
+          mGameplayMode(mode), mFailRestartIndex(index), mRehearseAllowed(bid),
+          mSongShortened(shortened), mFreestyleEnabled(freestyle) {}
+
     Symbol mOutroSong; // 0x0
     Symbol mCharacter; // 0x4
     int mStarsEarned; // 0x8
@@ -38,25 +79,26 @@ public:
 
 class CampaignMove {
 public:
-    Symbol unk0;
-    int unk4;
-    Symbol unk8;
-    int unkc;
-    int unk10;
+    CampaignMove(Symbol s1, Symbol s2, Symbol s3)
+        : mSongName(s1), mMoveName(s2), mMoveVariantName(s3), mMove(0), unk10(0) {}
+    Symbol mSongName; // 0x0
+    Symbol mMoveName; // 0x4
+    Symbol mMoveVariantName; // 0x8
+    HamMove *mMove; // 0xc
+    int unk10; // 0x10 - state?
 };
 
 class Campaign : public Hmx::Object, public Loader::Callback {
 public:
+    Campaign(DataArray *);
     // Hmx::Object
     virtual ~Campaign();
     virtual DataNode Handle(DataArray *, bool);
     virtual bool SyncProperty(DataNode &, DataArray *, int, PropOp);
-
     // Loader::Callback
     virtual void FinishLoading(Loader *);
     virtual void FailedLoading(Loader *);
 
-    Campaign(DataArray *);
     Symbol GetIntroVenue() const;
     Symbol GetIntroCrew() const;
     void SetCurState(CampaignState);
@@ -84,37 +126,12 @@ public:
     void CheatReloadData();
     int NumCampaignSongMoves(Symbol s);
 
-    CampaignEra *GetFrontEra() { return m_vEras.front(); }
-    CampaignEra *GetBackEra() { return m_vEras.back(); }
-    CampaignEra *GetEraAtIndex(int i) { return m_vEras[i]; }
-    bool IsErasEmpty() { return m_vEras.empty(); }
+    CampaignEra *GetFirstEra() { return m_vEras.front(); }
+    CampaignEra *GetLastEra() { return m_vEras.back(); }
+    CampaignEra *GetEra(int i) { return m_vEras[i]; }
     Symbol GetMQCrew() { return mMasterQuestCrew; }
 
-    static char const *sCampaignStateDesc[];
-
 protected:
-    CampaignState unk30;
-    bool unk34;
-    std::map<Symbol, int> unk38;
-    std::vector<CampaignEra *> m_vEras; // 0x50
-    std::vector<Symbol> m_vInstructions; // 0x5c
-    std::vector<Symbol> unk68;
-    std::vector<CampaignIntroSong *> m_vIntroSongs; // 0x74
-    Symbol mIntroVenue; // 0x80
-    Symbol mIntroCrew; // 0x84
-    std::vector<CampaignOutroSong *> m_vOutroSongs; // 0x88
-    Symbol unk94;
-    Symbol unk98;
-    bool mIntroOutroSeen; // 0x9c
-    Symbol mMasterQuestCrew; // 0xa0
-    Symbol mMasterQuestSong; // 0xa4
-    std::vector<CampaignMove *> unka8;
-    DirLoader *m_pCurLoader; // 0xb4
-    bool unkb8;
-    Symbol unkbc;
-    std::map<Symbol, bool> unkc0;
-    ObjectDir *unkd8;
-
     CampaignEra *GetCampaignEra(int) const;
     void LoadHamMoves(Symbol);
     HamMove *GetHamMove(Symbol, int);
@@ -122,6 +139,28 @@ protected:
     void GatherMoveData(Symbol);
     void Cleanup();
     void ConfigureCampaignData(DataArray *);
+
+    CampaignState mCampaignState; // 0x30
+    bool mWorkItActive; // 0x34
+    std::map<Symbol, int> unk38;
+    std::vector<CampaignEra *> m_vEras; // 0x50
+    std::vector<Symbol> m_vInstructions; // 0x5c
+    std::vector<Symbol> mWinInstructions; // 0x68
+    std::vector<CampaignIntroSong *> m_vIntroSongs; // 0x74
+    Symbol mIntroVenue; // 0x80
+    Symbol mIntroCrew; // 0x84
+    std::vector<CampaignOutroSong *> m_vOutroSongs; // 0x88
+    Symbol unk94;
+    Symbol unk98;
+    bool mOutroIntroSeen; // 0x9c
+    Symbol mMasterQuestCrew; // 0xa0
+    Symbol mMasterQuestSong; // 0xa4
+    std::vector<CampaignMove *> mCampaignMoves; // 0xa8
+    DirLoader *m_pCurLoader; // 0xb4
+    bool unkb8;
+    Symbol unkbc;
+    std::map<Symbol, bool> unkc0;
+    ObjectDir *unkd8;
 };
 
 extern Campaign *TheCampaign;
