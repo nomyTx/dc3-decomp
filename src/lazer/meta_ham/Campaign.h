@@ -1,15 +1,14 @@
 #pragma once
-
 #include "hamobj/HamLabel.h"
 #include "hamobj/HamMove.h"
-#include "lazer/meta_ham/CampaignEra.h"
+#include "meta_ham/CampaignEra.h"
 #include "obj/Data.h"
 #include "obj/Dir.h"
 #include "obj/DirLoader.h"
 #include "obj/Object.h"
-#include "stl/_vector.h"
 #include "utl/Loader.h"
 #include "utl/Symbol.h"
+#include <vector>
 
 enum CampaignState {
     kCampaignStateInactive = 0,

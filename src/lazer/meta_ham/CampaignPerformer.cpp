@@ -3,6 +3,7 @@
 #include "flow/PropertyEventProvider.h"
 #include "game/GameMode.h"
 #include "hamobj/Difficulty.h"
+#include "hamobj/HamDirector.h"
 #include "hamobj/HamGameData.h"
 #include "hamobj/HamMove.h"
 #include "hamobj/HamPlayerData.h"
@@ -20,15 +21,235 @@
 #include "os/Debug.h"
 #include "utl/Symbol.h"
 
-CampaignPerformer::CampaignPerformer(HamSongMgr const &hsm)
+CampaignPerformer::CampaignPerformer(const HamSongMgr &hsm)
     : MetaPerformer(hsm, "campaign_performer"), mEra(gNullStr),
       mDifficulty(kDifficultyEasy), mJustFinishedEra(false), mJustUnlockedEraSong(false),
       mWasLastMoveMastered(false), mLastEraStars(-1), mLastEraMoves(-1),
       mStarsEarnedSoFar(0) {}
 
+BEGIN_HANDLERS(CampaignPerformer)
+    HANDLE_EXPR(is_campaign_new, IsCampaignNew())
+    HANDLE_EXPR(is_campaign_intro_complete, IsCampaignIntroComplete())
+    HANDLE_ACTION(set_campaign_intro_complete, SetCampaignIntroComplete(true))
+    HANDLE_EXPR(is_campaign_mind_control_complete, IsCampaignMindControlComplete())
+    HANDLE_ACTION(set_campaign_mind_control_complete, SetCampaignMindControlComplete(true))
+    HANDLE_EXPR(is_campaign_complete, IsCampaignComplete())
+    HANDLE_ACTION(set_campaign_complete, SetCampaignComplete())
+    HANDLE_ACTION(setup_campaign_intro_playlist, SetIntroPlaylist())
+    HANDLE_ACTION(setup_campaign_outro_playlist, SetOutroPlaylist())
+    HANDLE_EXPR(get_era, mEra)
+    HANDLE_ACTION(set_era, SetEra(_msg->Sym(2)))
+    HANDLE_EXPR(first_era, GetFirstEra())
+    HANDLE_EXPR(last_era, GetLastEra())
+    HANDLE_EXPR(tan_battle_era, GetTanBattleEra())
+    HANDLE_EXPR(just_finished_era, mJustFinishedEra)
+    HANDLE_EXPR(set_era_to_first_incomplete, SetEraToFirstIncomplete())
+    HANDLE_EXPR(is_era_new, IsEraNew())
+    HANDLE_EXPR(is_current_era_complete, IsEraComplete(mEra))
+    HANDLE_EXPR(is_era_complete, IsEraComplete(_msg->Sym(2)))
+    HANDLE_ACTION(set_song, MetaPerformer::SetSong(_msg->Sym(2)))
+    HANDLE_EXPR(num_era_songs, GetNumEraSongs())
+    HANDLE_EXPR(get_era_song, GetEraSong(_msg->Int(2)))
+    HANDLE_EXPR(get_era_intro_song, GetEraIntroSong())
+    HANDLE_EXPR(get_song_attempted_count, GetSongAttemptedCount())
+    HANDLE_EXPR(has_song_been_attempted, HasSongBeenAttempted(_msg->Sym(2)))
+    HANDLE_EXPR(get_song_index, GetSongIndex(_msg->Sym(2)))
+    HANDLE_EXPR(get_num_song_craze_moves, GetNumSongCrazeMoves(_msg->Sym(2)))
+    HANDLE_EXPR(can_select_era_song, CanSelectEraSong(_msg->Sym(2)))
+    HANDLE_EXPR(is_era_move_mastered, IsEraMoveMastered(_msg->Sym(2), _msg->Int(3)))
+    HANDLE_EXPR(just_unlocked_erasong, mJustUnlockedEraSong)
+    HANDLE_ACTION(clear_just_unlocked_erasong, mJustUnlockedEraSong = false)
+    HANDLE_ACTION(clear_last_era_stars, mLastEraStars = -1)
+    HANDLE_ACTION(clear_last_era_moves, mLastEraMoves = -1)
+    HANDLE_EXPR(get_last_era_stars, mLastEraStars)
+    HANDLE_EXPR(is_dance_craze_song_available, IsDanceCrazeSongAvailable(_msg->Sym(2)))
+    HANDLE_EXPR(is_era_mastered, IsEraMastered(_msg->Sym(2)))
+    HANDLE_EXPR(has_era_outfits, HasEraOutfits(_msg->Sym(2)))
+    HANDLE_EXPR(get_dance_craze_song, GetDanceCrazeSong())
+    HANDLE_EXPR(is_attempting_dance_craze_song, IsAttemptingDanceCrazeSong())
+    HANDLE_EXPR(get_erasong_unlocked_token, GetEraSongUnlockedToken())
+    HANDLE_EXPR(get_era_complete_token, GetEraCompleteToken())
+    HANDLE_EXPR(get_win_instructions_token, GetWinInstructionsToken())
+    HANDLE_EXPR(get_era_intro_movie, GetEraIntroMovieToken())
+    HANDLE_EXPR(get_era_intro_movie_played, GetEraIntroMoviePlayed())
+    HANDLE_ACTION(set_era_intro_movie_played, SetEraIntroMoviePlayed(true))
+    HANDLE_EXPR(get_era_stars_earned, GetEraStarsEarned(_msg->Sym(2)))
+    HANDLE_EXPR(get_song_stars_earned, GetSongStarsEarned(_msg->Sym(2), _msg->Sym(3)))
+    HANDLE_EXPR(get_required_mastery_stars, GetStarsRequiredForMastery(_msg->Sym(2)))
+    HANDLE_EXPR(get_required_outfit_stars, GetStarsRequiredForOutfits(_msg->Sym(2)))
+    HANDLE_EXPR(get_mastery_moves, GetMasteryMoves(_msg->Sym(2)))
+    HANDLE_EXPR(get_required_mastery_moves, GetMovesRequiredForMastery(_msg->Sym(2)))
+    HANDLE_ACTION(award_craze_accomplishments, AwardCrazeAccomplishments())
+    HANDLE_EXPR(get_completion_accomplishment, GetCompletionAccomplishment(_msg->Sym(2)))
+    HANDLE_ACTION(award_boss_accomplishment, AwardBossAccomplishment())
+    HANDLE_ACTION(award_master_quest_accomplishment, AwardMasterQuestAccomplishments())
+    HANDLE_EXPR(
+        is_dance_craze_move,
+        IsDanceCrazeMove(_msg->Sym(2), _msg->Sym(3), _msg->Obj<HamMove>(4))
+    )
+    HANDLE_EXPR(
+        is_dance_craze_move_mastered,
+        IsDanceCrazeMoveMastered(_msg->Sym(2), _msg->Sym(3), _msg->Obj<HamMove>(4))
+    )
+    HANDLE_ACTION(restart_finale_song, mNumCompleted.pop_back())
+    HANDLE_EXPR(get_challenge_character, GetChallengeCharacter())
+    HANDLE_EXPR(was_last_move_mastered, mWasLastMoveMastered)
+    HANDLE_EXPR(last_move_mastered_name, mLastMoveMasteredName)
+    HANDLE_ACTION(set_stars_earned, UpdateStarsEarnedSoFar(_msg->Int(2)))
+    HANDLE_ACTION(clear_all_campaign_progress, ClearAllCampaignProgress())
+    HANDLE_ACTION(on_load_song, OnLoadSong())
+    HANDLE_EXPR(won_current_outro_song, WonCurrentOutroSong())
+    HANDLE_EXPR(in_outro_perform, InOutroPerform())
+    HANDLE_ACTION(bookmark_current_progress, BookmarkCurrentProgress())
+    HANDLE_ACTION(
+        unlock_all_moves, UnlockAllMoves(_msg->Sym(2), _msg->Sym(3), _msg->Int(4))
+    )
+    HANDLE_ACTION(reset_all_campaign_progress, ResetAllCampaignProgress())
+    HANDLE_SUPERCLASS(MetaPerformer)
+    HANDLE_SUPERCLASS(Hmx::Object)
+END_HANDLERS
+
 BEGIN_PROPSYNCS(CampaignPerformer)
     SYNC_SUPERCLASS(Hmx::Object)
 END_PROPSYNCS
+
+void CampaignPerformer::SelectSong(Symbol song, int i) {
+    TheGameData->SetSong(song);
+    mJustUnlockedEraSong = false;
+    mStarsEarnedSoFar = 0;
+    if (TheGameMode->InMode("campaign_perform", true)) {
+        BookmarkCurrentProgress();
+        CampaignEra *pEra = TheCampaign->GetCampaignEra(mEra);
+        MILO_ASSERT(pEra, 0x58);
+        Symbol crew = pEra->Crew();
+        CampaignEraSongEntry *pSongEntry = pEra->GetSongEntry(song);
+        MILO_ASSERT(pSongEntry, 0x5c);
+        Symbol introCrew = pSongEntry->GetUnk8();
+        SetupCampaignCharacters(crew, introCrew);
+    } else if (TheGameMode->InMode("campaign_intro", true)) {
+        static Symbol era_tan_battle("era_tan_battle");
+        if (mEra == era_tan_battle)
+            return;
+        Symbol crew = TheCampaign->GetIntroCrew();
+        HamPlayerData *pPlayer1Data = TheGameData->Player(0);
+        MILO_ASSERT(pPlayer1Data, 0x68);
+        HamPlayerData *pPlayer2Data = TheGameData->Player(1);
+        MILO_ASSERT(pPlayer2Data, 0x6a);
+        Symbol introCrew = TheCampaign->GetIntroSongCharacter(i);
+        SetupCampaignCharacters(crew, introCrew);
+    }
+}
+
+void CampaignPerformer::CompleteSong(int i1, int i2, int i3, float f4, bool b5) {
+    Symbol song = TheGameData->GetSong();
+    if (TheGameMode->InMode("campaign_perform", true)
+        || TheGameMode->InMode("campaign_holla_back", true)) {
+        static Symbol gameplay_mode("gameplay_mode");
+        Symbol mode = TheGameMode->Property(gameplay_mode)->Sym();
+        static Symbol perform("perform");
+        if (mode == perform) {
+            UpdateEraSong(mDifficulty, mEra, song, i1);
+        }
+    } else if (TheGameMode->InMode("campaign_intro", true)
+               && !TheGameMode->InMode("campaign_outro", true)) {
+        int stars = TheCampaign->GetIntroSongStarsRequired(GetPlaylistIndex());
+        if (IsLastSong() && i1 >= stars) {
+            SetCampaignIntroComplete(true);
+        }
+    } else if (TheGameMode->InMode("campaign_outro", true)) {
+        int stars = TheCampaign->GetOutroSongStarsRequired(GetPlaylistIndex());
+        TheHamProvider->SetProperty("merge_moves", 0);
+    }
+    MetaPerformer::CompleteSong(i1, i2, i3, f4, b5);
+    BookmarkCurrentProgress();
+}
+
+void CampaignPerformer::OnLoadSong() {
+    mStarsEarnedSoFar = 0;
+    if (TheGameMode->InMode("campaign_outro", true)) {
+        int idx = GetPlaylistIndex();
+        static Symbol perform("perform");
+        static Symbol song_shortening_enabled("song_shortening_enabled");
+        static Symbol deinit("deinit");
+        Symbol mode = TheCampaign->GetOutroSongGameplayMode(idx);
+        if (TheGameMode->GameplayMode() != mode) {
+            TheGameMode->SetGameplayMode(mode, mode == perform);
+            TheHamProvider->SetProperty(
+                song_shortening_enabled,
+                TheCampaign->GetOutroSongShortened(GetPlaylistIndex())
+            );
+        }
+    }
+}
+
+void CampaignPerformer::OnMovePassed(int player, HamMove *move, int i3, float f4) {
+    MILO_ASSERT(TheGameMode->InMode( "campaign" ), 0x2C7);
+    MetaPerformer::OnMovePassed(player, move, i3, f4);
+    if (!TheGameMode->InMode("campaign_intro")) {
+        HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
+        MILO_ASSERT(pProfile, 0x2D2);
+        HamPlayerData *hpd = TheGameData->Player(player);
+        HamProfile *pProfileFromPad = TheProfileMgr.GetProfileFromPad(hpd->PadNum());
+        if (pProfileFromPad != pProfile) {
+            MILO_LOG(
+                "CampaignPerformer::OnMovePassed: Campaign progress earned by Player '%s' is credited to Player '%s'\n",
+                pProfileFromPad ? pProfileFromPad->GetName() : "NOTSIGNEDIN",
+                pProfile->GetName()
+            );
+        }
+        int allow_no_profile_in_campaign =
+            DataVariable("allow_no_profile_in_campaign").Int();
+        if (!pProfile) {
+            MILO_ASSERT(pProfile || allow_no_profile_in_campaign, 0x2E0);
+        } else {
+            for (int i = 0; i <= mDifficulty; i++) {
+                CampaignProgress &progress =
+                    pProfile->AccessCampaignProgress((Difficulty)i);
+                progress.SetSongPlayed(mEra, GetSong(), true);
+            }
+        }
+        mWasLastMoveMastered = false;
+        static Symbol gameplay_mode("gameplay_mode");
+        static Symbol perform("perform");
+        Symbol gamemode = TheGameMode->Property(gameplay_mode)->Sym();
+        if (gamemode == perform) {
+            Symbol tan("era_tan_battle");
+            if (mEra != tan) {
+                CampaignEra *pEra = TheCampaign->GetCampaignEra(mEra);
+                MILO_ASSERT(pEra, 0x2F6);
+                bool b9 = false;
+                for (int i = 0; i < pEra->GetNumSongs(); i++) {
+                    Symbol songname = pEra->GetSongName(i);
+                    if (GetSong() == songname) {
+                        b9 = true;
+                        break;
+                    }
+                }
+                if (b9) {
+                    Symbol moveVariantName =
+                        pEra->GetMoveVariantName(GetSong(), move->Name());
+                    if (pEra->HasCrazeMove(GetSong(), move->Name()) && i3 <= 1) {
+                        static bool sPassed = true;
+                        for (int i = 0; i <= mDifficulty; i++) {
+                            if (sPassed && pProfile) {
+                                CampaignProgress &progress =
+                                    pProfile->AccessCampaignProgress((Difficulty)i);
+                                if (progress.UpdateEraSongMoveMastered(
+                                        mEra, GetSong(), move->Name()
+                                    )
+                                    && i == mDifficulty) {
+                                    mWasLastMoveMastered = true;
+                                    mLastMoveMasteredName = moveVariantName;
+                                    CheckForEraSongUnlock();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 bool CampaignPerformer::InOutroPerform() const {
     return TheGameMode->InMode("campaign_outro", true)
@@ -43,34 +264,6 @@ void CampaignPerformer::SetDifficulty(Difficulty d) {
     MILO_ASSERT(pPlayer2Data, 0x14b);
     pPlayer1Data->SetDifficulty(d);
     pPlayer2Data->SetDifficulty(d);
-}
-
-void CampaignPerformer::SelectSong(Symbol song, int i) {
-    TheGameData->SetSong(song);
-    Symbol crew, introCrew;
-    mJustUnlockedEraSong = false;
-    mStarsEarnedSoFar = 0;
-    if (TheGameMode->InMode("campaign_perform", true)) {
-        BookmarkCurrentProgress();
-        CampaignEra *pEra = TheCampaign->GetCampaignEra(mEra);
-        MILO_ASSERT(pEra, 0x58);
-        Symbol crew = pEra->Crew();
-        CampaignEraSongEntry *pSongEntry = pEra->GetSongEntry(song);
-        MILO_ASSERT(pSongEntry, 0x5c);
-        introCrew = pSongEntry->GetUnk8();
-        crew = pEra->Crew();
-    } else if (TheGameMode->InMode("campaign_intro", true)) {
-        static Symbol era_tan_battle("era_tan_battle");
-        if (mEra == era_tan_battle)
-            return;
-        crew = TheCampaign->GetIntroCrew();
-        HamPlayerData *pPlayer1Data = TheGameData->Player(0);
-        MILO_ASSERT(pPlayer1Data, 0x68);
-        HamPlayerData *pPlayer2Data = TheGameData->Player(1);
-        MILO_ASSERT(pPlayer2Data, 0x6a);
-        introCrew = TheCampaign->GetIntroSongCharacter(i);
-    }
-    SetupCampaignCharacters(crew, introCrew);
 }
 
 int CampaignPerformer::GetSongStarsEarned(Symbol s1, Symbol s2) const {
@@ -206,11 +399,12 @@ bool CampaignPerformer::HasEraOutfits(Symbol era) const {
         pProfile->GetCampaignProgress(mDifficulty);
     CampaignEra *pEra = TheCampaign->GetCampaignEra(era);
     MILO_ASSERT(pEra, 0x395);
-    Symbol s = pEra->OutfitAward();
-    if (s != gNullStr
-        && pCampaignProgress.GetEraStarsEarned(era) < pEra->StarsRequiredForOutfits())
+    if (pEra->OutfitAward() == gNullStr
+        || pCampaignProgress.GetEraStarsEarned(era) >= pEra->StarsRequiredForOutfits()) {
+        return true;
+    } else {
         return false;
-    return true;
+    }
 }
 
 Symbol CampaignPerformer::GetDanceCrazeSong() const {
@@ -266,7 +460,7 @@ Symbol CampaignPerformer::GetEraIntroMovieToken() const {
 Symbol CampaignPerformer::GetEraIntroSong() {
     CampaignEra *pEra = TheCampaign->GetCampaignEra(mEra);
     MILO_ASSERT(pEra, 0x44e);
-    return pEra->GetSongName(pEra->GetNumSongs() != 0); // look into this line
+    return pEra->GetSongName(Max(pEra->GetNumSongs() - 1, 0));
 }
 
 bool CampaignPerformer::IsEraMoveMastered(Symbol s, int i) {
@@ -353,9 +547,7 @@ void CampaignPerformer::BookmarkCurrentProgress() {
     HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
     MILO_ASSERT(pProfile, 0x4e9);
     for (int i = 0; i <= mDifficulty; i++) {
-        CampaignProgress &pCampaignProgress =
-            pProfile->AccessCampaignProgress((Difficulty)i);
-        pCampaignProgress.BookmarkCurrentProgress();
+        pProfile->AccessCampaignProgress((Difficulty)i).BookmarkCurrentProgress();
     }
 }
 
@@ -567,84 +759,69 @@ void CampaignPerformer::AwardBossAccomplishment() {
     }
 }
 
-BEGIN_HANDLERS(CampaignPerformer)
-    HANDLE_EXPR(is_campaign_new, IsCampaignNew())
-    HANDLE_EXPR(is_campaign_intro_complete, IsCampaignIntroComplete())
-    HANDLE_ACTION(set_campaign_intro_complete, SetCampaignIntroComplete(true))
-    HANDLE_EXPR(is_campaign_mind_control_complete, IsCampaignMindControlComplete())
-    HANDLE_ACTION(set_campaign_mind_control_complete, SetCampaignMindControlComplete(true))
-    HANDLE_EXPR(is_campaign_complete, IsCampaignComplete())
-    HANDLE_ACTION(set_campaign_complete, SetCampaignComplete())
-    HANDLE_ACTION(setup_campaign_intro_playlist, SetIntroPlaylist())
-    HANDLE_ACTION(setup_campaign_outro_playlist, SetOutroPlaylist())
-    HANDLE_EXPR(get_era, mEra)
-    HANDLE_ACTION(set_era, SetEra(_msg->Sym(2)))
-    HANDLE_EXPR(first_era, GetFirstEra())
-    HANDLE_EXPR(last_era, GetLastEra())
-    HANDLE_EXPR(tan_battle_era, GetTanBattleEra())
-    HANDLE_EXPR(just_finished_era, mJustFinishedEra)
-    HANDLE_EXPR(set_era_to_first_incomplete, SetEraToFirstIncomplete())
-    HANDLE_EXPR(is_era_new, IsEraNew())
-    HANDLE_EXPR(is_current_era_complete, IsEraComplete(mEra))
-    HANDLE_EXPR(is_era_complete, IsEraComplete(_msg->Sym(2)))
-    HANDLE_ACTION(set_song, MetaPerformer::SetSong(_msg->Sym(2)))
-    HANDLE_EXPR(num_era_songs, GetNumEraSongs())
-    HANDLE_EXPR(get_era_song, GetEraSong(_msg->Int(2)))
-    HANDLE_EXPR(get_era_intro_song, GetEraIntroSong())
-    HANDLE_EXPR(get_song_attempted_count, GetSongAttemptedCount())
-    HANDLE_EXPR(has_song_been_attempted, HasSongBeenAttempted(_msg->Sym(2)))
-    HANDLE_EXPR(get_song_index, GetSongIndex(_msg->Sym(2)))
-    HANDLE_EXPR(get_num_song_craze_moves, GetNumSongCrazeMoves(_msg->Sym(2)))
-    HANDLE_EXPR(can_select_era_song, CanSelectEraSong(_msg->Sym(2)))
-    HANDLE_EXPR(is_era_move_mastered, IsEraMoveMastered(_msg->Sym(2), _msg->Int(3)))
-    HANDLE_EXPR(just_unlocked_erasong, mJustUnlockedEraSong)
-    HANDLE_ACTION(clear_just_unlocked_erasong, mJustUnlockedEraSong = false)
-    HANDLE_ACTION(clear_last_era_stars, mLastEraStars = -1)
-    HANDLE_ACTION(clear_last_era_moves, mLastEraMoves = -1)
-    HANDLE_EXPR(get_last_era_stars, mLastEraStars)
-    HANDLE_EXPR(is_dance_craze_song_available, IsDanceCrazeSongAvailable(_msg->Sym(2)))
-    HANDLE_EXPR(is_era_mastered, IsEraMastered(_msg->Sym(2)))
-    HANDLE_EXPR(has_era_outfits, HasEraOutfits(_msg->Sym(2)))
-    HANDLE_EXPR(get_dance_craze_song, GetDanceCrazeSong())
-    HANDLE_EXPR(is_attempting_dance_craze_song, IsAttemptingDanceCrazeSong())
-    HANDLE_EXPR(get_erasong_unlocked_token, GetEraSongUnlockedToken())
-    HANDLE_EXPR(get_era_complete_token, GetEraCompleteToken())
-    HANDLE_EXPR(get_win_instructions_token, GetWinInstructionsToken())
-    HANDLE_EXPR(get_era_intro_movie, GetEraIntroMovieToken())
-    HANDLE_EXPR(get_era_intro_movie_played, GetEraIntroMoviePlayed())
-    HANDLE_ACTION(set_era_intro_movie_played, SetEraIntroMoviePlayed(true))
-    HANDLE_EXPR(get_era_stars_earned, GetEraStarsEarned(_msg->Sym(2)))
-    HANDLE_EXPR(get_song_stars_earned, GetSongStarsEarned(_msg->Sym(2), _msg->Sym(3)))
-    HANDLE_EXPR(get_required_mastery_stars, GetStarsRequiredForMastery(_msg->Sym(2)))
-    HANDLE_EXPR(get_required_outfit_stars, GetStarsRequiredForOutfits(_msg->Sym(2)))
-    HANDLE_EXPR(get_mastery_moves, GetMasteryMoves(_msg->Sym(2)))
-    HANDLE_EXPR(get_required_mastery_moves, GetMovesRequiredForMastery(_msg->Sym(2)))
-    HANDLE_ACTION(award_craze_accomplishments, AwardCrazeAccomplishments())
-    HANDLE_EXPR(get_completion_accomplishment, GetCompletionAccomplishment(_msg->Sym(2)))
-    HANDLE_ACTION(award_boss_accomplishment, AwardBossAccomplishment())
-    HANDLE_ACTION(award_master_quest_accomplishment, AwardMasterQuestAccomplishments())
-    HANDLE_EXPR(
-        is_dance_craze_move,
-        IsDanceCrazeMove(_msg->Sym(2), _msg->Sym(3), _msg->Obj<HamMove>(4))
-    )
-    HANDLE_EXPR(
-        is_dance_craze_move_mastered,
-        IsDanceCrazeMoveMastered(_msg->Sym(2), _msg->Sym(3), _msg->Obj<HamMove>(4))
-    )
-    HANDLE_ACTION(restart_finale_song, mNumCompleted.pop_back())
-    HANDLE_EXPR(get_challenge_character, GetChallengeCharacter())
-    HANDLE_EXPR(was_last_move_mastered, mWasLastMoveMastered)
-    HANDLE_EXPR(last_move_mastered_name, mLastMoveMasteredName)
-    HANDLE_ACTION(set_stars_earned, UpdateStarsEarnedSoFar(_msg->Int(2)))
-    HANDLE_ACTION(clear_all_campaign_progress, ClearAllCampaignProgress())
-    HANDLE_ACTION(on_load_song, OnLoadSong())
-    HANDLE_EXPR(won_current_outro_song, WonCurrentOutroSong())
-    HANDLE_EXPR(in_outro_perform, InOutroPerform())
-    HANDLE_ACTION(bookmark_current_progress, BookmarkCurrentProgress())
-    HANDLE_ACTION(
-        unlock_all_moves, UnlockAllMoves(_msg->Sym(2), _msg->Sym(3), _msg->Int(4))
-    )
-    HANDLE_ACTION(reset_all_campaign_progress, ResetAllCampaignProgress())
-    HANDLE_SUPERCLASS(MetaPerformer)
-    HANDLE_SUPERCLASS(Hmx::Object)
-END_HANDLERS
+bool CampaignPerformer::WonCurrentOutroSong() const {
+    int idx = GetPlaylistIndex();
+    int starsEarned = TheCampaign->GetOutroStarsEarned(idx);
+    int starsRequired = TheCampaign->GetOutroSongStarsRequired(idx);
+    if (!InOutroPerform()) {
+        return starsRequired <= starsEarned;
+    } else {
+        static Symbol freestyle_enabled("freestyle_enabled");
+        return TheHamDirector->Property(freestyle_enabled)->Int() || starsEarned >= 5;
+    }
+}
+
+void CampaignPerformer::CheckForEraSongUnlock() {
+    if (!mJustUnlockedEraSong) {
+        Symbol song = TheGameData->GetSong();
+        CampaignEra *pEra = TheCampaign->GetCampaignEra(mEra);
+        MILO_ASSERT(pEra, 0x271);
+        HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
+        MILO_ASSERT(pProfile, 0x273);
+        const CampaignProgress &progress = pProfile->GetCampaignProgress(mDifficulty);
+        int eraStarsEarned = progress.GetEraStarsEarned(mEra);
+        int songStarsEarned = progress.GetSongStarsEarned(mEra, song);
+        int starsForMastery = pEra->StarsRequiredForMastery();
+        int totalStarsEarned = (mStarsEarnedSoFar - songStarsEarned) + eraStarsEarned;
+        int movesMastered = progress.GetEraMovesMastered(mEra);
+        int movesForMastery = pEra->MovesRequiredForMastery();
+        if (totalStarsEarned >= starsForMastery && movesMastered >= movesForMastery) {
+            mJustUnlockedEraSong = true;
+        }
+        MILO_LOG(
+            "==[CampaignPerformer::CheckForEraSongUnlock]== song=%s, stars this song=%d : totals = %d/%d stars, %d/%d moves  %s\n",
+            song.Str(),
+            mStarsEarnedSoFar,
+            totalStarsEarned,
+            starsForMastery,
+            movesMastered,
+            movesForMastery,
+            mJustUnlockedEraSong ? "***JustUnlockedEraSong***" : ""
+        );
+    }
+}
+
+bool CampaignPerformer::HasSongBeenAttempted(Symbol song) {
+    CampaignEra *pEra = TheCampaign->GetCampaignEra(mEra);
+    if (!pEra) {
+        MILO_NOTIFY(
+            "CampaignPerformer::HasSongBeenAttempted, returning false because no era found for '%s'\n",
+            mEra.Str()
+        );
+        return false;
+    } else {
+        CampaignEraSongEntry *pEntry = pEra->GetSongEntry(song);
+        if (!pEntry) {
+            MILO_NOTIFY(
+                "CampaignPerformer::HasSongBeenAttempted, returning false because no song entry found for '%s'\n",
+                song.Str()
+            );
+            return false;
+        } else {
+            HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
+            MILO_ASSERT(pProfile, 0x488);
+            const CampaignProgress &progress = pProfile->GetCampaignProgress(mDifficulty);
+            return progress.IsSongPlayed(mEra, song);
+        }
+    }
+}

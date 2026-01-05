@@ -11,7 +11,7 @@ public:
     virtual ~GameMode() {}
     virtual DataNode Handle(DataArray *, bool);
 
-    bool InMode(Symbol, bool);
+    bool InMode(Symbol, bool = true);
     int RequiresTwoPlayers(Symbol);
     int MinPlayers(Symbol);
     int MaxPlayers(Symbol);

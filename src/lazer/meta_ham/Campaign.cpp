@@ -3,6 +3,10 @@
 #include "hamobj/HamMove.h"
 #include "meta_ham/CampaignEra.h"
 #include "macros.h"
+#include "meta_ham/CampaignPerformer.h"
+#include "meta_ham/HamProfile.h"
+#include "meta_ham/MetaPerformer.h"
+#include "meta_ham/ProfileMgr.h"
 #include "obj/Data.h"
 #include "obj/DataFile.h"
 #include "obj/Dir.h"
@@ -475,4 +479,112 @@ Symbol Campaign::GetMoveName(Symbol s1, int i2) {
         }
     }
     return 0;
+}
+
+bool Campaign::UpdateEraSongUnlockInstructions(
+    Symbol song, HamLabel *i_pInstructionsLabel
+) {
+    MILO_ASSERT(i_pInstructionsLabel, 0x131);
+    CampaignPerformer *pPerformer =
+        dynamic_cast<CampaignPerformer *>(MetaPerformer::Current());
+    if (!pPerformer) {
+        MILO_NOTIFY("Campaign::UpdateEraSongUnlockInstructions pPerformer is NULL");
+        return false;
+    }
+    Symbol era = pPerformer->Era();
+    CampaignEra *pEra = GetCampaignEra(era);
+    if (!pEra) {
+        MILO_ASSERT(pEra, 0x13D);
+        MILO_NOTIFY("Campaign::UpdateEraSongUnlockInstructions pEra is NULL");
+        return false;
+    }
+    int requiredStars = pEra->GetSongRequiredStars(song);
+    if (requiredStars == 0) {
+        static Symbol era01("era01");
+        static Symbol era02("era02");
+        static Symbol era03("era03");
+        static Symbol era04("era04");
+        if (era == era01) {
+            static Symbol campaign_song_hint_70s("campaign_song_hint_70s");
+            i_pInstructionsLabel->SetTextToken(campaign_song_hint_70s);
+        } else if (era == era02) {
+            static Symbol campaign_song_hint_80s("campaign_song_hint_80s");
+            i_pInstructionsLabel->SetTextToken(campaign_song_hint_80s);
+        } else if (era == era03) {
+            static Symbol campaign_song_hint_90s("campaign_song_hint_90s");
+            i_pInstructionsLabel->SetTextToken(campaign_song_hint_90s);
+        } else if (era == era04) {
+            static Symbol campaign_song_hint_00s("campaign_song_hint_00s");
+            i_pInstructionsLabel->SetTextToken(campaign_song_hint_00s);
+        } else {
+            static Symbol campaign_song_hint_10s("campaign_song_hint_10s");
+            i_pInstructionsLabel->SetTextToken(campaign_song_hint_10s);
+        }
+        return false;
+    }
+    HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
+    MILO_ASSERT(pProfile, 0x173);
+    const CampaignProgress &campaignProgress =
+        pProfile->GetCampaignProgress(pPerformer->GetDifficulty());
+    int starsEarned = campaignProgress.GetEraStarsEarned(era);
+    int movesRequired = pEra->MovesRequiredForMastery();
+    int i8 = Max(requiredStars - starsEarned, 0);
+    int eraMovesMastered = campaignProgress.GetEraMovesMastered(era);
+    if (eraMovesMastered >= movesRequired) {
+        eraMovesMastered = movesRequired;
+    }
+    int i9 = Max(movesRequired - eraMovesMastered, 0);
+    if (i8 > 1) {
+        if (i9 > 1) {
+            static Symbol campaign_song_hint_both("campaign_song_hint_both");
+            i_pInstructionsLabel->SetTokenFmt(campaign_song_hint_both, i8, i9);
+            return true;
+        } else if (i9 == 1) {
+            static Symbol campaign_song_hint_both_singular_move(
+                "campaign_song_hint_both_singular_move"
+            );
+            i_pInstructionsLabel->SetTokenFmt(campaign_song_hint_both_singular_move, i8);
+            return true;
+        } else if (i9 == 0) {
+            static Symbol campaign_song_hint("campaign_song_hint");
+            i_pInstructionsLabel->SetTokenFmt(campaign_song_hint, i8);
+            return true;
+        }
+    }
+    if (i8 == 1) {
+        if (i9 > 1) {
+            static Symbol campaign_song_hint_both_singular_star(
+                "campaign_song_hint_both_singular_star"
+            );
+            i_pInstructionsLabel->SetTokenFmt(campaign_song_hint_both_singular_star, i9);
+            return true;
+        }
+        if (i9 == 1) {
+            static Symbol campaign_song_hint_both_singular_both(
+                "campaign_song_hint_both_singular_both"
+            );
+            i_pInstructionsLabel->SetTextToken(campaign_song_hint_both_singular_both);
+            return true;
+        } else if (i9 == 0) {
+            static Symbol campaign_song_hint_singular("campaign_song_hint_singular");
+            i_pInstructionsLabel->SetTextToken(campaign_song_hint_singular);
+            return true;
+        }
+    } else if (i8 == 0) {
+        if (i9 > 1) {
+            static Symbol campaign_song_hint_moves("campaign_song_hint_moves");
+            i_pInstructionsLabel->SetTokenFmt(campaign_song_hint_moves, i9);
+            return true;
+        }
+        if (i9 == 1) {
+            static Symbol campaign_song_hint_moves_singular(
+                "campaign_song_hint_moves_singular"
+            );
+            i_pInstructionsLabel->SetTextToken(campaign_song_hint_moves_singular);
+            return true;
+        }
+    }
+    static Symbol campaign_song_hint_singular("campaign_song_hint_singular");
+    i_pInstructionsLabel->SetTextToken(campaign_song_hint_singular);
+    return true;
 }

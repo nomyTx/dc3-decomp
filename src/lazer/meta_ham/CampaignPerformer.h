@@ -8,16 +8,17 @@
 
 class CampaignPerformer : public MetaPerformer {
 public:
+    CampaignPerformer(const HamSongMgr &);
     // Hmx::Object
     virtual DataNode Handle(DataArray *, bool);
     virtual bool SyncProperty(DataNode &, DataArray *, int, PropOp);
-
     // MetaPerformer
+    virtual bool IsWinning() const { return false; }
     virtual void SelectSong(Symbol, int);
+    virtual void CompleteSong(int, int, int, float, bool);
     virtual void OnLoadSong();
     virtual void OnMovePassed(int, HamMove *, int, float);
 
-    CampaignPerformer(HamSongMgr const &);
     bool InOutroPerform() const;
     bool WonCurrentOutroSong() const;
     void SetDifficulty(Difficulty);
