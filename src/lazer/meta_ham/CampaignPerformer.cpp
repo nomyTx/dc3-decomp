@@ -57,7 +57,7 @@ void CampaignPerformer::SelectSong(Symbol song, int i) {
         Symbol crew = pEra->Crew();
         CampaignEraSongEntry *pSongEntry = pEra->GetSongEntry(song);
         MILO_ASSERT(pSongEntry, 0x5c);
-        introCrew = pSongEntry->unk8;
+        introCrew = pSongEntry->GetUnk8();
         crew = pEra->Crew();
     } else if (TheGameMode->InMode("campaign_intro", true)) {
         static Symbol era_tan_battle("era_tan_battle");

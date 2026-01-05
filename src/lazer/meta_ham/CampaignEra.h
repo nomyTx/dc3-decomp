@@ -1,16 +1,15 @@
 #pragma once
-
 #include "hamobj/Difficulty.h"
 #include "obj/Data.h"
-#include "stl/_vector.h"
 #include "utl/Str.h"
 #include "utl/Symbol.h"
+#include <vector>
 
 class CampaignEraSongEntry {
 public:
+    CampaignEraSongEntry(DataArray *, DataArray *);
     virtual ~CampaignEraSongEntry();
 
-    CampaignEraSongEntry(DataArray *, DataArray *);
     bool HasCrazeMove(Symbol) const;
     Symbol GetCrazeMoveName(int) const;
     Symbol GetCrazeMoveVariantName(int) const;
@@ -18,22 +17,27 @@ public:
     Symbol GetVariantFromHamMoveName(Symbol) const;
     Symbol GetHamMoveNameFromVariant(Symbol) const;
 
-    Symbol m_symSong; // 0x4
-    Symbol unk8;
-    int unkc;
-    std::vector<Symbol> m_vCrazeMoveNames; // 0x10
-    std::vector<Symbol> m_vCrazeMoveVariantNames; // 0x1c
-    std::vector<Symbol> m_vCrazeMoveHamMoveNames; // 0x28
+    Symbol GetSongName() const { return m_symSong; }
+    Symbol GetUnk8() const { return unk8; }
+    int GetSongRequiredStars() const { return m_iRequiredStars; }
+    int GetNumSongCrazeMoves() const { return m_vCrazeMoveNames.size(); }
 
 private:
     void Configure(DataArray *, DataArray *);
+
+    Symbol m_symSong; // 0x4
+    Symbol unk8; // 0x8
+    int m_iRequiredStars; // 0xc
+    std::vector<Symbol> m_vCrazeMoveNames; // 0x10
+    std::vector<Symbol> m_vCrazeMoveVariantNames; // 0x1c
+    std::vector<Symbol> m_vCrazeMoveHamMoveNames; // 0x28
 };
 
 class CampaignEra {
 public:
+    CampaignEra(DataArray *, DataArray *);
     virtual ~CampaignEra();
 
-    CampaignEra(DataArray *, DataArray *);
     Symbol GetDanceCrazeSong() const;
     bool IsTanBattleEra() const;
     int GetMaxStars() const;
@@ -55,30 +59,30 @@ public:
     Symbol Venue() const { return mVenue; }
     int StarsRequiredForOutfits() const { return mStarsRequiredForOutfits; }
     int StarsRequiredForMastery() const { return mStarsRequiredForMastery; }
-    Symbol CompletionAccomplishment() const { return mCompletetion_Accomplishment; }
-    Symbol EraSongUnlockedToken() const { return mEraSong_Unlocked_Token; }
-    Symbol EraSongCompleteToken() const { return mEraSong_Complete_Token; }
+    Symbol CompletionAccomplishment() const { return mCompletionAccomplishment; }
+    Symbol EraSongUnlockedToken() const { return mEraSongUnlockedToken; }
+    Symbol EraSongCompleteToken() const { return mEraSongCompleteToken; }
     int MovesRequiredForMastery() const { return mMovesRequiredForMastery; }
     Symbol OutfitAward() const { return mOutfitAward; }
-    Symbol GetMasteryStars(Difficulty d) { return mMastery_Stars[d]; }
+    Symbol GetMasteryStars(Difficulty d) { return mMasteryStars[d]; }
 
 protected:
     Symbol mEra; // 0x4
-    std::map<Symbol, int> unk8;
+    std::map<Symbol, int> unk8; // 0x8
     std::vector<CampaignEraSongEntry *> m_vSongs; // 0x20
     Symbol mCrew; // 0x2c
     Symbol mVenue; // 0x30
-    Symbol mEraSong_Unlocked_Token; // 0x34
-    Symbol mEraSong_Complete_Token; // 0x38
-    Symbol mEra_Intro_Movie; // 0x3c
+    Symbol mEraSongUnlockedToken; // 0x34
+    Symbol mEraSongCompleteToken; // 0x38
+    Symbol mEraIntroMovie; // 0x3c
     String unk40;
     String unk48;
     bool unk50;
-    Symbol mCompletetion_Accomplishment; // 0x54
+    Symbol mCompletionAccomplishment; // 0x54
     int unk58;
-    Symbol mCraze_Song; // 0x5c
+    Symbol mCrazeSong; // 0x5c
     int mStarsRequiredForMastery; // 0x60
-    Symbol mMastery_Stars[3]; // 0x64
+    Symbol mMasteryStars[3]; // 0x64
     int mMovesRequiredForMastery; // 0x70
     int mStarsRequiredForOutfits; // 0x74
     Symbol mOutfitAward; // 0x78
