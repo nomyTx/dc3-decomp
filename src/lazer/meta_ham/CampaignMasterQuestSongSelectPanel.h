@@ -1,13 +1,17 @@
 #pragma once
 #include "CampaignSongSelectPanel.h"
 #include "TexLoadPanel.h"
+#include "meta_ham/MQSongSortMgr.h"
 #include "obj/Data.h"
 #include "obj/Object.h"
 #include "os/DateTime.h"
+#include "ui/UILabel.h"
+#include "ui/UIListProvider.h"
 #include "utl/Symbol.h"
 
 class CampaignMasterQuestSongSelectPanel : public TexLoadPanel {
 public:
+    CampaignMasterQuestSongSelectPanel();
     virtual ~CampaignMasterQuestSongSelectPanel();
     OBJ_CLASSNAME(CampaignMasterQuestSongSelectPanel)
     OBJ_SET_TYPE(CampaignMasterQuestSongSelectPanel)
@@ -19,7 +23,6 @@ public:
 
     NEW_OBJ(CampaignMasterQuestSongSelectPanel)
 
-    CampaignMasterQuestSongSelectPanel();
     bool CanSelectSong(int);
     Symbol GetSong(int);
     int GetTimeSinceEnter() const;
@@ -31,9 +34,20 @@ public:
     void OnHighlightHeader();
     void SelectSong();
 
-protected:
-    CampaignSongProvider *m_pCampaignSongProvider; // 0x54
-    DateTime mDateTime; // 0x58
-    bool unk5e;
-    int *unk60; // Impl
+private:
+    // size 0xc
+    class Impl {
+    public:
+        Impl() {}
+        void Init(CampaignMasterQuestSongSelectPanel *);
+
+        UILabel *mContextualTitleLabel; // 0x0
+        UILabel *mContextualInstructionsLabel; // 0x4
+        UILabel *mContextualStarsLabel; // 0x8
+    };
+
+    MQSongSortMgr *m_pCampaignSongProvider; // 0x54
+    DateTime mEnterTime; // 0x58
+    bool mPreviewDelayFinished; // 0x5e
+    Impl *mImpl; // 0x60
 };

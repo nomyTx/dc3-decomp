@@ -160,6 +160,7 @@ protected:
     DirLoader *m_pCurLoader; // 0xb4
     bool unkb8;
     Symbol unkbc;
+    // key = crew, value = ???
     std::map<Symbol, bool> unkc0;
     ObjectDir *unkd8;
 };

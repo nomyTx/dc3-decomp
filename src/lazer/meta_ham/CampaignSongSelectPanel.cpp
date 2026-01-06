@@ -3,12 +3,14 @@
 #include "TexLoadPanel.h"
 #include "hamobj/Difficulty.h"
 #include "meta/SongMgr.h"
+#include "meta_ham/AppLabel.h"
 #include "meta_ham/Campaign.h"
 #include "meta_ham/CampaignEra.h"
 #include "meta_ham/CampaignPerformer.h"
 #include "meta_ham/CampaignProgress.h"
 #include "meta_ham/HamProfile.h"
 #include "meta_ham/HamStarsDisplay.h"
+#include "meta_ham/HamUI.h"
 #include "meta_ham/MetaPanel.h"
 #include "meta_ham/MetaPerformer.h"
 #include "meta_ham/ProfileMgr.h"
@@ -19,14 +21,56 @@
 #include "obj/Object.h"
 #include "os/DateTime.h"
 #include "os/Debug.h"
+#include "ui/UILabel.h"
 #include "ui/UIListCustom.h"
+#include "ui/UIListLabel.h"
 #include "ui/UIPanel.h"
 #include "utl/Symbol.h"
 #include <cstring>
 
 #pragma region CampaignSongProvider
 
-CampaignSongProvider::CampaignSongProvider() : unk40(0) {}
+CampaignSongProvider::CampaignSongProvider() : mPanelDir(0) {}
+
+void CampaignSongProvider::Text(
+    int, int i_iData, UIListLabel *slot, UILabel *label
+) const {
+    MILO_ASSERT(i_iData < NumData(), 0x4D);
+    Symbol songSym = DataSymbol(i_iData);
+    if (slot->Matches("song")) {
+        AppLabel *pAppLabel = dynamic_cast<AppLabel *>(label);
+        MILO_ASSERT(pAppLabel, 0x54);
+        if (!IsCrazeSong(songSym)) {
+            pAppLabel->SetBlacklightSongName(songSym, -1, false);
+        } else {
+            CampaignEra *pEra = TheCampaign->GetCampaignEra(
+                static_cast<CampaignPerformer *>(MetaPerformer::Current())->Era()
+            );
+            if (pEra->IsTanBattleEra()) {
+                static Symbol tan_battle_song("tan_battle_song");
+                pAppLabel->SetTextToken(tan_battle_song);
+            } else {
+                static Symbol campaign_song_locked("campaign_song_locked");
+                pAppLabel->SetTextToken(campaign_song_locked);
+            }
+        }
+    } else if (slot->Matches("lock")) {
+        if (!IsSongAvailable(songSym)) {
+            label->SetIcon('B');
+        } else {
+            label->SetTextToken(gNullStr);
+        }
+    } else if (slot->Matches("song_prefix")) {
+        if (TheHamUI.IsBlacklightMode() && !IsCrazeSong(songSym)) {
+            static Symbol song_select_song_prefix("song_select_song_prefix");
+            label->SetTextToken(song_select_song_prefix);
+        } else {
+            label->SetTextToken(gNullStr);
+        }
+    } else {
+        label->SetTextToken(slot->GetDefaultText());
+    }
+}
 
 void CampaignSongProvider::Custom(
     int, int i_iData, UIListCustom *uiListCustom, Hmx::Object *o
@@ -45,7 +89,10 @@ void CampaignSongProvider::Custom(
     }
 }
 
-int CampaignSongProvider::NumData() const { return unk44.size(); }
+Symbol CampaignSongProvider::DataSymbol(int i_iData) const {
+    MILO_ASSERT_RANGE(i_iData, 0, NumData(), 0x104);
+    return mSongs[i_iData];
+}
 
 bool CampaignSongProvider::IsSongAvailable(Symbol song) const {
     if (MetaPanel::sUnlockAll) {
@@ -82,37 +129,59 @@ bool CampaignSongProvider::IsCrazeSong(Symbol song) const {
 
 void CampaignSongProvider::UpdateList() {
     MILO_ASSERT(TheCampaign, 0x38);
-    unk44.clear();
+    mSongs.clear();
     CampaignPerformer *pPerformer =
         dynamic_cast<CampaignPerformer *>(MetaPerformer::Current());
     MILO_ASSERT(pPerformer, 0x3d);
     CampaignEra *pEra = TheCampaign->GetCampaignEra(pPerformer->Era());
     MILO_ASSERT(pEra, 0x41);
-    for (int i = 0; i < pEra->GetNumSongs(); i++) {
-        unk44.push_back(pEra->GetSongName(i));
+    int numSongs = pEra->GetNumSongs();
+    for (int i = 0; i < numSongs; i++) {
+        Symbol song = pEra->GetSongName(i);
+        mSongs.push_back(song);
     }
 }
 
-Symbol CampaignSongProvider::DataSymbol(int i_iData) const {
-    MILO_ASSERT_RANGE(i_iData, 0, NumData(), 0x104);
-    return unk44[i_iData];
+int CampaignSongProvider::SymbolIndex(Symbol s) const {
+    for (int i = 0; i < NumData(); i++) {
+        if (mSongs[i] == s) {
+            return i;
+        }
+    }
+    return -1;
 }
 
-#pragma endregion CampaignSongProvider
+#pragma endregion
 #pragma region CampaignSongSelectPanel
 
 CampaignSongSelectPanel::CampaignSongSelectPanel()
     : m_pCampaignSongProvider(), mPreviewDelayFinished(false), m_pCurCampaignEra(),
       m_pCurCampaignProgress() {}
 
-CampaignSongSelectPanel::~CampaignSongSelectPanel() {}
+BEGIN_HANDLERS(CampaignSongSelectPanel)
+    HANDLE_EXPR(get_song, GetSong(_msg->Int(2)))
+    HANDLE_EXPR(get_song_index, GetSongIndex(_msg->Sym(2)))
+    HANDLE_EXPR(get_selected_song, GetSelectedSong())
+    HANDLE_EXPR(can_select_current_song, CanSelectCurrentSong())
+    HANDLE_EXPR(can_select_song, CanSelectSong(_msg->Int(2)))
+    HANDLE_ACTION(select_song, SelectSong())
+    HANDLE_EXPR(is_waiting_for_era_song_unlock, IsWaitingForEraSongUnlock())
+    HANDLE_EXPR(is_preview_delay_finished, mPreviewDelayFinished)
+    HANDLE_ACTION(refresh, Refresh())
+    HANDLE_EXPR(get_era_stars, GetEraStars())
+    HANDLE_EXPR(get_required_erasong_stars, GetStarsRequiredForEraSong())
+    HANDLE_EXPR(get_erasong_stars, GetEraSongStars())
+    HANDLE_ACTION(cheat_win_era_song, CheatWinEraSong(_msg->Sym(2), _msg->Int(3)))
+    HANDLE_ACTION(cheat_transition_pending, CheatTransitionPending())
+    HANDLE_SUPERCLASS(TexLoadPanel)
+END_HANDLERS
 
 void CampaignSongSelectPanel::Load() {
     CampaignPerformer *pPerformer =
         dynamic_cast<CampaignPerformer *>(MetaPerformer::Current());
     MILO_ASSERT(pPerformer, 0x199);
-    unk60 = pPerformer->Era();
-    m_pCurCampaignEra = TheCampaign->GetCampaignEra(unk60);
+    mEra = pPerformer->Era();
+    m_pCurCampaignEra = TheCampaign->GetCampaignEra(mEra);
     MILO_ASSERT(m_pCurCampaignEra, 0x19c);
     mDifficulty = pPerformer->GetDifficulty();
     HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
@@ -123,7 +192,7 @@ void CampaignSongSelectPanel::Load() {
 }
 
 void CampaignSongSelectPanel::Enter() {
-    GetDateAndTime(unk58);
+    GetDateAndTime(mEnterTime);
     mPreviewDelayFinished = false;
     HamPanel::Enter();
 }
@@ -168,14 +237,14 @@ int CampaignSongSelectPanel::GetSongIndex(Symbol song) {
 
 int CampaignSongSelectPanel::GetStarsRequiredForEraSong() const {
     MILO_ASSERT(m_pCurCampaignProgress, 0x1ec);
-    return m_pCurCampaignProgress->GetRequiredStarsForDanceCrazeSong(unk60);
+    return m_pCurCampaignProgress->GetRequiredStarsForDanceCrazeSong(mEra);
 }
 
 int CampaignSongSelectPanel::GetTimeSinceEnter() const {
     DateTime dt;
     GetDateAndTime(dt);
-    int iNow = dt.ToCode();
-    int iEnter = unk58.ToCode();
+    unsigned int iNow = dt.ToCode();
+    unsigned int iEnter = mEnterTime.ToCode();
     MILO_ASSERT(iNow >= iEnter, 0x1d2);
     return iNow - iEnter;
 }
@@ -219,7 +288,7 @@ Symbol CampaignSongSelectPanel::GetSong(int i_iData) {
 
 int CampaignSongSelectPanel::GetEraStars() const {
     MILO_ASSERT(m_pCurCampaignProgress, 0x1f2);
-    int starsEarned = m_pCurCampaignProgress->GetEraStarsEarned(unk60);
+    int starsEarned = m_pCurCampaignProgress->GetEraStarsEarned(mEra);
     int starsRequired = GetStarsRequiredForEraSong();
     if (starsRequired >= starsEarned)
         return starsEarned;
@@ -268,45 +337,38 @@ void CampaignSongSelectPanel::CheatWinEraSong(Symbol s, int i) {
         dynamic_cast<CampaignPerformer *>(MetaPerformer::Current());
     MILO_ASSERT(pPerformer, 0x20b);
     if (i > 0) {
-        pPerformer->UpdateEraSong(pPerformer->GetDifficulty(), unk60, s, i);
+        pPerformer->UpdateEraSong(pPerformer->GetDifficulty(), mEra, s, i);
         HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
         MILO_ASSERT(pProfile, 0x213);
         SongStatusMgr *pSongStatusMgr = pProfile->GetSongStatusMgr();
         MILO_ASSERT(pSongStatusMgr, 0x215);
         int songID = TheSongMgr.GetSongIDFromShortName(s);
         pSongStatusMgr->UpdateSong(
-            songID, 0x29a, 0x457, pPerformer->GetDifficulty(), i, 0, 0, 0, 0, 0, 0, 0
-        ); // idk what these vals are
-        pPerformer->UnlockAllMoves(unk60, s, i);
+            songID,
+            0x29a,
+            0x457,
+            pPerformer->GetDifficulty(),
+            1,
+            i,
+            7,
+            8,
+            0x4D,
+            false,
+            false,
+            true
+        );
+        pPerformer->UnlockAllMoves(mEra, s, i);
     } else {
-        pPerformer->ClearSongProgress(unk60, s);
+        pPerformer->ClearSongProgress(mEra, s);
     }
 
-    static Message refresh_flashcard_dock("refresh_flashcard_dock");
-    Handle(refresh_flashcard_dock, true);
-    static Message update_era_meter("update_era_meter");
-    DataNode updateEraMeterNode = Handle(update_era_meter, true);
+    static Message cRefreshFlashcardDockMsg("refresh_flashcard_dock");
+    DataNode handler = Handle(cRefreshFlashcardDockMsg, true);
+    static Message cUpdateEraMeterMsg("update_era_meter");
+    handler = Handle(cUpdateEraMeterMsg, true);
     if (TheSaveLoadMgr)
         TheSaveLoadMgr->AutoSave();
     Refresh();
 }
 
-BEGIN_HANDLERS(CampaignSongSelectPanel)
-    HANDLE_EXPR(get_song, GetSong(_msg->Int(2)))
-    HANDLE_EXPR(get_song_index, GetSongIndex(_msg->Sym(2)))
-    HANDLE_EXPR(get_selected_song, GetSelectedSong())
-    HANDLE_EXPR(can_select_current_song, CanSelectCurrentSong())
-    HANDLE_EXPR(can_select_song, CanSelectSong(_msg->Int(2)))
-    HANDLE_ACTION(select_song, SelectSong())
-    HANDLE_EXPR(is_waiting_for_era_song_unlock, IsWaitingForEraSongUnlock())
-    HANDLE_EXPR(is_preview_delay_finished, mPreviewDelayFinished)
-    HANDLE_ACTION(refresh, Refresh())
-    HANDLE_EXPR(get_era_stars, GetEraStars())
-    HANDLE_EXPR(get_required_erasong_stars, GetStarsRequiredForEraSong())
-    HANDLE_EXPR(get_erasong_stars, GetEraSongStars())
-    HANDLE_ACTION(cheat_win_era_song, CheatWinEraSong(_msg->Sym(2), _msg->Int(3)))
-    HANDLE_ACTION(cheat_transition_pending, CheatTransitionPending())
-    HANDLE_SUPERCLASS(TexLoadPanel)
-END_HANDLERS
-
-#pragma endregion CampaignSongSelectPanel
+#pragma endregion

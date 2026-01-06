@@ -10,18 +10,22 @@
 
 class CampaignMqCrewProvider : public HamNavProvider {
 public:
+    CampaignMqCrewProvider();
     virtual void Text(int, int, UIListLabel *, UILabel *) const;
     virtual Symbol DataSymbol(int) const;
+    virtual int NumData() const { return mMQCrews.size(); }
 
-    CampaignMqCrewProvider();
     void UpdateList();
+    void SetPanelDir(PanelDir *p) { mPanelDir = p; }
 
-    PanelDir *unk40;
-    std::vector<Symbol> unk44;
+private:
+    PanelDir *mPanelDir; // 0x40
+    std::vector<Symbol> mMQCrews; // 0x44
 };
 
 class CampaignMasterQuestCrewSelectPanel : public TexLoadPanel {
 public:
+    CampaignMasterQuestCrewSelectPanel();
     OBJ_CLASSNAME(CampaignMasterQuestCrewSelectPanel)
     OBJ_SET_TYPE(CampaignMasterQuestCrewSelectPanel)
     virtual DataNode Handle(DataArray *, bool);
@@ -31,7 +35,6 @@ public:
 
     NEW_OBJ(CampaignMasterQuestCrewSelectPanel)
 
-    CampaignMasterQuestCrewSelectPanel();
     int GetTimeSinceEnter() const;
     Symbol GetSelectedCrew();
     void UpdateCrewMesh(Symbol);
