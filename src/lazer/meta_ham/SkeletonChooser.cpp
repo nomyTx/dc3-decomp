@@ -118,7 +118,7 @@ bool SkeletonChooser::IsHandRaised(int idx) {
 
 bool SkeletonChooser::IsPlayerHandRaised(int player) {
     MILO_ASSERT_RANGE(player, 0, 2, 0x6DC);
-    return unk98[player]->unk2c;
+    return unk98[player]->HandRaised();
 }
 
 void SkeletonChooser::ClearPlayerSkeletonID(int id) {

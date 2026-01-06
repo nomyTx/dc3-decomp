@@ -284,7 +284,7 @@
             "system/gesture/Gesture.cpp": "NonMatching",
             "system/gesture/GestureMgr.cpp": "NonMatching",
             "system/gesture/HandHeightGestureFilter.cpp": "NonMatching",
-            "system/gesture/HandInvokeGestureFilter.cpp": "MISSING",
+            "system/gesture/HandInvokeGestureFilter.cpp": "NonMatching",
             "system/gesture/HandRaisedGestureFilter.cpp": "NonMatching",
             "system/gesture/HandsUpGestureFilter.cpp": "NonMatching",
             "system/gesture/HighFiveGestureFilter.cpp": "NonMatching",

@@ -97,7 +97,7 @@ void ShellInput::Init() {
     mSkelChooser = new SkeletonChooser;
     mHandInvokeGestureFilter = new HandInvokeGestureFilter;
     mHandsUpGestureFilter = Hmx::Object::New<HandsUpGestureFilter>();
-    mHandsUpGestureFilter->mRequiredMs = 1200;
+    mHandsUpGestureFilter->SetRequiredMs(1200);
     mCursorPanel->Enter();
     TheSpeechMgr->AddSink(TheUI);
     mSkelExtTracker = new SkeletonExtentTracker;

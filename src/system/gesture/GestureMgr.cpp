@@ -39,7 +39,7 @@ GestureMgr::GestureMgr()
         mSkeletons[i].Init();
         mFilters[i].Init(sConfidenceLossThreshold, sConfidenceRegainThreshold);
         mIdentityInfos[i].Init();
-        mCallbacks[i] = nullptr;
+        unk30[i] = 0;
     }
     mTrackingAllSkeletons = false;
     SkeletonUpdateHandle handle = SkeletonUpdate::InstanceHandle();
