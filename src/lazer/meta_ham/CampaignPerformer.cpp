@@ -7,6 +7,7 @@
 #include "hamobj/HamGameData.h"
 #include "hamobj/HamMove.h"
 #include "hamobj/HamPlayerData.h"
+#include "meta/SongMgr.h"
 #include "meta_ham/AccomplishmentManager.h"
 #include "meta_ham/Campaign.h"
 #include "meta_ham/CampaignEra.h"
@@ -16,6 +17,7 @@
 #include "meta_ham/HamSongMgr.h"
 #include "meta_ham/MetaPerformer.h"
 #include "meta_ham/ProfileMgr.h"
+#include "meta_ham/SongStatusMgr.h"
 #include "obj/Data.h"
 #include "obj/Object.h"
 #include "os/Debug.h"
@@ -824,4 +826,200 @@ bool CampaignPerformer::HasSongBeenAttempted(Symbol song) {
             return progress.IsSongPlayed(mEra, song);
         }
     }
+}
+
+void CampaignPerformer::UnlockAllMoves(Symbol s1, Symbol s2, int i3) {
+    if (TheGameMode->InMode("campaign") && !TheCampaign->InDCICutscene()) {
+        HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
+        MILO_ASSERT(pProfile, 0x53C);
+        SongStatusMgr *pSongStatusMgr = pProfile->GetSongStatusMgr();
+        MILO_ASSERT(pSongStatusMgr, 0x53F);
+        int songID = TheSongMgr.GetSongIDFromShortName(s2);
+        pSongStatusMgr->UpdateSong(
+            songID, 0x29A, 0x457, mDifficulty, 1, i3, 8, 9, 0x58, false, false, true
+        );
+        CampaignProgress &progress = pProfile->AccessCampaignProgress(mDifficulty);
+        Symbol era_tan_battle("era_tan_battle");
+        if (s1 != era_tan_battle) {
+            if (!TheGameMode->InMode("campaign_intro")) {
+                progress.UnlockAllMoves(s1, s2);
+            }
+        }
+        progress.BookmarkCurrentProgress();
+    }
+    CheckForEraSongUnlock();
+}
+
+Symbol CampaignPerformer::GetLastEra() const {
+    for (int i = 0; i < TheCampaign->NumEras(); i++) {
+        CampaignEra *pEra = TheCampaign->GetEra(i);
+        MILO_ASSERT(pEra, 0x3B);
+        // if pEra->unk50
+        return pEra->GetName();
+    }
+    return gNullStr;
+}
+
+bool CampaignPerformer::IsDanceCrazeMove(Symbol s1, Symbol s2, HamMove *move) {
+    if (move) {
+        CampaignEra *pEra = TheCampaign->GetCampaignEra(s1);
+        MILO_ASSERT(pEra, 0x409);
+        bool b3 = false;
+        for (int i = 0; i < pEra->GetNumSongs(); i++) {
+            Symbol songname = pEra->GetSongName(i);
+            if (s2 == songname) {
+                b3 = true;
+                break;
+            }
+        }
+        if (b3) {
+            return pEra->HasCrazeMove(s2, move->Name());
+        }
+    }
+    return false;
+}
+
+bool CampaignPerformer::IsDanceCrazeMoveMastered(Symbol s1, Symbol s2, HamMove *move) {
+    if (!move) {
+        return false;
+    } else {
+        HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
+        MILO_ASSERT(pProfile, 0x426);
+        const CampaignProgress &progress = pProfile->GetCampaignProgress(mDifficulty);
+        bool ret = progress.IsMoveMastered(s1, s2, move->Name());
+        if (!ret) {
+            CampaignEra *pEra = TheCampaign->GetCampaignEra(s1);
+            MILO_ASSERT(pEra, 0x430);
+            Symbol hamMoveName = pEra->GetHamMoveNameFromVariant(s2, move->Name());
+            if (!hamMoveName.Null()) {
+                ret = progress.IsMoveMastered(s1, s2, hamMoveName);
+            }
+        }
+        return ret;
+    }
+}
+
+void CampaignPerformer::UpdateEraSong(Difficulty d, Symbol s2, Symbol s3, int i4) {
+    HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
+    MILO_ASSERT(pProfile, 0x158);
+    mLastEraStars = pProfile->GetCampaignProgress(d).GetEraStarsEarned(s2);
+    for (int i = 0; i <= d; i++) {
+        CampaignProgress &curProgress = pProfile->AccessCampaignProgress((Difficulty)i);
+        curProgress.UpdateEraSong(s2, s3, i4);
+        if (IsCampaignComplete() && i == kDifficultyExpert) {
+            static Symbol stars_earned("stars_earned");
+            const DataNode *pStarsNode = TheHamProvider->Property(stars_earned, false);
+            MILO_ASSERT(pStarsNode, 0x167);
+            if (pStarsNode->Int() >= 5) {
+                // curProgress.unk28++;
+            }
+        }
+    }
+    TheAccomplishmentMgr->CheckForCampaignAccomplishmentsForProfile(pProfile);
+    for (int i = 0; i <= d; i++) {
+        CheckForOutfitAwards((Difficulty)i, s2);
+        CheckForMasteryGoal((Difficulty)i, s2);
+    }
+}
+
+void CampaignPerformer::AwardCrazeAccomplishments() {
+    for (int i = 0; i < TheCampaign->NumEras() - 1; i++) {
+        CampaignEra *pEra = TheCampaign->GetEra(i);
+        Symbol acc = pEra->CompletionAccomplishment();
+        if (acc != gNullStr) {
+            int starsEarned =
+                GetSongStarsEarned(pEra->GetName(), pEra->GetDanceCrazeSong());
+            if (starsEarned >= 5) {
+                HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
+                MILO_ASSERT(pProfile, 0x218);
+                TheAccomplishmentMgr->EarnAccomplishmentForProfile(pProfile, acc, true);
+            }
+        }
+    }
+}
+
+void CampaignPerformer::AwardMasterQuestAccomplishments() {
+    if (IsCampaignComplete()) {
+        HamProfile *pProfile = TheProfileMgr.GetActiveProfile(true);
+        MILO_ASSERT(pProfile, 0x22E);
+        static Symbol acc_5_star_on_1_master_quest("acc_5_star_on_1_master_quest");
+        static Symbol acc_5_star_on_5_master_quest("acc_5_star_on_5_master_quest");
+        static Symbol acc_5_star_on_10_master_quest("acc_5_star_on_10_master_quest");
+        const CampaignProgress &progress =
+            pProfile->GetCampaignProgress(kDifficultyExpert);
+        if (progress.GetUnk28() >= 1) {
+            TheAccomplishmentMgr->EarnAccomplishmentForProfile(
+                pProfile, acc_5_star_on_1_master_quest, false
+            );
+        }
+        if (progress.GetUnk28() >= 5) {
+            TheAccomplishmentMgr->EarnAccomplishmentForProfile(
+                pProfile, acc_5_star_on_5_master_quest, false
+            );
+        }
+        if (progress.GetUnk28() >= 10) {
+            TheAccomplishmentMgr->EarnAccomplishmentForProfile(
+                pProfile, acc_5_star_on_10_master_quest, false
+            );
+        }
+    }
+}
+
+int CampaignPerformer::GetSongAttemptedCount() {
+    CampaignEra *pEra = TheCampaign->GetCampaignEra(mEra);
+    MILO_ASSERT(pEra, 0x457);
+    int numSongs = pEra->GetNumSongs();
+    int numAttemptedSongs = 0;
+    for (int i = 0; i < numSongs; i++) {
+        if (HasSongBeenAttempted(pEra->GetSongName(i))) {
+            numAttemptedSongs++;
+        }
+    }
+    return numAttemptedSongs;
+}
+
+void CampaignPerformer::SetupCampaignCharacters(Symbol s1, Symbol s2) {
+    Symbol s50 = GetCrewCharacter(s1, 0);
+    Symbol s4c = GetCrewCharacter(s1, 1);
+    if (s2 == s4c) {
+        s4c = s50;
+        s50 = s2;
+    }
+    Symbol s48 = MakeString("%s04", s50.Str());
+    if (!GetOutfitEntry(s48, false)) {
+        s48 = MakeString("%s01", s50.Str());
+        if (!GetOutfitEntry(s48, false)) {
+            s48 = MakeString("%s05", s50.Str());
+        }
+    }
+    Symbol s44 = MakeString("%s04", s4c.Str());
+    if (!GetOutfitEntry(s44, false)) {
+        s44 = MakeString("%s01", s4c.Str());
+        if (!GetOutfitEntry(s44, false)) {
+            s44 = MakeString("%s05", s4c.Str());
+        }
+    }
+    if (GetSongAttemptedCount() == 0) {
+        if (IsCampaignIntroComplete()) {
+            static Symbol era01("era01");
+            static Symbol era02("era02");
+            static Symbol era03("era03");
+            if (mEra == era01 || mEra == era02 || mEra == era03) {
+                Symbol s2 = s44;
+                Symbol s1 = s4c;
+                s4c = s50;
+                s50 = s1;
+                s44 = s48;
+                s48 = s2;
+            }
+        }
+    }
+    HamPlayerData *pPlayer1Data = TheGameData->Player(0);
+    MILO_ASSERT(pPlayer1Data, 0xAD);
+    HamPlayerData *pPlayer2Data = TheGameData->Player(1);
+    MILO_ASSERT(pPlayer2Data, 0xAF);
+    pPlayer1Data->SetCharacter(s50);
+    pPlayer1Data->SetOutfit(s48);
+    pPlayer2Data->SetCharacter(s4c);
+    pPlayer2Data->SetOutfit(s44);
 }

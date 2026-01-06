@@ -109,6 +109,7 @@ public:
     void UnlockAllMoves(Symbol, Symbol);
 
     void SetProfile(HamProfile *p) { unk8 = p; }
+    int GetUnk28() const { return unk28; }
 
 private:
     HamProfile *unk8;
@@ -116,7 +117,7 @@ private:
     bool unkd;
     bool unke;
     std::map<Symbol, CampaignEraProgress *> unk10;
-    int unk28;
+    int unk28; // 0x28 - num master quest songs you earned 5 stars on?
 
 private:
     CampaignEraProgress *GetEraProgress(Symbol) const;

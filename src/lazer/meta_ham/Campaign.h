@@ -128,7 +128,9 @@ public:
     CampaignEra *GetFirstEra() { return m_vEras.front(); }
     CampaignEra *GetLastEra() { return m_vEras.back(); }
     CampaignEra *GetEra(int i) { return m_vEras[i]; }
+    int NumEras() const { return m_vEras.size(); }
     Symbol GetMQCrew() { return mMasterQuestCrew; }
+    bool InDCICutscene() const { return mCampaignState == kCampaignStateDciCutscene; }
 
 protected:
     CampaignEra *GetCampaignEra(int) const;
