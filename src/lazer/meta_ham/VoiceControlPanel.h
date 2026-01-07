@@ -46,7 +46,7 @@ private:
     bool unk54;
     bool unk55;
     bool unk56;
-    Symbol unk58;
+    Symbol unk58; // 0x58 - song shortname?
     Difficulty mDifficulty; // 0x5c
     Symbol unk60; // 0x60 - game mode
     bool unk64;

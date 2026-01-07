@@ -9,13 +9,17 @@
 #include "gesture/SpeechMgr.h"
 #include "hamobj/Difficulty.h"
 #include "hamobj/HamGameData.h"
+#include "hamobj/HamLabel.h"
 #include "hamobj/HamPlayerData.h"
+#include "math/Rand.h"
+#include "math/Utl.h"
 #include "meta/SongPreview.h"
 #include "meta_ham/HamSongMgr.h"
 #include "meta_ham/HamUI.h"
 #include "meta_ham/MetaPerformer.h"
 #include "meta_ham/MultiUserGesturePanel.h"
 #include "meta_ham/OverlayPanel.h"
+#include "meta_ham/SongSortMgr.h"
 #include "obj/Data.h"
 #include "obj/Dir.h"
 #include "obj/Msg.h"
@@ -25,8 +29,13 @@
 #include "os/Debug.h"
 #include "os/PlatformMgr.h"
 #include "os/System.h"
+#include "rndobj/Anim.h"
+#include "rndobj/Draw.h"
 #include "synth/MetaMusic.h"
+#include "ui/UI.h"
+#include "ui/UIColor.h"
 #include "ui/UIScreen.h"
+#include "utl/Locale.h"
 #include "utl/Symbol.h"
 
 VoiceControlPanel::VoiceControlPanel()
@@ -155,6 +164,127 @@ void VoiceControlPanel::EnterGame() {
     } else {
         Flow *pFlow = DataDir()->Find<Flow>("sound_error.flow");
         pFlow->Activate();
+    }
+}
+
+void VoiceControlPanel::SetRules(bool b1) {
+    static bool s8a0 = false;
+    static bool see0 = true;
+    if (b1 != s8a0 || see0 != unk48) {
+        see0 = unk48;
+        bool oldRecognizing = TheSpeechMgr->Recognizing();
+        s8a0 = b1;
+        TheSpeechMgr->SetRecognizing(false);
+        TheSpeechMgr->SetRule("voice_shell", "voice_control", !unk48 && b1);
+        if (TheSpeechMgr->HasGrammar("play_song_grammar")) {
+            TheSpeechMgr->SetRule("play_song_grammar", "play_song", unk48 && b1);
+        }
+        TheSpeechMgr->SetRule("voice_shell", "random_song", unk48 && b1);
+        TheSpeechMgr->SetRule("voice_shell", "difficulty", unk48 && b1);
+        TheSpeechMgr->SetRule("voice_shell", "mode", unk48 && b1);
+        TheSpeechMgr->SetRule("voice_shell", "dance", unk48 && b1);
+        TheSpeechMgr->SetRule("voice_shell", "back", unk48 && b1);
+        TheSpeechMgr->SetRecognizing(oldRecognizing);
+    }
+}
+
+void VoiceControlPanel::DisplaySong(Symbol song) {
+    const char *content = TheHamSongMgr.ContentName(song);
+    if (content) {
+        TheContentMgr.MountContent(content);
+    }
+    static Message setSongMsg("set_song", 0);
+    setSongMsg[0] = song;
+    Handle(setSongMsg, true);
+}
+
+void VoiceControlPanel::CreatePlaySongGrammar() const {
+    TheSpeechMgr->SetRecognizing(false);
+    if (TheSpeechMgr->HasGrammar("play_song_grammar")) {
+        TheSpeechMgr->UnloadGrammar("play_song_grammar");
+    }
+    TheSpeechMgr->CreateGrammar("play_song_grammar");
+    void *v90;
+    TheSpeechMgr->AddDynamicRule("play_song_grammar", "play_song", &v90);
+    static Symbol voice_command_song("voice_command_song");
+    void *v8c;
+    TheSpeechMgr->AddDynamicRuleWord(
+        "play_song_grammar",
+        Localize(voice_command_song, nullptr, TheLocale),
+        gNullStr,
+        &v90,
+        &v8c
+    );
+    if (TheUI->FocusPanel() != ObjectDir::Main()->Find<UIPanel>("song_select_panel")) {
+        TheSongSortMgr->OnEnter();
+    }
+    // SongSortMgr member iteration
+    TheSpeechMgr->CommitGrammar("play_song_grammar");
+    TheSpeechMgr->SetRecognizing(true);
+}
+
+void VoiceControlPanel::CycleTip() {
+    unk50 = 0;
+    HamLabel *lbl = DataDir()->Find<HamLabel>("instructions.lbl");
+    lbl->LStyle(0).mColorOverride = DataDir()->Find<UIColor>("instructions.color");
+    std::vector<Symbol> syms;
+    if (DifficultyLocked()) {
+        lbl->LStyle(0).mColorOverride = DataDir()->Find<UIColor>("red.color");
+        syms.push_back("voicecontrol_difficulty_locked");
+    } else if (!ReadyToStart()) {
+        syms.push_back("voicecontrol_song_instruction");
+
+    } else if (ReadyToStart()) {
+        syms.push_back("voicecontrol_dance_instruction");
+        if (!unk55) {
+            syms.push_back("voicecontrol_mode_instruction");
+        }
+        if (!unk54) {
+            syms.push_back("voicecontrol_difficulty_instruction");
+        }
+        if (!unk55 || !unk54) {
+            syms.push_back("voicecontrol_random_song_instruction");
+        }
+    }
+    for (int i = 0; i < 5; i++) {
+        int randIdx = RandomInt(0, syms.size());
+        if (lbl->TextToken() != syms[randIdx]) {
+            lbl->SetTextToken(syms[randIdx]);
+            break;
+        }
+    }
+}
+
+void VoiceControlPanel::PopUp() {
+    if (!TheHamUI.GetOverlayPanel()) {
+        unk48 = true;
+        TheHamUI.SetOverlayPanel(this);
+        Symbol lang = HongKongExceptionMet() ? "eng" : SystemLanguage();
+        if (lang != "eng" && lang != "jpn") {
+            TheSpeechMgr->DisableAndUnloadGrammars();
+            TheSpeechMgr->Enable(true);
+            SystemConfig("kinect")->FindArray("speech")->FindArray("grammars");
+            String fullDir = String("grammar/") + TheSpeechMgr->GetSpeechLanguageDir()
+                + "/" + "voice_shell_en-US.cfgp";
+            TheSpeechMgr->LoadGrammar("voice_shell", fullDir.c_str(), true);
+        }
+        CreatePlaySongGrammar();
+        SetRules(true);
+        unk56 = TheMetaMusic->IsStarted();
+        TheMetaMusic->Stop();
+        SongPreview *preview = ObjectDir::Main()->Find<SongPreview>("song_preview");
+        preview->SetMusicVol(SongPreview::kSilenceVal);
+        unk58 = gNullStr;
+        mDifficulty = DefaultDifficulty();
+        unk60 = "perform";
+        unk54 = false;
+        unk55 = false;
+        DataDir()->Find<RndDrawable>("song_dimmer.mesh")->SetShowing(true);
+        DataDir()->Find<RndAnimatable>("selected_diff.anim")->SetFrame(0, 1);
+        DataDir()->Find<RndAnimatable>("selected_mode.anim")->SetFrame(0, 1);
+        CycleTip();
+        WakeUpScreenSaver();
+        unk64 = false;
     }
 }
 
