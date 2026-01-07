@@ -20,6 +20,7 @@
 #include "obj/Dir.h"
 #include "obj/Msg.h"
 #include "obj/Object.h"
+#include "obj/Task.h"
 #include "os/ContentMgr.h"
 #include "os/Debug.h"
 #include "os/PlatformMgr.h"
@@ -34,7 +35,64 @@ VoiceControlPanel::VoiceControlPanel()
 
 VoiceControlPanel::~VoiceControlPanel() {}
 
-void VoiceControlPanel::Poll() { HamPanel::Poll(); }
+BEGIN_HANDLERS(VoiceControlPanel)
+    HANDLE_MESSAGE(SpeechRecoMessage)
+    HANDLE_MESSAGE(UITransitionCompleteMsg)
+    HANDLE_SUPERCLASS(OverlayPanel)
+END_HANDLERS
+
+void VoiceControlPanel::Poll() {
+    HamPanel::Poll();
+    static float sFloats[] = { 0.25f, 2.0f, 4.5f };
+    if (unk48 && unk44 < sFloats[0]) {
+        unk44 = Min(sFloats[0], unk44 + TheTaskMgr.DeltaUISeconds());
+    }
+    if (!unk48 && unk44 > 0) {
+        unk44 = Max(0.0f, unk44 - TheTaskMgr.DeltaUISeconds());
+    }
+    if (unk58 == gNullStr && unk48) {
+        float set = unk4c + TheTaskMgr.DeltaUISeconds();
+        float cmp = sFloats[1];
+        unk4c = set;
+        if (unk4c > cmp) {
+            unk4c = 0;
+            Symbol song = TheHamSongMgr.GetRandomSong();
+            DisplaySong(song);
+        }
+    }
+    if (unk48) {
+        float set = unk50 + TheTaskMgr.DeltaUISeconds();
+        float cmp = sFloats[2];
+        unk50 = set;
+        if (unk50 > cmp) {
+            CycleTip();
+        }
+    }
+}
+
+void VoiceControlPanel::Dismiss() {
+    unk48 = false;
+    Symbol lang = HongKongExceptionMet() ? "eng" : SystemLanguage();
+    if (lang != "eng" && lang != "jpn") {
+        TheSpeechMgr->DisableAndUnloadGrammars();
+        DataArray *arr = SystemConfig("kinect")->FindArray("speech");
+        TheSpeechMgr->EnableAndLoadGrammars(arr);
+    }
+    SetRules(true);
+    if (unk56) {
+        TheMetaMusic->Start();
+    }
+    SongPreview *songPrev = ObjectDir::Main()->Find<SongPreview>("song_preview");
+    songPrev->SetMusicVol(songPrev->PreviewDb());
+    MILO_ASSERT(TheHamUI.GetOverlayPanel() == this, 0x98);
+    TheHamUI.SetOverlayPanel(nullptr);
+    OverlayPanel::Dismiss();
+}
+
+void VoiceControlPanel::ContentMounted(const char *, const char *) {
+    static Message refreshAlbumArtMsg("refresh_album_art");
+    Handle(refreshAlbumArtMsg, true);
+}
 
 bool VoiceControlPanel::DifficultyLocked() const {
     if (unk58 == gNullStr)
@@ -100,45 +158,10 @@ void VoiceControlPanel::EnterGame() {
     }
 }
 
-void VoiceControlPanel::ContentMounted(const char *, const char *) {
-    static Message refresh_album_art("refresh_album_art");
-    Handle(refresh_album_art, true);
-}
-
-DataNode VoiceControlPanel::OnMsg(UITransitionCompleteMsg const &msg) {
+DataNode VoiceControlPanel::OnMsg(const UITransitionCompleteMsg &msg) {
     if (unk64) {
         Dismiss();
         SetRules(false);
     }
-    return DataNode(6);
+    return DATA_UNHANDLED;
 }
-
-void VoiceControlPanel::Dismiss() {
-    unk48 = false;
-    Symbol lang;
-    if (HongKongExceptionMet()) {
-        lang = Symbol("eng");
-    } else {
-        lang = SystemLanguage();
-    }
-    if (lang == "eng" || lang != "jpn") {
-        TheSpeechMgr->DisableAndUnloadGrammars();
-        DataArray *arr = SystemConfig("kinect")->FindArray("speech");
-        TheSpeechMgr->EnableAndLoadGrammars(arr);
-    }
-    SetRules(true);
-    if (unk56) {
-        TheMetaMusic->Start();
-    }
-    SongPreview *songPrev = ObjectDir::Main()->Find<SongPreview>("song_preview");
-    songPrev->SetMusicVol(songPrev->PreviewDb());
-    MILO_ASSERT(TheHamUI.GetOverlayPanel() == this, 0x98);
-    TheHamUI.SetOverlayPanel(nullptr);
-    OverlayPanel::Dismiss();
-}
-
-BEGIN_HANDLERS(VoiceControlPanel)
-    HANDLE_MESSAGE(SpeechRecoMessage)
-    HANDLE_MESSAGE(UITransitionCompleteMsg)
-    HANDLE_SUPERCLASS(OverlayPanel)
-END_HANDLERS
