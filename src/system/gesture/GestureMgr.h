@@ -71,8 +71,8 @@ public:
 
     void ShowGestureGuide() {
         int id = 0;
-        if (unk4260 > 0) {
-            id = unk4260;
+        if (mActiveSkelTrackingID > 0) {
+            id = mActiveSkelTrackingID;
         }
         XShowNuiGuideUI(id);
     }
@@ -93,6 +93,8 @@ public:
         return mat ? mat->GetDiffuseTex() : nullptr;
     }
     bool InControllerMode() const { return mInControllerMode; }
+    SkeletonRecoverer &Recoverer() { return mRecoverer; }
+    void SetActiveSkeletonTrackingID(int id) { mActiveSkelTrackingID = id; }
 
     static bool sIdentityOpInProgress;
     static void Init();
@@ -119,7 +121,7 @@ private:
     bool mTrackingAllSkeletons; // 0x424c
     SkeletonRecoverer mRecoverer; // 0x4250
     int unk425c;
-    int unk4260; // 0x4260 - active skeleton tracking ID
+    int mActiveSkelTrackingID; // 0x4260 - active skeleton tracking ID
     int mPlayerSkeletonIDs[2]; // 0x4264
     bool mIDEnabled; // 0x426c
     bool mInControllerMode; // 0x426d
