@@ -61,8 +61,8 @@ BEGIN_HANDLERS(NavListSortMgr)
 END_HANDLERS
 
 NavListSortMgr::NavListSortMgr(SongPreview &songprev)
-    : mSongPreview(&songprev), mCurrentSortIdx(0), unk48(false), mHeaderMode(0),
-      mEnteringHeaderMode(0), mExitingHeaderMode(0), mHeadersSelectable(0), unk70(0) {
+    : mSongPreview(&songprev), mCurrentSortIdx(0), unk48(false), mHeaderMode(false),
+      mEnteringHeaderMode(false), mExitingHeaderMode(false), mHeadersSelectable(false), unk70(0) {
     unk44 = new DataArray(0);
 };
 
@@ -100,10 +100,15 @@ void NavListSortMgr::ClearHeaders() {
 
 Symbol NavListSortMgr::GetHeaderSymbolFromChildSymbol(Symbol sym) {
     auto a = mSorts[mCurrentSortIdx];
-    if (!a->GetNode(sym.Str())) {
-        sym = gNullStr;
+    if (!a->GetNode(sym)) {
+        return Symbol();
     }
-    return sym;
+    else {
+        auto node = dynamic_cast<NavListHeaderNode *>(a->GetNode(sym));
+        if (node) {
+            return node->GetToken();
+        }
+    }
 }
 
 NavListSort *NavListSortMgr::GetCurrentSort() { return mSorts[mCurrentSortIdx]; }
@@ -192,7 +197,8 @@ void NavListSortMgr::DoUncollapse() {
         MILO_ASSERT(IsInHeaderMode(), 0x264);
     }
     mHeaderMode = false;
-    mSorts.front()->SetHighlightItem(0);
+    //mSorts.front()->SetHighlightItem(0);
+    UnHighlightCurrent(); // should be a function at 0x7c... but it doesnt seem to exist
     mSorts[mCurrentSortIdx]->BuildItemList();
 }
 
@@ -300,4 +306,69 @@ void NavListSortMgr::OnUnload() {
 
 NavListSortNode *NavListSortMgr::GetHighlightItem() {
     return mSorts[mCurrentSortIdx]->GetUnk50();
+}
+
+void NavListSortMgr::StartPreview(int idx, TexMovie *tex) {
+    if (idx >= 0) {
+        if (idx < NumData()) {
+            //auto something = mSorts[mCurrentSortIdx]->GetListFromIdx(i1)->GetToken();
+            mSongPreview->Start(mSorts[mCurrentSortIdx]->GetListFromIdx(idx)->GetToken(), tex);
+        }
+    }
+}
+
+Symbol NavListSortMgr::OnGetToken(int idx) {
+    if (idx < 0 || NumData() <= idx) {
+        return Symbol(gNullStr);
+    }
+    else {
+        return mSorts[mCurrentSortIdx]->GetListFromIdx(idx)->GetToken();
+    }
+}
+
+int NavListSortMgr::DataIndex(Symbol s) const {
+    static std::list<String> strings;
+    const char *str = FormatString("DataIndex is not necessarily unique\n").Str();
+    //const char *str = "DataIndex is not necessarily unique\n";
+    bool added = AddToStrings(str, strings);
+    if (added)
+        MILO_NOTIFY(str);
+    auto node = mSorts[mCurrentSortIdx]->GetNode(s);
+    if (!node) {
+        return -1;
+    }
+    else {
+        return node->GetStartIx();
+    }
+}
+
+Symbol NavListSortMgr::GetFirstChildSymbolFromHeaderSymbol(Symbol sym) {
+    auto node = dynamic_cast<NavListHeaderNode *>(mSorts[mCurrentSortIdx]->GetNode(sym));
+    if (!node) {
+        return Symbol(gNullStr);
+    }
+    else {
+        std::list<NavListSortNode *> c = node->Children();
+        return c.front()->GetToken();
+    }
+}
+
+void NavListSortMgr::FinalizeHeaders() {
+    if (mHeadersSelectable) {
+        std::vector<int>tempVec(mSorts[mCurrentSortIdx]->GetDataCount(), 0);
+        for (int i = 0; i < mHeadersA.size(); i++) {
+            tempVec[mHeadersA[i]] = 1;
+        }
+        mHeadersA = tempVec;
+    }
+}
+
+int NavListSortMgr::GetHeaderIndexFromListIndex(int idx) {
+    auto token = OnGetToken(idx);
+    for (int i = 0; i < mHeadersB.size(); i++) {
+        if (token == mSorts[mCurrentSortIdx]->GetListFromIdx(mHeadersB[i])->GetToken()) {
+            return i;
+        }
+    }
+    return -1;
 }

@@ -13,16 +13,16 @@ public:
     virtual int NumData() const { return unk30.size(); }
     virtual bool IsActive(int idx) const { return unk30[idx]->IsActive(); }
     virtual void BuildTree() = 0;
-    virtual void DeleteItemList();
+    virtual void DeleteItemList(); // 0x70
     virtual void BuildItemList() = 0;
     virtual void SetHighlightedIx(int) = 0;
     virtual void SetHighlightItem(const NavListSortNode *) = 0;
     virtual void UpdateHighlight();
     virtual void OnSelectShortcut(int);
     virtual bool GetHeaderSelectable() { return false; }
-    virtual void Init() {}
+    virtual void Init() {} // 0x8c
     virtual NavListItemNode *NewItemNode(void *) const = 0;
-    virtual NavListShortcutNode *NewShortcutNode(NavListItemNode *) const = 0;
+    virtual NavListShortcutNode *NewShortcutNode(NavListItemNode *) const = 0; // 0x94
     virtual NavListHeaderNode *
     NewHeaderNode(NavListItemNode *, NavListItemNode *) const = 0;
     virtual NavListHeaderNode *NewHeaderNode(NavListItemNode *) const = 0;
