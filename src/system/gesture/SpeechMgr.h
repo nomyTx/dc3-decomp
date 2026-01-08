@@ -69,8 +69,9 @@ DECLARE_MESSAGE(SpeechEnableMsg, "speech_enable")
 SpeechEnableMsg(bool enabled) : Message(Type(), enabled) {}
 END_MESSAGE
 
+// #define SPEECH_RECO_MSG (speech_reco ($tags $confidence $rule_name))
 DECLARE_MESSAGE(SpeechRecoMessage, "speech_reco")
-// arg 0 is a DataArray*
-// arg 1 is a float - speech confidence level?
-// arg 2 is a Symbol
+DataArray *Tags() const { return mData->Array(2); }
+float Confidence() const { return mData->Float(3); }
+Symbol RuleName() const { return mData->Sym(4); }
 END_MESSAGE

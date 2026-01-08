@@ -299,7 +299,7 @@ DataNode VoiceControlPanel::OnMsg(const UITransitionCompleteMsg &msg) {
 DataNode VoiceControlPanel::OnMsg(const SpeechRecoMessage &msg) {
     if (!TheProfileMgr.GetDisableVoiceCommander()) {
         float thresh = TheSpeechMgr->SpeechConfThresh();
-        if (msg->Float(3) >= thresh) {
+        if (msg.Confidence() >= thresh) {
             if (mGameMode == "practice") {
                 unk6c++;
             } else {
@@ -308,10 +308,10 @@ DataNode VoiceControlPanel::OnMsg(const SpeechRecoMessage &msg) {
             if (unk48) {
                 WakeUpScreenSaver();
             }
-            DataArray *msgArr = msg->Array(2);
-            Symbol msgSym = msg->Sym(4);
-            if (msgSym == "voice_control" && !unk48) {
-                Symbol arrSym = msgArr->Sym(0);
+            DataArray *tags = msg.Tags();
+            Symbol rulename = msg.RuleName();
+            if (rulename == "voice_control" && !unk48) {
+                Symbol arrSym = tags->Sym(0);
                 if (arrSym == "voice_control" && !TheHamUI.InTransition()
                     && !TheContentMgr.RefreshInProgress()) {
                     PopUp();
@@ -324,22 +324,22 @@ DataNode VoiceControlPanel::OnMsg(const SpeechRecoMessage &msg) {
                     TheHamProvider->Handle(voice_commander_help, false);
                 }
                 return 0;
-            } else if (msgSym == "back" && unk48) {
+            } else if (rulename == "back" && unk48) {
                 DataDir()->Find<Flow>("sound_back.flow")->Activate();
                 Dismiss();
                 return 0;
-            } else if (msgSym == "dance" && unk48) {
+            } else if (rulename == "dance" && unk48) {
                 EnterGame();
                 return 0;
-            } else if (msgSym == "play_song" && unk48) {
-                Symbol arrSym = msgArr->Sym(0);
+            } else if (rulename == "play_song" && unk48) {
+                Symbol arrSym = tags->Sym(0);
                 static Symbol random_song("random_song");
                 if (arrSym == random_song) {
                     arrSym = TheHamSongMgr.GetRandomSong();
                 }
                 int songID = TheHamSongMgr.GetSongIDFromShortName(arrSym, false);
                 if (songID != 0) {
-                    mSong = msgArr->Sym(0);
+                    mSong = tags->Sym(0);
                     TheHamSongMgr.Data(songID);
                     DisplaySong(mSong);
                     DataDir()->Find<RndDrawable>("song_dimmer.mesh")->SetShowing(false);
@@ -350,7 +350,7 @@ DataNode VoiceControlPanel::OnMsg(const SpeechRecoMessage &msg) {
                 }
                 CycleTip();
                 return 0;
-            } else if (msgSym == "random_song" && unk48) {
+            } else if (rulename == "random_song" && unk48) {
                 Symbol song = TheHamSongMgr.GetRandomSong();
                 int songID = TheHamSongMgr.GetSongIDFromShortName(song, false);
                 if (songID != 0) {
@@ -365,8 +365,8 @@ DataNode VoiceControlPanel::OnMsg(const SpeechRecoMessage &msg) {
                 }
                 CycleTip();
                 return 0;
-            } else if (msgSym == "mode" && unk48 && mSong != gNullStr) {
-                Symbol arrSym = msgArr->Sym(0);
+            } else if (rulename == "mode" && unk48 && mSong != gNullStr) {
+                Symbol arrSym = tags->Sym(0);
                 float frame = 0;
                 if (arrSym == "practice") {
                     frame = 1;
@@ -381,8 +381,8 @@ DataNode VoiceControlPanel::OnMsg(const SpeechRecoMessage &msg) {
                 TheHamProvider->Handle(microphoneActivityMsg, false);
                 CycleTip();
                 return 0;
-            } else if (msgSym == "difficulty" && unk48 && mSong != gNullStr) {
-                Symbol arrSym = msgArr->Sym(0);
+            } else if (rulename == "difficulty" && unk48 && mSong != gNullStr) {
+                Symbol arrSym = tags->Sym(0);
                 if (arrSym == "beginner") {
                     mDifficulty = kDifficultyBeginner;
                 } else if (arrSym == "easy") {
