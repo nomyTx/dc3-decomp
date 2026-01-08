@@ -59,7 +59,7 @@ void VoiceControlPanel::Poll() {
     if (!unk48 && unk44 > 0) {
         unk44 = Max(0.0f, unk44 - TheTaskMgr.DeltaUISeconds());
     }
-    if (unk58 == gNullStr && unk48) {
+    if (mSong == gNullStr && unk48) {
         float set = unk4c + TheTaskMgr.DeltaUISeconds();
         float cmp = sFloats[1];
         unk4c = set;
@@ -104,21 +104,21 @@ void VoiceControlPanel::ContentMounted(const char *, const char *) {
 }
 
 bool VoiceControlPanel::DifficultyLocked() const {
-    if (unk58 == gNullStr)
+    if (mSong == gNullStr)
         return false;
     else {
         static Symbol practice("practice");
-        if (unk60 == practice)
+        if (mGameMode == practice)
             return false;
         else
             return !TheProfileMgr.IsDifficultyUnlocked(
-                unk58, DifficultyToSym(mDifficulty)
+                mSong, DifficultyToSym(mDifficulty)
             );
     }
 }
 
 bool VoiceControlPanel::ReadyToStart() const {
-    return unk58 != gNullStr && mDifficulty != kNumDifficulties && unk60 != gNullStr
+    return mSong != gNullStr && mDifficulty != kNumDifficulties && mGameMode != gNullStr
         && !DifficultyLocked();
 }
 
@@ -131,12 +131,12 @@ void VoiceControlPanel::WakeUpScreenSaver() const {
 void VoiceControlPanel::EnterGame() {
     MILO_FAIL("VoiceControlPanel::EnterGame should never be called! (I hope)\n");
     if (ReadyToStart()) {
-        TheGameMode->SetMode(unk60, "none");
-        MetaPerformer::Current()->SetSong(unk58);
+        TheGameMode->SetMode(mGameMode, "none");
+        MetaPerformer::Current()->SetSong(mSong);
         TheGameData->Player(0)->SetDifficulty(mDifficulty);
         TheGameData->Player(1)->SetDifficulty(mDifficulty);
         static Symbol dance_battle("dance_battle");
-        if (unk60 == dance_battle) {
+        if (mGameMode == dance_battle) {
             MetaPerformer::Current()->ClearCharacters();
             MultiUserGesturePanel *pMultiUserGesturePanel =
                 ObjectDir::Main()->Find<MultiUserGesturePanel>("multiuser_panel");
@@ -147,7 +147,7 @@ void VoiceControlPanel::EnterGame() {
             pMultiUserGesturePanel->SetRandomCrew(1);
         }
         static Symbol practice("practice");
-        if (unk60 == practice) {
+        if (mGameMode == practice) {
             MetaPerformer::Current()->SetSkipPracticeWelcome(true);
         }
         static Symbol byo_bid("byo_bid");
@@ -274,9 +274,9 @@ void VoiceControlPanel::PopUp() {
         TheMetaMusic->Stop();
         SongPreview *preview = ObjectDir::Main()->Find<SongPreview>("song_preview");
         preview->SetMusicVol(SongPreview::kSilenceVal);
-        unk58 = gNullStr;
+        mSong = gNullStr;
         mDifficulty = DefaultDifficulty();
-        unk60 = "perform";
+        mGameMode = "perform";
         unk54 = false;
         unk55 = false;
         DataDir()->Find<RndDrawable>("song_dimmer.mesh")->SetShowing(true);
@@ -292,6 +292,121 @@ DataNode VoiceControlPanel::OnMsg(const UITransitionCompleteMsg &msg) {
     if (unk64) {
         Dismiss();
         SetRules(false);
+    }
+    return DATA_UNHANDLED;
+}
+
+DataNode VoiceControlPanel::OnMsg(const SpeechRecoMessage &msg) {
+    if (!TheProfileMgr.GetDisableVoiceCommander()) {
+        float thresh = TheSpeechMgr->SpeechConfThresh();
+        if (msg->Float(3) >= thresh) {
+            if (mGameMode == "practice") {
+                unk6c++;
+            } else {
+                unk68++;
+            }
+            if (unk48) {
+                WakeUpScreenSaver();
+            }
+            DataArray *msgArr = msg->Array(2);
+            Symbol msgSym = msg->Sym(4);
+            if (msgSym == "voice_control" && !unk48) {
+                Symbol arrSym = msgArr->Sym(0);
+                if (arrSym == "voice_control" && !TheHamUI.InTransition()
+                    && !TheContentMgr.RefreshInProgress()) {
+                    PopUp();
+                } else if (arrSym == "xbox") {
+                    static Message microphoneActivityMsg("microphone_activity");
+                    TheHamProvider->Handle(microphoneActivityMsg, false);
+                    static Message voice_commander_help_bump("voice_commander_help_bump");
+                    TheHamProvider->Handle(voice_commander_help_bump, false);
+                    static Message voice_commander_help("voice_commander_help");
+                    TheHamProvider->Handle(voice_commander_help, false);
+                }
+                return 0;
+            } else if (msgSym == "back" && unk48) {
+                DataDir()->Find<Flow>("sound_back.flow")->Activate();
+                Dismiss();
+                return 0;
+            } else if (msgSym == "dance" && unk48) {
+                EnterGame();
+                return 0;
+            } else if (msgSym == "play_song" && unk48) {
+                Symbol arrSym = msgArr->Sym(0);
+                static Symbol random_song("random_song");
+                if (arrSym == random_song) {
+                    arrSym = TheHamSongMgr.GetRandomSong();
+                }
+                int songID = TheHamSongMgr.GetSongIDFromShortName(arrSym, false);
+                if (songID != 0) {
+                    mSong = msgArr->Sym(0);
+                    TheHamSongMgr.Data(songID);
+                    DisplaySong(mSong);
+                    DataDir()->Find<RndDrawable>("song_dimmer.mesh")->SetShowing(false);
+                    DataDir()->Find<Flow>("sound_selection.flow")->Activate();
+                    DataDir()->Find<Flow>("song_selected.flow")->Activate();
+                    static Message microphoneActivityMsg("microphone_activity");
+                    TheHamProvider->Handle(microphoneActivityMsg, false);
+                }
+                CycleTip();
+                return 0;
+            } else if (msgSym == "random_song" && unk48) {
+                Symbol song = TheHamSongMgr.GetRandomSong();
+                int songID = TheHamSongMgr.GetSongIDFromShortName(song, false);
+                if (songID != 0) {
+                    mSong = song;
+                    TheHamSongMgr.Data(songID);
+                    DisplaySong(mSong);
+                    DataDir()->Find<RndDrawable>("song_dimmer.mesh")->SetShowing(false);
+                    DataDir()->Find<Flow>("sound_selection.flow")->Activate();
+                    DataDir()->Find<Flow>("song_selected.flow")->Activate();
+                    static Message microphoneActivityMsg("microphone_activity");
+                    TheHamProvider->Handle(microphoneActivityMsg, false);
+                }
+                CycleTip();
+                return 0;
+            } else if (msgSym == "mode" && unk48 && mSong != gNullStr) {
+                Symbol arrSym = msgArr->Sym(0);
+                float frame = 0;
+                if (arrSym == "practice") {
+                    frame = 1;
+                }
+                if (arrSym == "dance_battle") {
+                    frame = 2;
+                }
+                DataDir()->Find<RndAnimatable>("selected_mode.anim")->SetFrame(frame, 1);
+                unk55 = true;
+                DataDir()->Find<Flow>("sound_selection.flow")->Activate();
+                static Message microphoneActivityMsg("microphone_activity");
+                TheHamProvider->Handle(microphoneActivityMsg, false);
+                CycleTip();
+                return 0;
+            } else if (msgSym == "difficulty" && unk48 && mSong != gNullStr) {
+                Symbol arrSym = msgArr->Sym(0);
+                if (arrSym == "beginner") {
+                    mDifficulty = kDifficultyBeginner;
+                } else if (arrSym == "easy") {
+                    mDifficulty = kDifficultyEasy;
+                } else if (arrSym == "medium") {
+                    mDifficulty = kDifficultyMedium;
+                } else if (arrSym == "hard") {
+                    mDifficulty = kDifficultyExpert;
+                } else {
+                    MILO_ASSERT(false, 0x14D);
+                }
+                DataDir()
+                    ->Find<RndAnimatable>("selected_diff.anim")
+                    ->SetFrame(mDifficulty, 1);
+                unk54 = true;
+                DataDir()->Find<Flow>("sound_selection.flow")->Activate();
+                static Message microphoneActivityMsg("microphone_activity");
+                TheHamProvider->Handle(microphoneActivityMsg, false);
+                CycleTip();
+                return 0;
+            } else {
+                return DATA_UNHANDLED;
+            }
+        }
     }
     return DATA_UNHANDLED;
 }

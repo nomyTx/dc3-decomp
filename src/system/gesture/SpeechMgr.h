@@ -43,6 +43,7 @@ public:
 
     bool SpeechSupported() const { return mSpeechSupported; }
     bool Recognizing() const { return mRecognizing; }
+    float SpeechConfThresh() const { return mSpeechConfThresh; }
 
 private:
     bool GetSpeechLanguage(NUI_SPEECH_LANGUAGE &) const;
@@ -70,5 +71,6 @@ END_MESSAGE
 
 DECLARE_MESSAGE(SpeechRecoMessage, "speech_reco")
 // arg 0 is a DataArray*
-// arg 1 is a float
+// arg 1 is a float - speech confidence level?
+// arg 2 is a Symbol
 END_MESSAGE
