@@ -534,3 +534,5 @@ void SongMgr::OnCacheUnmountResult(int res) {
         SetState(kSongMgr_Ready);
     }
 }
+
+const std::set<int> &SongMgr::GetAvailableSongSet() const { return mAvailableSongs; }

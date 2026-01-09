@@ -8,8 +8,8 @@
 #include "utl/Symbol.h"
 
 struct PronunciationsLoc {
-    Symbol unk0; // 0x0 - language
-    std::vector<String> unk4; // 0x4 - different possible pronunciations
+    Symbol mLanguage; // 0x0 - language
+    std::vector<String> mPronunciations; // 0x4 - different possible pronunciations
 };
 
 class HamSongMetadata : public SongMetadata {

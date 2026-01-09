@@ -108,6 +108,7 @@ public:
     bool HasContent(Symbol contentName) {
         return mSongIDsInContent.find(contentName) != mSongIDsInContent.end();
     }
+    const std::set<int> &GetAvailableSongSet() const;
 
 protected:
     virtual bool AllowContentToBeAdded(DataArray *, ContentLocT) { return true; }

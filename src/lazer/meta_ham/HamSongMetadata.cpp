@@ -238,14 +238,14 @@ Symbol HamSongMetadata::Venue() const {
 Symbol HamSongMetadata::Character() const { return GetOutfitCharacter(Outfit()); }
 
 BinStream &operator<<(BinStream &bs, PronunciationsLoc const &pron) {
-    bs << pron.unk0;
-    bs << pron.unk4;
+    bs << pron.mLanguage;
+    bs << pron.mPronunciations;
     return bs;
 }
 
 BinStream &operator>>(BinStream &bs, PronunciationsLoc &pron) {
-    bs >> pron.unk0;
-    bs >> pron.unk4;
+    bs >> pron.mLanguage;
+    bs >> pron.mPronunciations;
     return bs;
 }
 
@@ -351,9 +351,9 @@ void HamSongMetadata::Integrate(DataArray *main_arr, DataArray *backup_arr, bool
             DataArray *curArr = member_arr->Array(i);
             if (curArr && curArr->Size() == 2) {
                 PronunciationsLoc loc;
-                loc.unk0 = curArr->Sym(0);
+                loc.mLanguage = curArr->Sym(0);
                 for (int j = 0; j < curArr->Array(1)->Size(); j++) {
-                    loc.unk4.push_back(curArr->Array(1)->Str(j));
+                    loc.mPronunciations.push_back(curArr->Array(1)->Str(j));
                 }
                 mPronunciationsLocalized.push_back(loc);
             }

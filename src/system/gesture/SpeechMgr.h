@@ -44,6 +44,8 @@ public:
     bool SpeechSupported() const { return mSpeechSupported; }
     bool Recognizing() const { return mRecognizing; }
     float SpeechConfThresh() const { return mSpeechConfThresh; }
+    RndOverlay *Overlay() const { return mOverlay; }
+    bool Enabled() const { return mEnabled; }
 
 private:
     bool GetSpeechLanguage(NUI_SPEECH_LANGUAGE &) const;
