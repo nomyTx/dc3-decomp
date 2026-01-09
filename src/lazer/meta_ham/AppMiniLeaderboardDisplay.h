@@ -33,21 +33,21 @@ public:
 
     bool UpdateLeaderboard(Symbol);
 
+private:
+    void UpdateSelfInRows();
+
 protected:
     virtual void Update();
 
     void UpdateData(GetMiniLeaderboardJob *);
     void UpdateLeaderboardOnline(int);
     void ClearData();
-    DataNode OnMsg(ServerStatusChangedMsg const &);
-    DataNode OnMsg(RCJobCompleteMsg const &);
+    DataNode OnMsg(const ServerStatusChangedMsg &);
+    DataNode OnMsg(const RCJobCompleteMsg &);
 
-    int unk60;
+    int unk60; // 0x60 - state?
     UIList *mLeaderboardList; // 0x64
-    int unk68;
-    float unk6c;
-    std::vector<LeaderboardRow> unk70;
-
-private:
-    void UpdateSelfInRows();
+    int mSongID; // 0x68
+    float unk6c; // 0x6c
+    std::vector<LeaderboardRow> mLBRows; // 0x70
 };

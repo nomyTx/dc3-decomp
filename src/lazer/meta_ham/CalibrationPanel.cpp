@@ -13,6 +13,7 @@
 #include "ui/UILabel.h"
 #include "ui/UIListLabel.h"
 #include "ui/UIPanel.h"
+#include "ui/PanelDir.h"
 #include "utl/Symbol.h"
 #include <cmath>
 
@@ -23,21 +24,9 @@ CalibrationOffsetProvider::CalibrationOffsetProvider(UIPanel *up) {
     unk3c = up;
 }
 
-int CalibrationOffsetProvider::GetOffset(int selectedPos) {
-    MILO_ASSERT_RANGE(selectedPos, 0, mOffsets.size(), 0xae);
-    int size = mOffsets.size();
-    if (selectedPos <= size) {
-        size = (selectedPos >= 0) ? selectedPos : 0;
-    }
-    return mOffsets[size];
-}
-
-void CalibrationOffsetProvider::InitData(RndDir *) {
-    mOffsets.clear();
-    for (int i = 0; i <= 250; i += 10) {
-        mOffsets.push_back(i);
-    }
-}
+BEGIN_HANDLERS(CalibrationOffsetProvider)
+    HANDLE_EXPR(get_offset, GetOffset(_msg->Int(2)))
+END_HANDLERS
 
 void CalibrationOffsetProvider::Text(
     int, int data, UIListLabel *uiListLabel, UILabel *uiLabel
@@ -65,23 +54,33 @@ void CalibrationOffsetProvider::Text(
     }
 }
 
-BEGIN_HANDLERS(CalibrationOffsetProvider)
-    HANDLE_EXPR(get_offset, GetOffset(_msg->Int(2)))
-END_HANDLERS
+void CalibrationOffsetProvider::InitData(RndDir *) {
+    mOffsets.clear();
+    for (int i = 0; i <= 250; i += 10) {
+        mOffsets.push_back(i);
+    }
+}
 
-#pragma endregion CalibrationOffsetProvider
+int CalibrationOffsetProvider::GetOffset(int selectedPos) {
+    MILO_ASSERT_RANGE(selectedPos, 0, mOffsets.size(), 0xae);
+    int size = mOffsets.size();
+    if (selectedPos <= size) {
+        size = (selectedPos >= 0) ? selectedPos : 0;
+    }
+    return mOffsets[size];
+}
+
+#pragma endregion
 #pragma region CalibrationPanel
 
 CalibrationPanel::CalibrationPanel()
-    : unk3c(this), unk7c(500.0f), mVolume(-6.0f), mStream(), unk88(false) {}
+    : mProvider(this), unk7c(500.0f), mVolume(-6.0f), mStream(), unk88(false) {}
 
-CalibrationPanel::~CalibrationPanel() { unk3c.mOffsets.clear(); }
+CalibrationPanel::~CalibrationPanel() { mProvider.ClearOffsets(); }
 
-void CalibrationPanel::Poll() {
-    UIPanel::Poll();
-    UpdateAnimation();
-    UpdateStream();
-}
+BEGIN_HANDLERS(CalibrationPanel)
+    HANDLE_SUPERCLASS(HamPanel)
+END_HANDLERS
 
 void CalibrationPanel::Enter() {
     UIPanel::Enter();
@@ -94,6 +93,12 @@ void CalibrationPanel::Exit() {
     unk88 = false;
     if (mStream)
         mStream->Stop();
+}
+
+void CalibrationPanel::Poll() {
+    UIPanel::Poll();
+    UpdateAnimation();
+    UpdateStream();
 }
 
 void CalibrationPanel::InitializeContent() {
@@ -137,8 +142,11 @@ void CalibrationPanel::UpdateStream() {
     }
 }
 
-BEGIN_HANDLERS(CalibrationPanel)
-    HANDLE_SUPERCLASS(HamPanel)
-END_HANDLERS
+void CalibrationPanel::UpdateAnimation() {
+    float f3 = fmod(unk7c * 0.5f + GetAudioTimeMs(), unk7c);
+    f3 = LoadedDir()->Find<RndGroup>("tick.grp")->EndFrame() * (f3 / unk7c);
+    float f2 = fmod(f3, LoadedDir()->Find<RndGroup>("tick.grp")->EndFrame());
+    LoadedDir()->Find<RndGroup>("tick.grp")->SetFrame(f2, 1);
+}
 
-#pragma endregion CalibrationPanel
+#pragma endregion

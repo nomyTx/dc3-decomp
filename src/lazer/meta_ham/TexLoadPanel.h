@@ -35,6 +35,7 @@ public:
 
 class TexLoadPanel : public HamPanel, public ContentMgr::Callback {
 public:
+    TexLoadPanel();
     // Hmx::Object
     virtual ~TexLoadPanel();
     OBJ_CLASSNAME(TexLoadPanel);
@@ -47,7 +48,6 @@ public:
     virtual void Poll();
     virtual bool IsLoaded() const;
     virtual void Unload();
-    virtual void PollForLoading();
     virtual void FinishLoad();
 
     // ContentMgr::Callback
@@ -56,19 +56,17 @@ public:
 
     NEW_OBJ(TexLoadPanel)
 
-    TexLoadPanel();
     void FinalizeTexturesChunk();
     DynamicTex *AddTex(const char *, const char *, bool);
     void LoadMoggClip(char const *);
-
-protected:
-    std::vector<DynamicTex *> mTexs; // 0x40
-    MoggClip *mMoggClip; // 0x4c
-    Fader *mFader; // 0x50
 
 protected:
     void FinalizeTextures();
     DLCTex *NextDLCTex();
     bool RegisterForContent() const;
     bool TexturesLoaded() const;
+
+    std::vector<DynamicTex *> mTexs; // 0x40
+    MoggClip *mMoggClip; // 0x4c
+    Fader *mFader; // 0x50
 };

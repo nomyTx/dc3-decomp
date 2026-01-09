@@ -39,6 +39,8 @@ public:
     GetMiniLeaderboardJob(Hmx::Object *callback, const HamProfile *, int songID);
     void GetRows(std::vector<LeaderboardRow> *);
 
+    int SongID() const { return mSongID; }
+
 private:
     int mSongID; // 0xb0
 };

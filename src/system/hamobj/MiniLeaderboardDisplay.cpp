@@ -64,3 +64,5 @@ void MiniLeaderboardDisplay::OldResourcePreload(BinStream &bs) {
 }
 
 void MiniLeaderboardDisplay::Init() { REGISTER_OBJ_FACTORY(MiniLeaderboardDisplay); }
+
+void MiniLeaderboardDisplay::Update() {}

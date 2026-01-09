@@ -60,7 +60,7 @@ public:
     void SetFile(const char *);
     void SetPan(int, float);
     void AddFader(Fader *);
-    const FilePath Path() const;
+    const FilePath Path() const { return mMoggFile; }
     StandardStream *GetStream() const { return mStream; }
     int NumChannels() const { return unk58; }
 

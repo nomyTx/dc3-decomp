@@ -31,7 +31,7 @@ public:
 protected:
     MiniLeaderboardDisplay();
 
-    virtual void Update() {}
+    virtual void Update();
 
     ResourceDirPtr<RndDir> mResourceDir; // 0x44
 };
