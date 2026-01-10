@@ -23,6 +23,11 @@
 #define ERROR_DISK_CORRUPT              0x0571
 #define ERROR_DEVICE_REMOVED            0x0651
 
+#define E_SPEECH_UNINITIALIZED          (long)0x80045001
+
 #define E_OUTOFMEMORY                   (long)0x8007000E
 #define E_INVALIDARG                    (long)0x80070057
+
+#define E_NUI_DATABASE_NOT_FOUND        (long)0x8301000D
+#define E_NUI_DATABASE_VERSION_MISMATCH (long)0x8301000E
 // clang-format on

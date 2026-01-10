@@ -500,6 +500,7 @@ _STLP_BEGIN_NAMESPACE
             if (__n != 0) {
                 _Tp *__ret = __REINTERPRET_CAST(
                     value_type *,
+                    // __sgi_alloc::allocate(__n * sizeof(value_type))
                     MemAlloc(__n * sizeof(value_type), __FILE__, 0xAB, "__new_alloc")
                 );
 #ifdef _STLP_DEBUG_UNINITIALIZED

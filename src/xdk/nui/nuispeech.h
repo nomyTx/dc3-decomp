@@ -15,6 +15,8 @@ typedef enum _NUI_SPEECH_LANGUAGE {
     NUI_SPEECH_LANGUAGE_ES_ES = 0x0006,
     NUI_SPEECH_LANGUAGE_DE_DE = 0x0007,
     NUI_SPEECH_LANGUAGE_IT_IT = 0x0008,
+    NUI_SPEECH_LANGUAGE_EN_AU = 0x0009,
+    NUI_SPEECH_LANGUAGE_PT_BR = 0x000a,
 } NUI_SPEECH_LANGUAGE;
 
 enum NUI_SPEECH_MICTYPE {
@@ -37,6 +39,29 @@ typedef struct _NUI_SPEECH_GRAMMAR { /* Size=0x8 */
     /* 0x0004 */ HANDLE hGrammar;
 } NUI_SPEECH_GRAMMAR;
 
+typedef enum _NUI_SPEECH_GRAMMARSTATE {
+    NUI_SPEECH_GRAMMARSTATE_DISABLED = 0x0000,
+    NUI_SPEECH_GRAMMARSTATE_ENABLED = 0x0001,
+    NUI_SPEECH_GRAMMARSTATE_EXCLUSIVE = 0x0003,
+} NUI_SPEECH_GRAMMARSTATE;
+
+typedef enum _NUI_SPEECH_CONFIDENCE {
+    NUI_SPEECH_CONFIDENCE_LOW = 0x0000,
+    NUI_SPEECH_CONFIDENCE_NORMAL = 0x0001,
+    NUI_SPEECH_CONFIDENCE_HIGH = 0x0002,
+} NUI_SPEECH_CONFIDENCE;
+
+typedef struct _NUI_SPEECH_SEMANTICRESULT { /* Size=0x1c */
+    /* 0x0000 */ LPCWSTR pcwszValue;
+    /* 0x0004 */ ULONG ulFirstElement;
+    /* 0x0008 */ ULONG ulCountOfElements;
+    /* 0x000c */ _NUI_SPEECH_SEMANTICRESULT *pFirstChild;
+    /* 0x0010 */ _NUI_SPEECH_SEMANTICRESULT *pNextSibling;
+    /* 0x0014 */ float fSREngineConfidence;
+    /* 0x0018 */ _NUI_SPEECH_CONFIDENCE eConfidence;
+} NUI_SPEECH_SEMANTICRESULT;
+
+HRESULT NuiSpeechCommitGrammar(NUI_SPEECH_GRAMMAR *pGrammar);
 HRESULT NuiSpeechCreateGrammar(ULONG ulGrammarId, NUI_SPEECH_GRAMMAR *pGrammar);
 HRESULT NuiSpeechLoadGrammar(
     LPCWSTR pcwszGrammarName,
@@ -49,8 +74,12 @@ HRESULT
 NuiSpeechEnable(NUI_SPEECH_INIT_PROPERTIES *pInitProperties, DWORD dwHardwareThread);
 HRESULT NuiSpeechDisable();
 HRESULT NuiSpeechSetEventInterest(ULONG ulEvents);
+
+HRESULT NuiSpeechEmulateRecognition(LPCWSTR pcwszText, ULONG Options);
 HRESULT NuiSpeechStartRecognition();
 HRESULT NuiSpeechStopRecognition();
+HRESULT
+NuiSpeechSetGrammarState(NUI_SPEECH_GRAMMAR *pGrammar, NUI_SPEECH_GRAMMARSTATE eState);
 
 #ifdef __cplusplus
 }
