@@ -86,6 +86,7 @@ public:
     HardCoreStatus GetIconHardCoreStatus(int) const;
     void HandleSongCompleted(Symbol);
     const std::vector<Symbol> &GetDiscSongs() const { return mDiscSongs; }
+    bool Unk30(int i) const { return unk30[i]; }
 
     static void Init(DataArray *);
 

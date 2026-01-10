@@ -20,10 +20,14 @@ public:
 
     void SetInPartyMode(bool mode) { mInPartyMode = mode; }
     bool InPartyMode() const { return mInPartyMode; }
-    bool IsInfinite() const { return mInfinite; }
+    int Infinite() const { return mInfinite; }
 
     Symbol GameplayMode() const { return mGameplayMode; }
     bool IsGameplayModePerform() const;
+    bool IsGameplayModePractice() const {
+        static Symbol practice("practice");
+        return mGameplayMode == practice;
+    }
     bool IsGameplayModeBustamove() const {
         static Symbol bustamove("bustamove");
         return mGameplayMode == bustamove;

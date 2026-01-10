@@ -161,7 +161,7 @@ struct HamMoveKey {
 
 struct HamMoveScore {
     HamMove *unk0;
-    int unk4;
+    int unk4; // 0x4 - rating state index
     float unk8;
     bool unkc;
 };

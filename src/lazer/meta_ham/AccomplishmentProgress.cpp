@@ -139,7 +139,7 @@ void AccomplishmentProgress::SetTotalCampaignSongsPlayed(int songs) {
     mParentProfile->MakeDirty();
 }
 
-void AccomplishmentProgress::MovePassed(Symbol, int ratingIndex) {
+void AccomplishmentProgress::MovePassed(Symbol gameplayMode, int ratingIndex) {
     static Symbol move_perfect("move_perfect");
     static Symbol move_awesome("move_awesome");
     Symbol rating = RatingState(ratingIndex);

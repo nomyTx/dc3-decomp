@@ -80,6 +80,7 @@ public:
     void SetHidden(int, bool);
 
     void SetNavList(HamNavList *l) { mNavList = l; }
+    std::vector<NavItem> &Items() { return mNavItems; }
 
     DataNode OnSetHidden(const DataArray *);
 

@@ -3,6 +3,7 @@
 #include "hamobj/HamMove.h"
 #include "hamobj/HamNavProvider.h"
 #include "hamobj/HamPlayerData.h"
+#include "hamobj/PracticeSection.h"
 #include "meta_ham/HamSongMgr.h"
 #include "meta_ham/Instarank.h"
 #include "meta_ham/Playlist.h"
@@ -115,6 +116,8 @@ public:
     void SetupCharacters();
     void SetPlaylist(Playlist *);
     void HandleGameplayEnded(const EndGameResult &);
+    void CheckForFitnessAccomplishments();
+    int GetMovesPassedByType(int, Symbol);
 
     bool HasPlaylist() const { return mPlaylist; }
     Playlist *GetPlaylist() { return mPlaylist; }
@@ -145,6 +148,9 @@ protected:
     Symbol GetRandomVenue();
     void PotentiallyUpdateLeaderboards(bool, Symbol, int, int, bool);
     bool CheckRecommendedPracticeMove(String, int) const;
+    void SetUpRecapResults();
+    const std::vector<PracticeStep> &GetPracticeSteps() const;
+    void GetCurrentRecapMove(int &, int &) const;
 
     DataNode OnMsg(const RCJobCompleteMsg &);
 
@@ -166,7 +172,7 @@ protected:
     bool mUnlockedExpertDifficulty; // 0x37
     int unk38; // 0x38
     int unk3c; // 0x3c
-    std::vector<HamMoveScore> unk40[2];
+    std::vector<HamMoveScore> mMoveScores[2]; // 0x40
     int mMovesAttempted[2]; // 0x58
     Symbol mLastPlayedMode; // 0x60
     std::vector<String> mRecommendedPracticeMoves; // 0x64

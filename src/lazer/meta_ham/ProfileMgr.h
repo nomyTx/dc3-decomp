@@ -109,6 +109,7 @@ public:
     bool HasAnyEraSongBeenPlayed(Symbol) const;
     void Poll();
     void UploadDeferredFlaunt();
+    Symbol GetAlternateOutfit(Symbol);
 
     bool GetBassBoost() const { return mBassBoost; }
     bool GetDolby() const { return mDolby; }
