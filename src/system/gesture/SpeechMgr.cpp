@@ -1,18 +1,80 @@
 #include "gesture/SpeechMgr.h"
-#include "SpeechMgr.h"
 #include "obj/Data.h"
 #include "obj/Dir.h"
 #include "os/Debug.h"
 #include "os/File.h"
+#include "os/Timer.h"
 #include "rndobj/Overlay.h"
 #include "utl/MemMgr.h"
 #include "xdk/NUI.h"
+#include "xdk/XAPILIB.h"
+#include <string>
+#include <cstdlib>
 
 SpeechMgr *TheSpeechMgr;
+ULONG gGrammarID;
+
+const char *WstrToANSI(const LPCWSTR &wstr) {
+    static CHAR sBuffer[1024];
+    int ret =
+        WideCharToMultiByte(0, 0, wstr, -1, sBuffer, sizeof(sBuffer), nullptr, nullptr);
+    MILO_ASSERT(ret > 0, 0x2A);
+    return sBuffer;
+}
+
+std::wstring ANSItoWstr(const char *ansi) {
+    size_t ret;
+    WCHAR wstr[1024];
+    mbstowcs_s(&ret, wstr, 1024, ansi, strlen(ansi));
+    return std::wstring(wstr);
+}
+
+#pragma region Grammar
+
+void SpeechMgr::Grammar::Unload() {
+    if (unk14) {
+        MILO_ASSERT(!TheSpeechMgr->IsRecognizing(), 0xC4);
+        AutoGlitchReport report(50, "SpeechMgr::Grammar::Unload");
+        HRESULT res = NuiSpeechUnloadGrammar(&mGrammar);
+        MILO_ASSERT_FMT(res >= 0, "NuiSpeechUnloadGrammar failed with error 0x%08x", res);
+    }
+    unk14 = false;
+}
+
+bool SpeechMgr::Grammar::FinishLoad(SpeechMgr *mgr) {
+    if (!mgr->Enabled()) {
+        return false;
+    }
+    MILO_ASSERT(!TheSpeechMgr->IsRecognizing(), 0x90);
+    const char *ansi = unk4.c_str();
+    HRESULT res = NuiSpeechLoadGrammar(
+        ANSItoWstr(ansi).c_str(), gGrammarID++, NUI_SPEECH_LOADOPTIONS_STATIC, &mGrammar
+    );
+    unk14 = false;
+    if (res == E_INVALIDARG) {
+        MILO_NOTIFY("NuiSpeechLoadGrammar (E_INVALIDARG)");
+    } else if (res == (HRESULT)0x80045052) {
+        MILO_NOTIFY("Grammar %s is not localized properly for this language", ansi);
+        mgr->Disable();
+    } else if (res == (HRESULT)0x80045024) {
+        MILO_NOTIFY("Grammar %s has an invalid import", ansi);
+    } else if (res == (HRESULT)0x8004503a) {
+        MILO_NOTIFY("Grammar %s has an element that was not found", ansi);
+    } else if (res == (HRESULT)0x8004502a) {
+        MILO_NOTIFY("Grammar %s has no rules", ansi);
+    } else if (res != ERROR_SUCCESS) {
+        MILO_NOTIFY("NuiSpeechLoadGrammar failed 0x%x", res);
+    } else {
+        unk14 = true;
+    }
+    return unk14;
+}
+
+#pragma endregion
+#pragma region SpeechMgr
 
 SpeechMgr::SpeechMgr(const DataArray *a)
-    : mEnabled(0), mRecognizing(0), unk3e(0),
-      mOverlay(RndOverlay::Find("speech_mgr", true)) {
+    : mEnabled(0), mRecognizing(0), unk3e(0), mOverlay(RndOverlay::Find("speech_mgr")) {
     TheSpeechMgr = this;
     SetName("speech_mgr", ObjectDir::Main());
     mSpeechSupported = GetSpeechLanguage(mLanguage);
@@ -27,8 +89,6 @@ SpeechMgr::~SpeechMgr() {
 }
 
 bool SpeechMgr::IsRecognizing() const { return mRecognizing; }
-
-unsigned long gGrammarID;
 
 void SpeechMgr::CreateGrammar(Symbol name) {
     for (int i = 0; i < mGrammars.size(); i++) {
@@ -145,3 +205,5 @@ void SpeechMgr::LoadGrammar(Symbol name, const char *c, bool b) {
         mGrammars.push_back(grammar);
     }
 }
+
+#pragma endregion

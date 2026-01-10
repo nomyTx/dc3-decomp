@@ -52,6 +52,15 @@ int __wctomb_noconv(char *, wchar_t);
 int mblen(const char *s, size_t n);
 int mbtowc(wchar_t *pwc, const char *s, size_t n);
 size_t mbstowcs(wchar_t *dst, const char *src, size_t len);
+
+int mbstowcs_s(
+    size_t *pReturnValue,
+    wchar_t *wcstr,
+    size_t sizeInWords,
+    const char *mbstr,
+    size_t count
+);
+
 int wctomb(char *s, wchar_t wc);
 size_t wcstombs(char *dst, const wchar_t *src, size_t len);
 

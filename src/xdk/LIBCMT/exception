@@ -8,6 +8,7 @@ namespace std {
         exception() : str(0), unk8(0) {}
         exception(const exception &e) : str(0), unk8(0) { *this = e; }
         exception(const char *str) : str(0), unk8(0) { _Copy_str(str); }
+        exception(const char *str, bool b) : str(str), unk8(b) {}
         virtual ~exception() {
             if (unk8)
                 free((void *)str);

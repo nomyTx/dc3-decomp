@@ -15,7 +15,7 @@ public:
         Symbol mName; // 0x0
         String unk4;
         NUI_SPEECH_GRAMMAR mGrammar; // 0x8
-        bool unk14;
+        bool unk14; // 0x14 - loaded?
     };
     SpeechMgr(const DataArray *);
     virtual ~SpeechMgr();

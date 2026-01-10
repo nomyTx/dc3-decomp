@@ -158,7 +158,16 @@ public:
 
 class AutoGlitchReport {
 public:
-    AutoGlitchReport(float, const char *);
+    AutoGlitchReport(float f1, const char *c2) {
+        if (MainThread()) {
+            unk3c = f1;
+            unk30 = c2;
+            unk38 = 0;
+            unk34 = 0;
+            sDepth++;
+            unk0.Start();
+        }
+    }
     AutoGlitchReport(float, AutoTimerCallback, void *);
     ~AutoGlitchReport();
     static void EnableCallback();
@@ -168,6 +177,10 @@ public:
 
 private:
     Timer unk0;
+    const char *unk30;
+    int unk34;
+    int unk38;
+    float unk3c;
 };
 
 class AutoTimer {

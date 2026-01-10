@@ -23,5 +23,6 @@
 #define ERROR_DISK_CORRUPT              0x0571
 #define ERROR_DEVICE_REMOVED            0x0651
 
-#define E_OUTOFMEMORY                   0x8007000E
+#define E_OUTOFMEMORY                   (long)0x8007000E
+#define E_INVALIDARG                    (long)0x80070057
 // clang-format on

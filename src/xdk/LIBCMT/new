@@ -6,6 +6,7 @@ namespace std {
 
     class bad_alloc : public exception {
     public:
+        bad_alloc() : exception("bad allocation", 0) {}
         virtual ~bad_alloc() {}
     };
 

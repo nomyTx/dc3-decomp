@@ -22,6 +22,11 @@ enum NUI_SPEECH_MICTYPE {
     NUI_SPEECH_WAVE = 0x0001,
 };
 
+typedef enum _NUI_SPEECH_LOADOPTIONS {
+    NUI_SPEECH_LOADOPTIONS_STATIC = 0x0000,
+    NUI_SPEECH_LOADOPTIONS_DYNAMIC = 0x0001,
+} NUI_SPEECH_LOADOPTIONS;
+
 typedef struct _NUI_SPEECH_INIT_PROPERTIES { /* Size=0x8 */
     /* 0x0000 */ NUI_SPEECH_LANGUAGE Language;
     /* 0x0004 */ NUI_SPEECH_MICTYPE MicrophoneType;
@@ -33,6 +38,13 @@ typedef struct _NUI_SPEECH_GRAMMAR { /* Size=0x8 */
 } NUI_SPEECH_GRAMMAR;
 
 HRESULT NuiSpeechCreateGrammar(ULONG ulGrammarId, NUI_SPEECH_GRAMMAR *pGrammar);
+HRESULT NuiSpeechLoadGrammar(
+    LPCWSTR pcwszGrammarName,
+    ULONG ulGrammarId,
+    NUI_SPEECH_LOADOPTIONS Options,
+    NUI_SPEECH_GRAMMAR *pGrammar
+);
+HRESULT NuiSpeechUnloadGrammar(NUI_SPEECH_GRAMMAR *pGrammar);
 HRESULT
 NuiSpeechEnable(NUI_SPEECH_INIT_PROPERTIES *pInitProperties, DWORD dwHardwareThread);
 HRESULT NuiSpeechDisable();
