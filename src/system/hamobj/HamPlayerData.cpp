@@ -188,3 +188,5 @@ bool HamPlayerData::IsPlaying() const {
         return true;
     }
 }
+
+Symbol HamPlayerData::GetPreferredOutfit() const { return mPreferredOutfit; }

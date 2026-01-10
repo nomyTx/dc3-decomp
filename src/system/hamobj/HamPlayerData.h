@@ -31,6 +31,8 @@ public:
     String GetPlayerName() const;
     SkeletonSide Side() const;
     void SetUsingFitness(bool);
+    Symbol GetPreferredOutfit() const;
+
     Difficulty GetDifficulty() { return mDifficulty; }
     PropertyEventProvider *Provider() const { return mProvider; }
     bool InFreestyle() const { return mSkeletonTrackingID >= 0; }
@@ -43,6 +45,7 @@ public:
     int PadNum() const { return mPadNum; }
     bool IsAutoplaying() const { return !mAutoplay.Null(); }
     void SetUnk48(Symbol s) { unk48 = s; }
+    Symbol Unk48() const { return unk48; }
     void SetAutoplay(Symbol s) { mAutoplay = s; }
 
 private:

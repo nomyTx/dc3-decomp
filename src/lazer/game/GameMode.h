@@ -36,6 +36,10 @@ public:
         static Symbol rhythm_battle("rhythm_battle");
         return mGameplayMode == rhythm_battle;
     }
+    bool IsGameplayModeDanceBattle() const {
+        static Symbol dance_battle("dance_battle");
+        return mGameplayMode == dance_battle;
+    }
     Symbol Mode() const { return mMode; }
 
     DataNode OnInMode(const DataArray *);

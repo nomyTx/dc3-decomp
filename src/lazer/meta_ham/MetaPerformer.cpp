@@ -14,10 +14,12 @@
 #include "hamobj/ScoreUtl.h"
 #include "math/Rand.h"
 #include "meta_ham/AccomplishmentManager.h"
+#include "meta_ham/CampaignPerformer.h"
 #include "meta_ham/HamProfile.h"
 #include "meta_ham/HamSongMetadata.h"
 #include "meta_ham/HamSongMgr.h"
 #include "meta_ham/ProfileMgr.h"
+#include "meta_ham/SongStatusMgr.h"
 #include "meta_ham/Utl.h"
 #include "net_ham/DataMinerJobs.h"
 #include "net_ham/RockCentral.h"
@@ -48,9 +50,9 @@ bool CharConflict(Symbol s1, Symbol s2) {
 Symbol GetUnlockedOutfit(Symbol s1) {
     if (!TheProfileMgr.IsContentUnlocked(s1)) {
         Symbol outfit = GetOutfitCharacter(s1);
-        return GetCharacterOutfit(outfit, 0);
-    } else
-        return s1;
+        s1 = GetCharacterOutfit(outfit, 0);
+    }
+    return s1;
 }
 
 #pragma region MetaPerformer
@@ -227,6 +229,47 @@ void MetaPerformer::ResetSongs() {
     mNumRestarts = 0;
     if (mInstarank) {
         RELEASE(mInstarank);
+    }
+}
+
+void MetaPerformer::CompleteSong(int i1, int i2, int i3, float f4, bool b5) {
+    Symbol song = TheGameData->GetSong();
+    static Symbol campaign_outro("campaign_outro");
+    if (TheGameMode->InMode(campaign_outro) || !TheGameMode->IsGameplayModePerform()) {
+        if (TheGameMode->IsGameplayModeDanceBattle()) {
+            TheHamSongMgr.GetSongIDFromShortName(song);
+            if (TheHamUserMgr && !b5) {
+                SaveDanceBattleScores(song);
+            }
+        }
+    } else {
+        TheHamSongMgr.GetSongIDFromShortName(song);
+        PotentiallyUpdateLeaderboards(b5, song, i2, i1, false);
+    }
+    if (song != gNullStr) {
+        mPlaylistElapsedTime += TheHamSongMgr.GetDuration(song);
+    }
+    CheckForFitnessAccomplishments();
+    HandleGameplayEnded((EndGameResult)1);
+    if (unke0 && mPlaylist) {
+        if (IsLastSong() && IsPlaylistCustom()) {
+            static Symbol acc_play_custom_play_list("acc_play_custom_play_list");
+            TheAccomplishmentMgr->EarnAccomplishmentForAll(
+                acc_play_custom_play_list, false
+            );
+        }
+    }
+    if (TheHamUserMgr) {
+        TheAccomplishmentMgr->HandleSongCompleted(song);
+    }
+    for (int i = 0; i < 2; i++) {
+        HamPlayerData *pPlayer = TheGameData->Player(i);
+        MILO_ASSERT(pPlayer, 0x2DC);
+        int padnum = pPlayer->PadNum();
+        HamProfile *profile = TheProfileMgr.GetProfileFromPad(padnum);
+        if (profile) {
+            TheAccomplishmentMgr->SetUnk30(padnum, false);
+        }
     }
 }
 
@@ -1009,7 +1052,135 @@ void MetaPerformer::OnRecallMovePassed(int playerIndex, HamMove *move) {
     mMoveScores[playerIndex].clear();
 }
 
+void MetaPerformer::UpdateSongFromPlaylist() {
+    int infinite = TheGameMode->Infinite();
+    bool infiniteParty = TheHamProvider->Property("is_in_infinite_party_mode")->Int();
+    if ((!infinite && !infiniteParty) || TheGameMode->InMode("campaign")) {
+        MILO_ASSERT(mPlaylist, 0x6F5);
+        int songID = mPlaylist->GetSong(mPlaylistIndex);
+        Symbol song = TheHamSongMgr.GetShortNameFromSongID(songID);
+        SelectSong(song, mPlaylistIndex);
+    } else {
+        Symbol song = TheHamSongMgr.GetRandomSong();
+        TheHamSongMgr.GetSongIDFromShortName(song);
+        SelectSong(song, mPlaylistIndex);
+    }
+}
+
+void MetaPerformer::SaveDanceBattleScores(Symbol s1) {
+    static Symbol score("score");
+    int i6 = 0;
+    for (int i = 0; i < 2; i++) {
+        HamPlayerData *pPlayerData = TheGameData->Player(i);
+        MILO_ASSERT(pPlayerData, 0x203);
+        Hmx::Object *pPlayerProvider = pPlayerData->Provider();
+        MILO_ASSERT(pPlayerProvider, 0x205);
+        const DataNode *pScoreNode = pPlayerProvider->Property(score);
+        MILO_ASSERT(pScoreNode, 0x207);
+        if (pScoreNode->Int() > 0) {
+            i6++;
+        }
+    }
+    if (TheGameMode->IsGameplayModeDanceBattle() && i6 >= 2) {
+        int winner = DetermineDanceBattleWinner();
+        static Symbol p1("p1");
+        static Symbol p2("p2");
+        int songID = mSongMgr.GetSongIDFromShortName(s1);
+        for (int i = 0; i < 2; i++) {
+            HamPlayerData *pPlayerData = TheGameData->Player(i);
+            MILO_ASSERT(pPlayerData, 0x21E);
+            Hmx::Object *pPlayerProvider = pPlayerData->Provider();
+            MILO_ASSERT(pPlayerProvider, 0x220);
+            int padnum = pPlayerData->PadNum();
+            HamProfile *profile = TheProfileMgr.GetProfileFromPad(padnum);
+            if (profile && !TheAccomplishmentMgr->Unk30(padnum)) {
+                SongStatusMgr *songStatusMgr = profile->GetSongStatusMgr();
+                MILO_ASSERT(songStatusMgr, 0x229);
+                static Symbol score("score");
+                int scoreValue = pPlayerProvider->Property(score)->Int();
+                if (scoreValue > 0) {
+                    profile->UpdateBattleScore(
+                        songID, pPlayerData, scoreValue, winner - i == 0
+                    );
+                }
+            }
+        }
+    }
+}
+
+void MetaPerformer::CalcCharacters(
+    const HamSongMetadata *data,
+    bool,
+    PlayerFlag flags,
+    HamPlayerData *&primaryPlayer,
+    Symbol &primaryCrew,
+    Symbol &primaryChar,
+    Symbol &primaryOutfit,
+    HamPlayerData *&secondaryPlayer,
+    Symbol &secondaryCrew,
+    Symbol &secondaryChar,
+    Symbol &secondaryOutfit
+) {
+    HamPlayerData *pPlayer1Data = TheGameData->Player(0);
+    HamPlayerData *pPlayer2Data = TheGameData->Player(1);
+    Symbol s8c = pPlayer1Data->Unk48();
+    Symbol s90 = pPlayer2Data->Unk48();
+    if (flags == 0 || flags == 2) {
+        s8c = gNullStr;
+    }
+    if (flags == 1 || flags == 2) {
+        s90 = gNullStr;
+    }
+    bool has_s8c = s8c != gNullStr;
+    bool has_s90 = s90 != gNullStr;
+    if (has_s8c && has_s90 && !CharConflict(s8c, s90)) {
+        primaryPlayer = pPlayer1Data;
+        secondaryPlayer = pPlayer2Data;
+        primaryCrew = GetCrewForCharacter(s8c);
+        primaryChar = s8c;
+        Symbol primaryPreferredOutfit = primaryPlayer->GetPreferredOutfit();
+        primaryOutfit = GetUnlockedOutfit(primaryPreferredOutfit);
+        secondaryCrew = GetCrewForCharacter(s90);
+        secondaryChar = s90;
+        Symbol secondaryPreferredOutfit = secondaryPlayer->GetPreferredOutfit();
+        secondaryOutfit = GetUnlockedOutfit(secondaryPreferredOutfit);
+    } else {
+        int skeleton1 = pPlayer1Data->GetSkeletonTrackingID();
+        int skeleton2 = pPlayer2Data->GetSkeletonTrackingID();
+
+        CalcPrimarySongCharacter(data, primaryCrew, primaryChar, primaryOutfit);
+        if (s90 != gNullStr || s8c != gNullStr) {
+            if (s90 == gNullStr) {
+                if (!CharConflict(s8c, primaryChar)) {
+                    secondaryChar = primaryChar;
+                }
+            } else {
+            }
+        }
+    }
+}
+
 #pragma endregion
 #pragma region MetaPerformerHook
 
+MetaPerformerHook::MetaPerformerHook(const HamSongMgr &mgr)
+    : mQuickplayPerformer(new QuickplayPerformer(mgr)),
+      mCampaignPerformer(new CampaignPerformer(mgr)) {
+    SetName("meta_performer", ObjectDir::Main());
+}
+
 MetaPerformerHook::~MetaPerformerHook() { delete mQuickplayPerformer; }
+
+BEGIN_HANDLERS(MetaPerformerHook)
+    HANDLE_EXPR(current, Current())
+    HANDLE_MEMBER_PTR(Current())
+    HANDLE_SUPERCLASS(Hmx::Object)
+END_HANDLERS
+
+MetaPerformer *MetaPerformerHook::Current() {
+    if (TheGameMode->InMode("campaign")) {
+        return mCampaignPerformer;
+    } else {
+        return mQuickplayPerformer;
+    }
+}

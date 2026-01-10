@@ -2,6 +2,7 @@
 #include "game/HamUser.h"
 #include "hamobj/Difficulty.h"
 #include "hamobj/HamLabel.h"
+#include "hamobj/HamPlayerData.h"
 #include "meta/Profile.h"
 #include "meta_ham/AccomplishmentProgress.h"
 #include "meta_ham/CampaignProgress.h"
@@ -107,6 +108,7 @@ public:
     bool IsContentUnlockedForProfile(Symbol) const;
     bool IsContentNew(Symbol) const;
     bool IsDifficultyUnlockedForProfile(Symbol, Symbol);
+    void UpdateBattleScore(int, const HamPlayerData *, int, bool);
 
     void IncrementSkippedSongCount() { mSkippedSongCount++; }
     void UpdateNag() { unk368++; }

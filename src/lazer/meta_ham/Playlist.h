@@ -22,7 +22,15 @@ public:
     virtual void SetOnlineID(int) {} // 0x8
     virtual int GetOnlineID() { return -1; } // 0xc
     virtual bool IsDirty() { return false; } // 0x10
-    virtual PlaylistType GetType() const; // 0x14
+    virtual PlaylistType GetType() const {
+        if (unk9) {
+            return (PlaylistType)2;
+        } else if (unk8) {
+            return (PlaylistType)4;
+        } else {
+            return IsCustom() ? (PlaylistType)1 : (PlaylistType)3;
+        }
+    } // 0x14
 
     void SwapSongs(int, int);
     void MoveSong(int, int);

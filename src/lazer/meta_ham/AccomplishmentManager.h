@@ -87,6 +87,7 @@ public:
     void HandleSongCompleted(Symbol);
     const std::vector<Symbol> &GetDiscSongs() const { return mDiscSongs; }
     bool Unk30(int i) const { return unk30[i]; }
+    void SetUnk30(int i, bool b) { unk30[i] = b; }
 
     static void Init(DataArray *);
 
