@@ -3,6 +3,7 @@
 #include "obj/Object.h"
 #include "rndobj/Overlay.h"
 #include "xdk/NUI.h"
+#include "xdk/nui/nuispeech.h"
 
 class SpeechMgr : public Hmx::Object {
 public:
@@ -56,6 +57,7 @@ private:
     bool IsSpeechSupportable(NUI_SPEECH_LANGUAGE &) const;
     void Reload();
     void PrintSemanticTree(NUI_SPEECH_SEMANTICRESULT *, int);
+    void ProcessRecoResult(NUI_SPEECH_RECORESULT *);
 
     NUI_SPEECH_LANGUAGE mLanguage; // 0x2c
     std::vector<Grammar> mGrammars; // 0x30

@@ -7,8 +7,10 @@
 #include "os/System.h"
 #include "os/Timer.h"
 #include "rndobj/Overlay.h"
+#include "stdlib.h"
 #include "utl/MemMgr.h"
 #include "utl/Symbol.h"
+#include "utl/UTF8.h"
 #include "xdk/NUI.h"
 #include "xdk/XAPILIB.h"
 #include "xdk/nui/nuispeech.h"
@@ -478,6 +480,131 @@ void SpeechMgr::SetGrammarState(Symbol name, bool enabled) {
             name.Str(),
             enabled ? "true" : "false"
         );
+    }
+}
+
+void SpeechMgr::UnloadGrammar(Symbol name) {
+    MILO_ASSERT(mEnabled, 0x271);
+    auto it = std::find(mGrammars.begin(), mGrammars.end(), name);
+    if (it != mGrammars.end()) {
+        it->Unload();
+        mGrammars.erase(it);
+    } else {
+        MILO_NOTIFY("Could not find grammar %s to unload", name);
+    }
+}
+
+void SpeechMgr::SetRule(Symbol s1, Symbol s2, bool b3) {
+    AutoGlitchReport report(35, "SpeechMgr::SetRule");
+    if (!mEnabled) {
+        return;
+    }
+    bool old = mRecognizing;
+    if (old) {
+        SetRecognizing(false);
+    }
+    auto it = std::find(mGrammars.begin(), mGrammars.end(), s1);
+    if (it == mGrammars.end()) {
+        MILO_NOTIFY("Grammar %s not found", s1);
+        return;
+    } else if (!it->mLoaded) {
+        MILO_NOTIFY("Grammar %s not loaded", s1);
+        return;
+    } else {
+        std::wstring wstr = ANSItoWstr(s2.Str());
+        NUI_SPEECH_RULESTATE eState =
+            b3 ? NUI_SPEECH_RULESTATE_ACTIVE : NUI_SPEECH_RULESTATE_INACTIVE;
+        if (b3) {
+            NuiSpeechSetGrammarState(&it->mGrammar, NUI_SPEECH_GRAMMARSTATE_ENABLED);
+        }
+        HRESULT res = NuiSpeechSetRuleState(&it->mGrammar, wstr.c_str(), eState);
+        if (res != ERROR_SUCCESS) {
+            MILO_NOTIFY("NuiSpeechSetRuleState failed with error 0x%08x", res);
+            return;
+        } else {
+            if (mOverlay->Showing()) {
+                mOverlay->Print(
+                    MakeString("SetRule %s %s %s\n", s1, s2, b3 ? "enabled" : "disabled")
+                );
+            }
+            if (old) {
+                SetRecognizing(old);
+            }
+        }
+    }
+}
+
+void SpeechMgr::AddDynamicRule(Symbol name, const char *c2, void **initialState) {
+    MILO_ASSERT(initialState, 0x3B2);
+    auto it = std::find(mGrammars.begin(), mGrammars.end(), name);
+    MILO_ASSERT(it != mGrammars.end(), 0x3B5);
+    Grammar grammar(*it);
+    HRESULT res = NuiSpeechCreateRule(
+        &grammar.mGrammar, ANSItoWstr(c2).c_str(), 0x21, true, initialState
+    );
+    MILO_ASSERT_FMT(res >= 0, "NuiSpeechCreateRule failed with error 0x%08x", res);
+}
+
+void SpeechMgr::AddDynamicRuleWord(
+    Symbol name, const char *c2, const char *c3, void **fromState, void **toState
+) {
+    MILO_ASSERT(fromState, 0x3C6);
+    auto it = std::find(mGrammars.begin(), mGrammars.end(), name);
+    MILO_ASSERT(it != mGrammars.end(), 0x3C9);
+    Grammar grammar(*it);
+    bool createSuccess = true;
+    if (toState) {
+        HRESULT res = NuiSpeechCreateState(&grammar.mGrammar, *fromState, toState);
+        createSuccess = res >= 0;
+        if (!createSuccess) {
+            MILO_NOTIFY(
+                "NuiSpeechCreateState failed with error 0x%08x on %s %s", res, c2, c3
+            );
+        }
+    }
+    if (createSuccess) {
+        wchar_t buffer[1024];
+        size_t ret;
+        mbstowcs_s(&ret, buffer, 1024, c3, strlen(c3));
+        UTF8toWChar_t(buffer, c2);
+        NUI_SPEECH_SEMANTIC s;
+        HRESULT res = NuiSpeechAddWordTransition(
+            &grammar.mGrammar,
+            *fromState,
+            toState ? *toState : nullptr,
+            buffer,
+            nullptr,
+            NUI_SPEECH_WORDTYPE_LEXICAL,
+            1,
+            &s
+        );
+        bool transitionSuccess = res >= 0;
+        if (!transitionSuccess) {
+            MILO_NOTIFY(
+                "NuiSpeechAddWordTransition failed with error 0x%08x on %s %s", res, c2, c3
+            );
+        }
+    }
+}
+
+void SpeechMgr::Poll() {
+    if (!mEnabled) {
+        mOverlay->CurrentLine() = "speech is not enabled (no Kinect?)";
+    } else {
+        ULONG fetched = 0;
+        NUI_SPEECH_EVENT event[5];
+        memset(&event[0], 0, sizeof(event));
+        HRESULT res = NuiSpeechGetEvents(5, event, &fetched);
+        if (res >= 0 && fetched != 0) {
+            for (ULONG i = 0; i < fetched; i++) {
+                NUI_SPEECH_EVENT &cur = event[i];
+                if (cur.eventId > 0x20 && (cur.eventId == 0x40 || cur.eventId == 0x80)
+                    && cur.pResult) {
+                    ProcessRecoResult(cur.pResult);
+                }
+                NuiSpeechDestroyEvent(&cur);
+            }
+        }
     }
 }
 
