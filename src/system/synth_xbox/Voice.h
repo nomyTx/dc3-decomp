@@ -4,8 +4,6 @@
 #include "xdk/XAPILIB.h"
 #include "xdk/XAUDIO2.h"
 
-#define SUCCEEDED(hr) (((HRESULT)(hr)) >= 0)
-
 class Voice {
 public:
     Voice(bool, int, bool);

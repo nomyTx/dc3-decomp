@@ -32,3 +32,9 @@ add_relocations:
 - source: .rdata:0x82089114
   type: abs
   target: merged_BufLockIdxSDVD
+
+# These are Windows error codes, not relocations!
+block_relocations:
+- target: .data:0x83010003
+- target: .data:0x8301000B
+- target: .data:0x8301000D

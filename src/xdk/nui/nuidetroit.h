@@ -28,6 +28,7 @@ DWORD NuiCameraAdjustTilt(
     NUI_TILT_OBJECTS *pTiltObjects,
     XOVERLAPPED *pOverlapped
 );
+HRESULT NuiCameraElevationGetAngle(LONG *plAngleDegrees, DWORD *pMovingFlags);
 HRESULT NuiCameraElevationSetAngle(LONG lAngleDegrees);
 
 #ifdef __cplusplus

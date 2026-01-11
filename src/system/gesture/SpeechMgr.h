@@ -80,6 +80,8 @@ END_MESSAGE
 
 // #define SPEECH_RECO_MSG (speech_reco ($tags $confidence $rule_name))
 DECLARE_MESSAGE(SpeechRecoMessage, "speech_reco")
+SpeechRecoMessage(DataArrayPtr tags, float conf, Symbol rule)
+    : Message(Type(), tags, conf, rule) {}
 DataArray *Tags() const { return mData->Array(2); }
 float Confidence() const { return mData->Float(3); }
 Symbol RuleName() const { return mData->Sym(4); }

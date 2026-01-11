@@ -20,6 +20,8 @@ public:
     void StartCameraTiltingDown();
     void StartCameraTiltingToInital();
     void Poll();
+    void UpdateTiltingUp();
+    void UpdateTiltingDown();
 
     static void Init();
 
@@ -41,9 +43,8 @@ protected:
     int mErrorRepeatedTimes; // 0x88
     float mCycleSafetyTimeout; // 0x8c
     XOVERLAPPED mOverlapped; // 0x90
-    int unkac;
     NUI_TILT_OBJECTS mTiltObjects; // 0xb0
-    int unk180;
+    DWORD unk180;
     int unk184;
     int unk188;
     int unk18c;

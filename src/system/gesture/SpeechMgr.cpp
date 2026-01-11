@@ -14,6 +14,7 @@
 #include "xdk/NUI.h"
 #include "xdk/XAPILIB.h"
 #include "xdk/nui/nuispeech.h"
+#include "xdk/win_types.h"
 #include "xdk/xapilibi/winerror.h"
 #include "xdk/xapilibi/xbase.h"
 #include <string>
@@ -44,7 +45,9 @@ void SpeechMgr::Grammar::Unload() {
         MILO_ASSERT(!TheSpeechMgr->IsRecognizing(), 0xC4);
         AutoGlitchReport report(50, "SpeechMgr::Grammar::Unload");
         HRESULT res = NuiSpeechUnloadGrammar(&mGrammar);
-        MILO_ASSERT_FMT(res >= 0, "NuiSpeechUnloadGrammar failed with error 0x%08x", res);
+        MILO_ASSERT_FMT(
+            SUCCEEDED(res), "NuiSpeechUnloadGrammar failed with error 0x%08x", res
+        );
     }
     mLoaded = false;
 }
@@ -130,7 +133,9 @@ void SpeechMgr::CreateGrammar(Symbol name) {
     grammar.mName = name;
     grammar.mFile = "";
     HRESULT res = NuiSpeechCreateGrammar(gGrammarID++, &grammar.mGrammar);
-    MILO_ASSERT_FMT(res >= 0, "NuiSpeechCreateGrammar failed with error 0x%08x", res);
+    MILO_ASSERT_FMT(
+        SUCCEEDED(res), "NuiSpeechCreateGrammar failed with error 0x%08x", res
+    );
     mGrammars.push_back(grammar);
 }
 
@@ -200,7 +205,7 @@ void SpeechMgr::Enable(bool english) {
             mEnabled = true;
             HRESULT interestRes = NuiSpeechSetEventInterest(0x40);
             MILO_ASSERT_FMT(
-                interestRes >= 0,
+                SUCCEEDED(interestRes),
                 "NuiSpeechSetEventInterest failed with error 0x%08x",
                 interestRes
             );
@@ -212,11 +217,13 @@ void SpeechMgr::Disable() {
     if (mEnabled) {
         HRESULT stopRes = NuiSpeechStopRecognition();
         MILO_ASSERT_FMT(
-            stopRes >= 0, "NuiSpeechStopRecognition failed with error 0x%08x", stopRes
+            SUCCEEDED(stopRes),
+            "NuiSpeechStopRecognition failed with error 0x%08x",
+            stopRes
         );
         HRESULT disableRes = NuiSpeechDisable();
         MILO_ASSERT_FMT(
-            disableRes >= 0, "NuiSpeechDisable failed with error 0x%08x", disableRes
+            SUCCEEDED(disableRes), "NuiSpeechDisable failed with error 0x%08x", disableRes
         );
         mEnabled = false;
     }
@@ -306,7 +313,7 @@ void SpeechMgr::SetRecognizing(bool recognizing) {
         if (recognizing) {
             HRESULT res = NuiSpeechStartRecognition();
             MILO_ASSERT_FMT(
-                res >= 0, "NuiSpeechStartRecognition failed with error 0x%08x", res
+                SUCCEEDED(res), "NuiSpeechStartRecognition failed with error 0x%08x", res
             );
         } else {
             HRESULT res = NuiSpeechStopRecognition();
@@ -314,7 +321,9 @@ void SpeechMgr::SetRecognizing(bool recognizing) {
                 MILO_NOTIFY("Speech is not initialized");
             } else {
                 MILO_ASSERT_FMT(
-                    res >= 0, "NuiSpeechStopRecognition failed with error 0x%08x", res
+                    SUCCEEDED(res),
+                    "NuiSpeechStopRecognition failed with error 0x%08x",
+                    res
                 );
             }
         }
@@ -459,7 +468,9 @@ void SpeechMgr::CommitGrammar(Symbol name) {
     auto it = std::find(mGrammars.begin(), mGrammars.end(), name);
     MILO_ASSERT(it != mGrammars.end(), 0x3FB);
     HRESULT res = NuiSpeechCommitGrammar(&it->mGrammar);
-    MILO_ASSERT_FMT(res >= 0, "NuiSpeechCommitGrammar failed with error 0x%08x", res);
+    MILO_ASSERT_FMT(
+        SUCCEEDED(res), "NuiSpeechCommitGrammar failed with error 0x%08x", res
+    );
     it->mLoaded = true;
 }
 
@@ -542,7 +553,7 @@ void SpeechMgr::AddDynamicRule(Symbol name, const char *c2, void **initialState)
     HRESULT res = NuiSpeechCreateRule(
         &grammar.mGrammar, ANSItoWstr(c2).c_str(), 0x21, true, initialState
     );
-    MILO_ASSERT_FMT(res >= 0, "NuiSpeechCreateRule failed with error 0x%08x", res);
+    MILO_ASSERT_FMT(SUCCEEDED(res), "NuiSpeechCreateRule failed with error 0x%08x", res);
 }
 
 void SpeechMgr::AddDynamicRuleWord(
@@ -555,7 +566,7 @@ void SpeechMgr::AddDynamicRuleWord(
     bool createSuccess = true;
     if (toState) {
         HRESULT res = NuiSpeechCreateState(&grammar.mGrammar, *fromState, toState);
-        createSuccess = res >= 0;
+        createSuccess = SUCCEEDED(res);
         if (!createSuccess) {
             MILO_NOTIFY(
                 "NuiSpeechCreateState failed with error 0x%08x on %s %s", res, c2, c3
@@ -578,7 +589,7 @@ void SpeechMgr::AddDynamicRuleWord(
             1,
             &s
         );
-        bool transitionSuccess = res >= 0;
+        bool transitionSuccess = SUCCEEDED(res);
         if (!transitionSuccess) {
             MILO_NOTIFY(
                 "NuiSpeechAddWordTransition failed with error 0x%08x on %s %s", res, c2, c3
@@ -595,7 +606,7 @@ void SpeechMgr::Poll() {
         NUI_SPEECH_EVENT event[5];
         memset(&event[0], 0, sizeof(event));
         HRESULT res = NuiSpeechGetEvents(5, event, &fetched);
-        if (res >= 0 && fetched != 0) {
+        if (SUCCEEDED(res) && fetched != 0) {
             for (ULONG i = 0; i < fetched; i++) {
                 NUI_SPEECH_EVENT &cur = event[i];
                 if (cur.eventId > 0x20 && (cur.eventId == 0x40 || cur.eventId == 0x80)
@@ -605,6 +616,56 @@ void SpeechMgr::Poll() {
                 NuiSpeechDestroyEvent(&cur);
             }
         }
+    }
+}
+
+void SpeechMgr::ProcessRecoResult(NUI_SPEECH_RECORESULT *result) {
+    MILO_ASSERT(result, 0x318);
+    NUI_SPEECH_RULERESULT &rule = result->Phrase.Rule;
+    NUI_SPEECH_SEMANTICRESULT *sr = result->Phrase.pSemanticProperties;
+    Symbol s94(rule.pcwszName ? WstrToANSI(rule.pcwszName) : gNullStr);
+    if (mOverlay->Showing()) {
+        float phraseConfidence;
+        if (sr) {
+            if (sr->fSREngineConfidence < 0.01)
+                goto next;
+            else {
+                phraseConfidence = sr->fSREngineConfidence;
+            }
+        } else {
+            phraseConfidence = 0;
+        }
+        mOverlay->Print(MakeString(
+            "Recognized \"%s\" phrase with %.2f phrase confidence, %.2f rule confidence:\n",
+            rule.pcwszName ? WstrToANSI(rule.pcwszName) : gNullStr,
+            phraseConfidence,
+            rule.fSREngineConfidence
+        ));
+        mOverlay->Print("  heard: ");
+        for (int i = 0; i < result->Phrase.ulCountOfElements; i++) {
+            mOverlay->Print(MakeString(
+                "%s, ", WstrToANSI(result->Phrase.pElements[i].pcwszDisplayText)
+            ));
+        }
+        mOverlay->Print("\n");
+        if (!sr)
+            return;
+        mOverlay->Print("  semantic tree:\n");
+        PrintSemanticTree(sr, 2);
+    }
+next:
+    if (sr) {
+        float initialEngineConfidence = sr->fSREngineConfidence;
+        DataArrayPtr ptr(new DataArray(0));
+        do {
+            ptr->Insert(ptr->Size(), Symbol(WstrToANSI(sr->pcwszValue)));
+            sr = sr->pNextSibling;
+        } while (sr);
+        static SpeechRecoMessage msg(DataArrayPtr(nullptr), 0.0f, Symbol(gNullStr));
+        msg[0] = ptr;
+        msg[1] = initialEngineConfidence;
+        msg[2] = s94;
+        Export(msg, false);
     }
 }
 
