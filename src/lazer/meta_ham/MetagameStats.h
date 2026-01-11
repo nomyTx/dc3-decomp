@@ -6,6 +6,14 @@
 
 class HamProfile;
 
+enum StatType {
+    kStatType_Count = 0,
+    kStatType_Time = 1,
+    kStatType_FavoriteMode = 2,
+    kStatType_FavoriteSong = 3,
+    kStatType_FavoriteCharacter = 4
+};
+
 class MetagameStats : public Hmx::Object,
                       public UIListProvider,
                       public FixedSizeSaveable {
@@ -14,21 +22,49 @@ public:
         std::map<int, int> mCounts;
     };
     enum CountStatID {
-        // 0xD - num calories burnt?
-        // 0x15 - num flaunts?
-        // 0x16 - num challenges met?
-        kNumCountStats = 0x17
+        kCountStat_StatScreenVisits = 0,
+        kCountStat_TotalTimePlayed = 1,
+        kCountStat_TotalTimePerforming = 2,
+        kCountStat_TotalTimeRehearsing = 3,
+        kCountStat_TotalTimeMultiplayer = 4,
+        kCountStat_TimesPlayedPerform = 5,
+        kCountStat_TimesPlayedPractice = 6,
+        kCountStat_TimesPlayedMultiplayer = 7,
+        kCountStat_StarsEarned = 8,
+        kCountStat_StarsEarnedPerform = 9,
+        kCountStat_StarsEarnedMultiplayer = 10,
+        kCountStat_TotalFitnessSongs = 11,
+        kCountStat_TotalTimeFitness = 12,
+        kCountStat_TotalCaloriesBurned = 13,
+        kCountStat_PhotosTaken = 14,
+        kCountStat_PhotosTakenPerform = 15,
+        kCountStat_PhotosTakenMultiplayer = 16,
+        kCountStat_InifinitePlaylistScore = 17,
+        kCountStat_InifinitePlaylistTime = 18,
+        kCountStat_LongestPartyAttended = 19,
+        kCountStat_MostConsecutiveDaysPlayed = 20,
+        kCountStat_TimesChallengesSent = 21,
+        kCountStat_TimesChallengesMet = 22,
+        kNumCountStats = 23,
     };
     enum FavoriteStatID {
-        kNumFavoriteStats = 7
+        kFavoriteStat_FavoriteMode = 0,
+        kFavoriteStat_FavoriteSong = 1,
+        kFavoriteStat_FavoriteCharacter = 2,
+        kFavoriteStat_FavoriteSongPerform = 3,
+        kFavoriteStat_FavoriteSongPractice = 4,
+        kFavoriteStat_FavoriteSongMultiplayer = 5,
+        kFavoriteStat_FavoriteSongFitness = 6,
+        kNumFavoriteStats = 7,
     };
+
     MetagameStats();
     // Hmx::Object
     virtual DataNode Handle(DataArray *, bool);
     // UIListProvider
     virtual void Text(int, int, UIListLabel *, UILabel *) const;
     virtual RndMat *Mat(int, int, UIListMesh *) const;
-    virtual int NumData() const { return unk13c->Size() - 1; }
+    virtual int NumData() const { return mStatsCfg->Size() - 1; }
 
     void Clear();
     void IncrementCount(CountStatID, int);
@@ -39,6 +75,7 @@ public:
     void UpdatePartyStats(int);
     void PhotoTaken();
     void WriteTimePlayed(HamProfile *, int);
+    bool InqStatString(int, String &);
 
     static int SaveSize(int);
 
@@ -48,11 +85,11 @@ private:
     virtual void LoadFixed(FixedSizeSaveableStream &, int);
 
     Symbol SetTitleByThreshold(int, DataArray *) const;
+    Symbol SetTitleForFavorite(int, int, DataArray *) const;
 
-protected:
-    int unk38[kNumCountStats]; // 0x38
+    int mCountStats[kNumCountStats]; // 0x38
     FavoriteStat mFavoriteStats[kNumFavoriteStats]; // 0x94
-    DataArray *unk13c; // 0x13c
-    int unk140;
-    bool unk144;
+    DataArray *mStatsCfg; // 0x13c
+    int unk140; // 0x140 - total time played?
+    bool mDirty; // 0x144
 };
