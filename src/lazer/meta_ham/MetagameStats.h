@@ -1,5 +1,7 @@
 #pragma once
+#include "hamobj/HamPlayerData.h"
 #include "meta/FixedSizeSaveable.h"
+#include "meta_ham/MetaPerformer.h"
 #include "obj/Data.h"
 #include "obj/Object.h"
 #include "ui/UIListProvider.h"
@@ -19,6 +21,11 @@ class MetagameStats : public Hmx::Object,
                       public FixedSizeSaveable {
 public:
     struct FavoriteStat {
+        // key:
+        //  -song id for favorite song metrics
+        //  -index in big char array macro for character metric
+        //  -mode enum for favorite mode
+        // value = the relevant count
         std::map<int, int> mCounts;
     };
     enum CountStatID {
@@ -76,6 +83,28 @@ public:
     void PhotoTaken();
     void WriteTimePlayed(HamProfile *, int);
     bool InqStatString(int, String &);
+    void HandleGameplayEnded(HamProfile *, HamPlayerData *, const EndGameResult &);
+
+    __forceinline void IncFavoriteStat(FavoriteStatID id, int key) {
+        mFavoriteStats[id].mCounts[key]++;
+        mDirty = true;
+    }
+    void AddCount(CountStatID id, int count) {
+        mCountStats[id] += count;
+        mDirty = true;
+    }
+    void UpdateInfinitePlaylistScore(int score) {
+        if (score > mCountStats[kCountStat_InifinitePlaylistScore]) {
+            mCountStats[kCountStat_InifinitePlaylistScore] = score;
+            mDirty = true;
+        }
+    }
+    void UpdateInfinitePlaylistTime(int time) {
+        if (time > mCountStats[kCountStat_InifinitePlaylistTime]) {
+            mCountStats[kCountStat_InifinitePlaylistTime] = time;
+            mDirty = true;
+        }
+    }
 
     static int SaveSize(int);
 

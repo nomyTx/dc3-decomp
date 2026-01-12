@@ -1,5 +1,7 @@
 #include "meta_ham/MetagameStats.h"
 #include "game/GameMode.h"
+#include "game/GamePanel.h"
+#include "hamobj/HamGameData.h"
 #include "meta/FixedSizeSaveable.h"
 #include "meta/FixedSizeSaveableStream.h"
 #include "meta_ham/HamProfile.h"
@@ -397,4 +399,80 @@ bool MetagameStats::InqStatString(int statIndex, String &statStr) {
         break;
     }
     return true;
+}
+
+void MetagameStats::HandleGameplayEnded(
+    HamProfile *profile, HamPlayerData *playerData, const EndGameResult &result
+) {
+    MILO_ASSERT(profile, 0x1A3);
+    MILO_ASSERT(playerData, 0x1A4);
+    int songID = TheHamSongMgr.GetSongIDFromShortName(TheGameData->GetSong());
+    IncFavoriteStat(kFavoriteStat_FavoriteSong, songID);
+    int numStars = 0;
+    if (result == 1 || result == 2) {
+        static Symbol num_stars("num_stars");
+        const DataNode *prop = TheGamePanel->Property(num_stars, false);
+        if (prop) {
+            numStars = prop->Float();
+            if (numStars >= 5) {
+                numStars = 5;
+            }
+        }
+    }
+    AddCount(kCountStat_StarsEarned, numStars);
+    static Symbol perform("perform");
+    static Symbol practice("practice");
+    static Symbol dance_battle("dance_battle");
+    static Symbol gameplay_mode("gameplay_mode");
+    if (TheGameMode->Property(gameplay_mode)->Sym() == perform) {
+        IncFavoriteStat(kFavoriteStat_FavoriteSongPerform, songID);
+        AddCount(kCountStat_TimesPlayedPerform, 1);
+        AddCount(kCountStat_StarsEarnedPerform, numStars);
+    }
+    if (TheGameMode->Property(gameplay_mode)->Sym() == practice) {
+        IncFavoriteStat(kFavoriteStat_FavoriteSongPractice, songID);
+        AddCount(kCountStat_TimesPlayedPractice, 1);
+    }
+    if (TheGameMode->Property(gameplay_mode)->Sym() == dance_battle) {
+        IncFavoriteStat(kFavoriteStat_FavoriteSongMultiplayer, songID);
+        AddCount(kCountStat_TimesPlayedMultiplayer, 1);
+        AddCount(kCountStat_StarsEarnedMultiplayer, numStars);
+    }
+    if (profile->InFitnessMode()) {
+        IncFavoriteStat(kFavoriteStat_FavoriteSongFitness, songID);
+        AddCount(kCountStat_TotalFitnessSongs, 1);
+    }
+
+    Symbol playerChar = playerData->Char();
+    int charIdx = -1;
+    DataArray *charArray = SystemConfig()->FindArray("characters", false);
+    if (charArray) {
+        for (int i = 1; i < charArray->Size(); i++) {
+            DataArray *pCharacterEntry = charArray->Array(i);
+            MILO_ASSERT(pCharacterEntry, 0x1DA);
+            if (playerChar == pCharacterEntry->Sym(0)) {
+                charIdx = i;
+            }
+        }
+        if (charIdx >= 1) {
+            IncFavoriteStat(kFavoriteStat_FavoriteCharacter, charIdx);
+        }
+    }
+    if (TheGameMode->IsGameplayModePerform()) {
+        Hmx::Object *pPlayerProvider = playerData->Provider();
+        MILO_ASSERT(pPlayerProvider, 0x1EA);
+        static Symbol cumulative_score("cumulative_score");
+        int ia0 = pPlayerProvider->Property(cumulative_score)->Int();
+        MetaPerformer *mp = MetaPerformer::Current();
+        int pad = playerData->PadNum();
+        int time = mp->GetPlaylistElapsedTime();
+        MILO_LOG(
+            "MetagameStats::HandleGameplayEnded: Update InfinitePlaylist stats. player=%d, cumulativeScore=%d, cumulativeTime=%d\n",
+            pad,
+            ia0,
+            time
+        );
+        UpdateInfinitePlaylistScore(ia0);
+        UpdateInfinitePlaylistTime(time);
+    }
 }
