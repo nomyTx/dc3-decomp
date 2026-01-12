@@ -10,9 +10,11 @@ DECLARE_MESSAGE(SkeletonIdentifiedMsg, "skeleton_identified")
 END_MESSAGE
 
 enum IdentityStatus {
-    kIdentityStatus_0 = 0,
+    kIdentityStatus_None = 0,
     kIdentityStatus_Identifying = 1,
-    kIdentityStatus_2 = 2,
+    kIdentityStatus_Enrolling = 2,
+    kIdentityStatus_Correcting = 3,
+    kIdentityStatus_WaitingForSignIn = 4,
 };
 
 class SkeletonIdentifier : public Hmx::Object {

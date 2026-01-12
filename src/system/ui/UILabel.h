@@ -86,6 +86,11 @@ public:
         SetTokenFmt(DataArrayPtr(s, t1, t2, t3));
     }
 
+    template <class T1, class T2, class T3, class T4>
+    void SetTokenFmt(Symbol s, T1 t1, T2 t2, T3 t3, T4 t4) {
+        SetTokenFmt(DataArrayPtr(s, t1, t2, t3, t4));
+    }
+
 protected:
     virtual void OldResourcePreload(BinStream &);
     virtual void SetDisplayText(const char *, bool);

@@ -69,7 +69,7 @@ bool SkeletonIdentifier::EnrolledPlayer::UpdatePlayerBinding() {
 }
 
 SkeletonIdentifier::SkeletonIdentifier()
-    : mIdentityStatus(kIdentityStatus_0), unk30(-1), unk34(-1), unk38(-1), unk3c(-1),
+    : mIdentityStatus(kIdentityStatus_None), unk30(-1), unk34(-1), unk38(-1), unk3c(-1),
       unk40(-1), unk44(-1), mDrawDebug(false) {
     TheSkeletonIdentifier = this;
 }
@@ -127,23 +127,23 @@ void SkeletonIdentifier::SearchForIdentity() {
                 skel.RequestIdentity();
 
             } else {
-                mIdentityStatus = kIdentityStatus_0;
+                mIdentityStatus = kIdentityStatus_None;
             }
         }
     }
 }
 
 IdentityStatus SkeletonIdentifier::GetIdentityStatus(int i) {
-    if (mIdentityStatus != kIdentityStatus_0) {
+    if (mIdentityStatus != kIdentityStatus_None) {
         Skeleton &skel = TheGestureMgr->GetSkeleton(unk30);
         if (!skel.IsTracked()) {
-            mIdentityStatus = kIdentityStatus_0;
+            mIdentityStatus = kIdentityStatus_None;
         }
     }
     if (unk34 == i) {
         return mIdentityStatus;
     } else
-        return kIdentityStatus_0;
+        return kIdentityStatus_None;
 }
 
 void SkeletonIdentifier::NotifyOfRecognition(int i) const {
@@ -230,7 +230,7 @@ void SkeletonIdentifier::UpdateEnrolledPlayers() {
             unk48[i].mPadNum = info.dwUserIndex;
             if (mIdentityStatus == 4 && unk38 == i) {
                 if (IsAssociatedWithProfile(i)) {
-                    mIdentityStatus = kIdentityStatus_0;
+                    mIdentityStatus = kIdentityStatus_None;
                 }
             }
             if (unk48[i].UpdatePlayerBinding()) {

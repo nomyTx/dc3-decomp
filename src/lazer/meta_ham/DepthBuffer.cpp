@@ -16,3 +16,16 @@ void DepthBuffer::Init(UIPanel *panel) {
     SetName("depth_buffer", ObjectDir::Main());
     unk2c = panel;
 }
+
+void DepthBuffer::Poll() {
+    static bool sIsGameplayPanel = false;
+    TheHamUI.GetShellInput()->HasSkeleton();
+    bool ispanel = TheHamUI.GetShellInput()->IsGameplayPanel();
+    if (ispanel) {
+        MILO_ASSERT(mState == kDepthBuffer_Normal, 0x3A);
+    }
+    if (ispanel && (!sIsGameplayPanel || unk34)) {
+        unk34 = false;
+    }
+    sIsGameplayPanel = ispanel;
+}

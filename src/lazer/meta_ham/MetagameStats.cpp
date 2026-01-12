@@ -37,11 +37,11 @@ END_HANDLERS
 void MetagameStats::Text(int, int data, UIListLabel *slot, UILabel *label) const {
     MILO_ASSERT(data >= 0 && data < NumData(), 0x69);
     DataArray *statArr = mStatsCfg->Array(data + 1);
-    if (statArr->Int(0) == -1) {
+    if (statArr->Int(0) == kStatsLayoutHeader) {
         if (slot->Matches("header")) {
             label->SetTextToken(statArr->Sym(1));
         }
-    } else if (statArr->Int(0) != -2) {
+    } else if (statArr->Int(0) != kStatsLayoutSpacer) {
         if (slot->Matches("stat") || slot->Matches("title")) {
             int id = statArr->Int(0); // count/fave stat id
             StatType statType = (StatType)statArr->Int(1); // stat type

@@ -8,6 +8,11 @@
 
 class HamProfile;
 
+enum StatLayout {
+    kStatsLayoutHeader = -1,
+    kStatsLayoutSpacer = -2,
+};
+
 enum StatType {
     kStatType_Count = 0,
     kStatType_Time = 1,

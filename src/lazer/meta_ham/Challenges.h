@@ -38,6 +38,7 @@ public:
     void GetPlayerChallenges(std::vector<ChallengeRow> &);
     void GetOfficialChallenges(std::vector<ChallengeRow> &);
     void UploadFlaunt(HamProfile *, bool);
+    bool GetExpireTime(int &, int &, int &, int &);
 
 protected:
     void AddPendingProfile(HamProfile *);

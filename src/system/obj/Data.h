@@ -607,6 +607,21 @@ public:
         mData->Node(3) = node4;
     }
 
+    DataArrayPtr(
+        const DataNode &node,
+        const DataNode &node2,
+        const DataNode &node3,
+        const DataNode &node4,
+        const DataNode &node5
+    ) {
+        mData = new DataArray(5);
+        mData->Node(0) = node;
+        mData->Node(1) = node2;
+        mData->Node(2) = node3;
+        mData->Node(3) = node4;
+        mData->Node(4) = node5;
+    }
+
     DataArrayPtr(DataArray *da) {
         mData = da;
         if (!mData)

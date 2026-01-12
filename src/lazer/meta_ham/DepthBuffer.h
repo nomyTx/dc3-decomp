@@ -6,7 +6,11 @@
 class DepthBuffer : public Hmx::Object {
 public:
     enum State {
-        kDepthBuffer_Normal = 0
+        kDepthBuffer_Normal = 0,
+        kDepthBuffer_Tutorial = 1,
+        kDepthBufferGameplay_Perform = 10,
+        kDepthBufferGameplay_Practice_Learn = 11,
+        kDepthBufferGameplay_Practice_Review = 12,
     };
     DepthBuffer();
     virtual ~DepthBuffer() {}

@@ -2,6 +2,8 @@
 #include "hamobj/Difficulty.h"
 #include "hamobj/HamLabel.h"
 #include "meta/StoreOffer.h"
+#include "meta_ham/ChallengeSortMgr.h"
+#include "meta_ham/Challenges.h"
 #include "meta_ham/ContextChecker.h"
 #include "meta_ham/HamProfile.h"
 #include "meta_ham/HamSongMetadata.h"
@@ -9,6 +11,7 @@
 #include "meta_ham/Instarank.h"
 #include "meta_ham/NavListNode.h"
 #include "meta_ham/Playlist.h"
+#include "meta_ham/PracticeChoosePanel.h"
 #include "meta_ham/ProfileMgr.h"
 #include "meta_ham/SkeletonIdentifier.h"
 #include "meta_ham/SongStatusMgr.h"
@@ -307,10 +310,7 @@ void AppLabel::SetPlayerHighScore(int i1) {
 void AppLabel::SetPlayerChallengeScore(int i1) {
     HamProfile *profile = TheProfileMgr.GetActiveProfile(true);
     if (profile) {
-        bool bref;
-        // need TheChallengeSortMgr
-        int score =
-            profile->GetSongStatusMgr()->GetBestScore(i1, bref, kDifficultyBeginner);
+        int score = TheChallengeSortMgr->GetOwnerChallengeScore(i1);
         SetDisplayText(LocalizeSeparatedInt(score, TheLocale), true);
     } else {
         SetDisplayText(gNullStr, true);
@@ -610,6 +610,53 @@ void AppLabel::SetLastPlayedTime(int x) {
         last = profile->GetSongStatusMgr()->GetLastPlayed(x);
     }
     SetTimeElapsedSince(last);
+}
+
+void AppLabel::SetStepMoveName(const StepMoves &moves) {
+    SetDisplayText(moves.GetDisplayName(false).c_str(), true);
+}
+
+void AppLabel::SetChallengeExp(int i1) {
+    SetDisplayText(
+        LocalizeSeparatedInt(TheChallengeSortMgr->GetChallengeExp(i1), TheLocale), true
+    );
+}
+
+void AppLabel::SetPotentialChallengeExp(int i1) {
+    SetDisplayText(
+        LocalizeSeparatedInt(TheChallengeSortMgr->GetPotentialChallengeExp(i1), TheLocale),
+        true
+    );
+}
+
+void AppLabel::SetChallengerGamertag(int i1) {
+    SetDisplayText(TheChallengeSortMgr->GetChallengerGamertag(i1), true);
+}
+
+void AppLabel::SetChallengeScore(int i1) {
+    SetDisplayText(
+        LocalizeSeparatedInt(TheChallengeSortMgr->GetChallengeScore(i1), TheLocale), true
+    );
+}
+
+void AppLabel::SetMedalCount(int i1) {
+    SetDisplayText(
+        LocalizeSeparatedInt(TheChallenges->GetMedalCount(i1), TheLocale), true
+    );
+}
+
+void AppLabel::SetExpireTime() {
+    static Symbol challenge_expire_time_int_fmt("challenge_expire_time_int_fmt");
+    static Symbol challenge_expire_time_invalid("challenge_expire_time_invalid");
+    int i1 = 0;
+    int i2 = 0;
+    int i3 = 0;
+    int i4 = 0;
+    if (TheChallenges->GetExpireTime(i1, i2, i3, i4)) {
+        SetTokenFmt(challenge_expire_time_int_fmt, i1, i2, i3, i4);
+    } else {
+        SetTextToken(challenge_expire_time_invalid);
+    }
 }
 
 DataNode AppLabel::OnSetUserName(const DataArray *a) {
