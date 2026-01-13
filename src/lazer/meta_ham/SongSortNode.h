@@ -8,17 +8,18 @@ public:
     SongHeaderNode(NavListItemSortCmp *, Symbol, bool);
     virtual ~SongHeaderNode();
     virtual DataNode Handle(DataArray *, bool);
-    virtual int GetItemCount();
-    virtual void OnHighlight();
-    virtual void SetCollapseStateIcon(bool) const;
     virtual Symbol OnSelect();
     virtual Symbol Select();
     virtual Symbol OnSelectDone();
-    virtual bool IsActive() const;
-    virtual void SetItemCountString(UILabel *) const;
-    virtual void UpdateItemCount(NavListItemNode *);
+    virtual void OnHighlight();
+    virtual int GetItemCount();
+    virtual NavListSortNode *GetFirstActive();
     virtual void Text(UIListLabel *, UILabel *) const;
+    virtual bool IsActive() const;
     virtual void Renumber(std::vector<NavListSortNode *> &);
+    virtual void UpdateItemCount(NavListItemNode *);
+    virtual void SetItemCountString(UILabel *) const;
+    virtual void SetCollapseStateIcon(bool) const;
 
 private:
     u32 mDiscSongs;
@@ -46,4 +47,12 @@ public:
 private:
     SongRecord *unk_0x48;
     bool unk_0x4C;
+};
+
+class SongFunctionNode : public NavListFunctionNode {
+public:
+    virtual Symbol OnSelect();
+    virtual void OnHighlight();
+    virtual void Text(UIListLabel *, UILabel *) const;
+    virtual bool IsActive() const;
 };
