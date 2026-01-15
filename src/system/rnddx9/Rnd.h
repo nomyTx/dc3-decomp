@@ -31,8 +31,13 @@ public:
     virtual void Init() { Init(nullptr); }
     virtual void Terminate();
     virtual void Clear(unsigned int, const Hmx::Color &);
-    virtual void
-    DrawRect(const Hmx::Rect &, const Hmx::Color &, RndMat *, const Hmx::Color *, const Hmx::Color *);
+    virtual void DrawRect(
+        const Hmx::Rect &,
+        const Hmx::Color &,
+        RndMat *,
+        const Hmx::Color *,
+        const Hmx::Color *
+    );
     virtual Vector2 &
     DrawString(const char *, const Vector2 &, const Hmx::Color &, bool); // 0x80
     virtual void
@@ -49,8 +54,14 @@ public:
     virtual void PopClipPlanesInternal(ObjPtrVec<RndTransformable> &);
 
     virtual void SetViewport(const Viewport &v);
-    virtual void
-    DrawRect(const Hmx::Rect &, RndMat *, ShaderType, const Hmx::Color &, const Hmx::Color *, const Hmx::Color *);
+    virtual void DrawRect(
+        const Hmx::Rect &,
+        RndMat *,
+        ShaderType,
+        const Hmx::Color &,
+        const Hmx::Color *,
+        const Hmx::Color *
+    );
     virtual void DrawRectDepth(
         const Vector3 &, const Vector3 (&)[4], const Vector4 &, RndMat *, ShaderType
     );
@@ -146,6 +157,7 @@ private:
     void FinishPostProcess();
     void CopyPostProcess();
     void DoPointTests();
+    void DrawSafeArea(float, bool, const Hmx::Color &);
 
     // static D3DXMATRIX sIdentityMtx;
 

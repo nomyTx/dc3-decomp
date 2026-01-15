@@ -11,6 +11,7 @@
 #include "rndobj/Shader.h"
 #include "rndobj/ShaderMgr.h"
 #include "rndobj/Tex.h"
+#include "rndobj/Utl.h"
 #include "xdk/D3D9.h"
 #include "xdk/d3d9i/d3d9.h"
 #include "xdk/d3d9i/d3d9caps.h"
@@ -231,4 +232,23 @@ void DxRnd::ResetDevice() {
 
 long DxRnd::GetDeviceCaps(D3DCAPS9 *cap) {
     return Direct3D_GetDeviceCaps(0, mDeviceType, cap);
+}
+
+void DxRnd::DrawSafeArea(float percent, bool widescreen, const Hmx::Color &color) {
+    if (mShrinkToSafe)
+        percent = percent * 1.0526316f;
+
+    Vector2 vec1;
+    Vector2 vec2;
+
+    float targetAspect = widescreen ? 16.f / 9.f : 4.f / 3.f;
+    float realAspect = (float)mHeight / mWidth;
+
+    vec1.y = (1.0f - percent) * 0.5f;
+    vec1.x = -(targetAspect * realAspect - 1.0f) * 0.5f + vec1.y;
+
+    vec2.x = 1.0f - vec1.x;
+    vec2.y = 1.0f - vec1.y;
+
+    UtilDrawRect2D(vec1, vec2, color);
 }
