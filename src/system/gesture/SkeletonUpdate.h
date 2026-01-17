@@ -4,6 +4,7 @@
 #include "gesture/SkeletonHistory.h"
 #include "obj/Object.h"
 #include "os/CritSec.h"
+#include "xdk/nui/nuiskeleton.h"
 
 class SkeletonUpdate;
 
@@ -27,33 +28,37 @@ private:
     static CriticalSection sCritSec;
 };
 
-class SkeletonUpdate : public SkeletonHistory,
-                       public Hmx::Object,
-                       public SkeletonHistoryArchive {
+class SkeletonUpdate : public SkeletonHistoryArchive,
+                       public SkeletonHistory,
+                       public Hmx::Object {
     friend class SkeletonUpdateHandle;
 
 public:
     // SkeletonHistory
     virtual bool PrevSkeleton(const Skeleton &, int, ArchiveSkeleton &, int &) const;
     // Hmx::Object
-    virtual ~SkeletonUpdate() {}
-    virtual bool Replace(ObjRef *, Hmx::Object *);
+    virtual ~SkeletonUpdate();
 
+    static void Init();
     static void CreateInstance();
     static void Terminate();
     static bool HasInstance();
-    static void *NewSkeletonEvent();
+    static HANDLE NewSkeletonEvent();
+    static HANDLE SkeletonUpdatedEvent() { return sSkeletonUpdatedEvent; }
     static SkeletonUpdateHandle InstanceHandle();
 
 private:
     SkeletonUpdate();
 
+    virtual bool Replace(ObjRef *, Hmx::Object *);
+
     void SetCameraInput(CameraInput *);
     void PostUpdate();
+    void Update();
 
     static SkeletonUpdate *sInstance;
-    static void *sNewSkeletonEvent;
-    static void *sSkeletonUpdatedEvent;
+    static HANDLE sNewSkeletonEvent;
+    static HANDLE sSkeletonUpdatedEvent;
 
     bool unk78; // 0x78
     ObjOwnerPtr<CameraInput> mCameraInput; // 0x7c
@@ -62,13 +67,19 @@ private:
     std::vector<SkeletonCallback *> mCallbacks; // 0x94
     SkeletonFrame mSkeletonFrame; // 0xa0
     Skeleton mSkeletons[6]; // 0x1268
-    int unk[10];
+    Skeleton *unk5360[2]; // 0x5360
+    Skeleton *unk5368[2]; // 0x5368
+    int unk5370;
+    int unk5374;
+    int unk5378;
+    int unk537c;
+    int unk5380[2]; // 0x5380
     int unk5388; // 0x5388
     int unk538c; // 0x538c
-    bool unk5390; // 0x5390
+    bool unk5390; // 0x5390 - sides swapped?
     int unk5394;
-    int unk5398;
-    int unk539c;
-    int unk53a0;
-    int unk53a4;
+    float unk5398;
+    bool unk539c; // 0x539c - update thread?
+    HANDLE unk53a0;
+    NUI_SKELETON_FRAME *mNUISkeletonFrame; // 0x53a4
 };

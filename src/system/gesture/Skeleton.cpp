@@ -201,3 +201,5 @@ int Skeleton::GetEnrollmentIndex() const {
 bool Skeleton::NeedIdentify() const {
     return GetEnrollmentIndex() == -1 || GetEnrollmentIndex() == -5;
 }
+
+void Skeleton::PostUpdate() {}

@@ -60,6 +60,7 @@ public:
     void DumpProperties();
     void SetTrackedSkeletons(int, int) const;
     void IncrementSnapshotCount();
+    void SetNewFrame(const SkeletonFrame *);
 
     static void PreInit();
     static void Init();

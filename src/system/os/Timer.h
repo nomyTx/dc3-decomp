@@ -158,29 +158,44 @@ public:
 
 class AutoGlitchReport {
 public:
-    AutoGlitchReport(float f1, const char *c2) {
+    AutoGlitchReport(float f1, const char *func) {
         if (MainThread()) {
             unk3c = f1;
-            unk30 = c2;
+            mFunc = func;
             unk38 = 0;
-            unk34 = 0;
+            mCallback = nullptr;
             sDepth++;
-            unk0.Start();
+            mTimer.Start();
         }
     }
-    AutoGlitchReport(float, AutoTimerCallback, void *);
-    ~AutoGlitchReport();
+    AutoGlitchReport(float f1, AutoTimerCallback cb, void *v3) {
+        if (MainThread()) {
+            unk3c = f1;
+            unk38 = v3;
+            mCallback = cb;
+            mFunc = nullptr;
+            sDepth++;
+            mTimer.Start();
+        }
+    }
+
+    ~AutoGlitchReport() {
+        if (MainThread()) {
+            sDepth--;
+            SendCallback(mTimer.SplitMs(), unk3c, mFunc, mCallback, unk38);
+        }
+    }
     static void EnableCallback();
     static void EndExternal(float, float, const char *, AutoTimerCallback, void *);
     static void SendCallback(float, float, const char *, AutoTimerCallback, void *);
     static int sDepth;
 
 private:
-    Timer unk0;
-    const char *unk30;
-    int unk34;
-    int unk38;
-    float unk3c;
+    Timer mTimer; // 0x0
+    const char *mFunc; // 0x30
+    AutoTimerCallback mCallback; // 0x34
+    void *unk38; // 0x38 - context?
+    float unk3c; // 0x3c - limit?
 };
 
 class AutoTimer {
