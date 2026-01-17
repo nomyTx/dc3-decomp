@@ -23,9 +23,10 @@ public:
     virtual void Init() {} // 0x8c
     virtual NavListItemNode *NewItemNode(void *) const = 0;
     virtual NavListShortcutNode *NewShortcutNode(NavListItemNode *) const = 0; // 0x94
+    virtual NavListHeaderNode *NewHeaderNode(NavListItemNode *) const = 0;
     virtual NavListHeaderNode *
     NewHeaderNode(NavListItemNode *, NavListItemNode *) const = 0;
-    virtual NavListHeaderNode *NewHeaderNode(NavListItemNode *) const = 0;
+
 
     int GetCurrentShortcut();
     void ChangeHighlightHeader(int);
@@ -52,4 +53,17 @@ protected:
     NavListSortNode *unk50; // 0x50
     NavListSortNode *unk54; // 0x54
     Symbol mSortName; // 0x58
+};
+
+
+struct CompareHeaders {
+    bool operator()(NavListSortNode *left, NavListSortNode *right) const {
+        return left->GetType() != right->GetType(); // probably not right but whatever for now
+    }
+};
+
+struct CompareItems {
+    bool operator()(NavListSortNode *left, NavListSortNode *right) const {
+        return left->GetItemCount() < right->GetItemCount(); // also probably not right
+    }
 };

@@ -2,6 +2,7 @@
 #include "char/CharClip.h"
 #include "macros.h"
 #include "math/Utl.h"
+#include "rndobj/Rnd.h"
 
 void FindWeights(
     std::vector<RndTransformable *> &transes,
@@ -23,6 +24,19 @@ void FindWeights(
     for (int i = 0; i < floats.size(); i++) {
         floats[i] *= floats.size() / f1;
     }
+}
+
+DistEntry &DistEntry::operator= (const DistEntry &right) {
+    beat = right.beat;
+    bones = right.bones;
+    for (int i = 0; i < 4; i++) {
+        facing[i] = right.facing[i];
+    }
+    return *this;
+}
+
+DistEntry::DistEntry(const DistEntry &entry) : beat(entry.beat), bones(entry.bones) {
+    memcpy(facing, entry.facing, sizeof(entry.facing));
 }
 
 ClipDistMap::ClipDistMap(
@@ -126,7 +140,7 @@ int ClipDistMap::CalcWidth() {
 
 int ClipDistMap::CalcHeight() {
     float clipBStartBeat = mClipB->StartBeat();
-    float samplesDiv = 1.0 / mSamplesPerBeat;
+    float samplesDiv = 1.0f / mSamplesPerBeat;
     float clipBSamplesMod = Mod(clipBStartBeat, samplesDiv);
     float f1 = clipBStartBeat - clipBSamplesMod;
     mBStart = f1;
@@ -144,9 +158,7 @@ int ClipDistMap::CalcHeight() {
         f1 = clipBStartBeat;
     }
 
-    f1 = floor(((f1 - mBStart) * mSamplesPerBeat) + 0.5); // how can i make this use
-                                                          // fmadds instead of 2 separate
-                                                          // insts?
+    f1 = floor(((f1 - mBStart) * (float)mSamplesPerBeat) + 0.5f);
     uint val = f1;
 
     return (((val != 0) - (val >> 0x1f) & val)) + 1;
@@ -157,4 +169,50 @@ void ClipDistMap::Array2d::Resize(int w, int h) {
     this->mWidth = w;
     this->mHeight = h;
     this->mData = (float *)new uint[h * w];
+}
+
+void ClipDistMap::SetNodes(ClipDistMap::Node *node1, ClipDistMap::Node *node2) {
+    mClipB->GetTransitions().RemoveClip(mClipB);
+    for (int i = 0; i < mNodes.size(); i++) {
+        if (node1) {
+            float fVar1 = node1->unk8;
+            float fVar2 = mNodes[i].unk8;
+            if (node1->unk8 - mNodes[i].unk8 < 0.0) {
+                fVar2 = fVar1;
+            }
+            node1->unk8 = fVar2;
+            if (fVar2 != fVar1) {
+                node1->unk0 = mNodes[i].unk0;
+                node1->unk4 = mNodes[i].unk4;
+                node1->unk8 = mNodes[i].unk8;
+            }
+        }
+        if (node2) {
+            float fVar1 = node2->unk8;
+            float fVar2 = mNodes[i].unk8;
+            if (fVar1 - fVar2 < 0.0) {
+                fVar2 = fVar1;
+            }
+            node2->unk8 = fVar2;
+            if (fVar2 != fVar1) {
+                node2->unk0 = mNodes[i].unk0;
+                node2->unk4 = mNodes[i].unk4;
+                node2->unk8 = mNodes[i].unk8;
+            }
+        }
+        auto graphNode = CharGraphNode();
+        graphNode.nextBeat = mNodes[i].unk4;
+        graphNode.curBeat = mNodes[i].unk0;
+        mClipB->GetTransitions().AddNode(mClipB, graphNode);
+    }
+}
+
+void ClipDistMap::DrawDot(float x, float y, float f3, float f4, Hmx::Color const &color) {
+    Hmx::Rect rect;
+    rect.w = 2.0;
+    rect.h = 2.0;
+    float scale = (float)mSamplesPerBeat;
+    rect.x = (f3 - mAStart) * scale * 2.0f + (x - 1.0f);
+    rect.y = ((f4 - mBStart) * scale - (float)(mDists.mHeight - 1)) * 2.0f + y + 1.0f;
+    TheRnd.DrawRect(rect, color, nullptr, nullptr, nullptr);
 }

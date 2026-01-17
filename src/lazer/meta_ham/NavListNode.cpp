@@ -1,4 +1,6 @@
 #include "meta_ham/NavListNode.h"
+
+#include "NavListSort.h"
 #include "game/GameMode.h"
 #include "meta_ham/HamStarsDisplay.h"
 #include "obj/Data.h"
@@ -145,6 +147,34 @@ NavListSortNode *NavListShortcutNode::GetFirstActive() {
     return nullptr;
 }
 
+void NavListShortcutNode::Insert(NavListItemNode *node, NavListSort *sort) {
+    auto range = std::equal_range<>(mChildren.begin(), mChildren.end(), node, CompareHeaders());
+    NavListHeaderNode *newNode;
+    if (range.first == range.second) {
+        newNode = sort->NewHeaderNode(node);
+        newNode->SetShortcut(this);
+        newNode->SetParent(this);
+        mChildren.insert(range.first, newNode);
+
+    } else {
+        // FIXME: uhhh does newNode + 8 or something not sure
+        //newNode = range.first++;
+    }
+    newNode->Insert(node, sort);
+}
+
+void NavListShortcutNode::InsertHeaderRange(
+    NavListItemNode **node1, NavListItemNode **node2, NavListSort *sort) {
+    auto newNode = sort->NewHeaderNode(*node1, node2[-1]);
+    newNode->SetShortcut(this);
+    newNode->SetParent(this);
+    auto eqRange = std::equal_range(mChildren.begin(), mChildren.end(), *node1, CompareHeaders());
+    mChildren.insert(eqRange.first, newNode);
+    for (; node1 != node2; node1++) {
+        newNode->Insert(*node1, sort);
+    }
+}
+
 #pragma endregion
 #pragma region NavListItemNode
 
@@ -237,3 +267,12 @@ void NavListHeaderNode::SetCollapseStateIcon(bool) const {
         label->SetTextToken(gNullStr);
     }
 }
+
+void NavListHeaderNode::Insert(NavListItemNode *node, NavListSort *sort) {
+    auto lower = std::lower_bound(mChildren.begin(), mChildren.end(), node, CompareItems());
+    node->SetShortcut(mShortcut);
+    node->SetParent(this);
+    mChildren.insert(lower, node);
+    UpdateItemCount(node);
+}
+#pragma endregion
