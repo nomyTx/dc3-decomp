@@ -1,4 +1,6 @@
 #pragma once
+#include "nui/nuiapi.h"
+#include "nui/nuiaudio.h"
 #include "nui/nuiidentity.h"
 #include "nui/nuidetroit.h"
 #include "nui/nuidiagnostics.h"

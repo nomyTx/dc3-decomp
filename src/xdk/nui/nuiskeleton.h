@@ -38,6 +38,8 @@ typedef struct _NUI_SKELETON_FRAME { /* Size=0xab0 */
     /* 0x0030 */ NUI_SKELETON_DATA SkeletonData[6];
 } NUI_SKELETON_FRAME;
 
+HRESULT NuiSkeletonTrackingEnable(HANDLE hNextFrameEvent, DWORD dwFlags);
+
 #ifdef __cplusplus
 }
 #endif

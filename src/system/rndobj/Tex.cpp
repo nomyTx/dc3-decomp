@@ -148,7 +148,7 @@ TextStream &operator<<(TextStream &ts, RndTex::Type ty) {
     case RndTex::kTexDensityMap:
         ts << "DensityMap";
         break;
-    case RndTex::kTexScratch:
+    case RndTex::kScratch:
         ts << "Scratch";
         break;
     case RndTex::kTexDeviceTexture:

@@ -1,6 +1,7 @@
 #pragma once
 #include "gesture/CameraInput.h"
 #include "gesture/SpeechMgr.h"
+#include "rnddx9/Tex.h"
 #include "rndobj/Mat.h"
 #include "rndobj/Tex.h"
 
@@ -20,11 +21,30 @@ public:
         kBufferDepth = 1,
         kBufferPlayer = 2,
         kBufferPlayerColor = 3,
+        kBufferNum = 4,
+    };
+    struct LockedRect {
+        // 0x0
+    };
+    // size 0x18
+    struct Buffer {
+        HANDLE unk0[3]; // NUI_IMAGE_FRAME* s?
+        int unkc;
+        int unk10;
+        RndMat *unk14;
     };
     class TextureStore {
     public:
         ~TextureStore() { RELEASE(mTex); }
         void StoreTexture(RndTex *);
+        void StoreColorBuffer(LiveCameraInput *);
+        void StoreColorBufferClip(LiveCameraInput *, float, float, float, float);
+        void StoreDepthBuffer(LiveCameraInput *);
+        void StoreDepthBufferClip(LiveCameraInput *, float, float, float, float);
+        void UpdateFromColorBuffer(LiveCameraInput *);
+        void UpdateFromColorBufferClip(LiveCameraInput *, float, float);
+        void UpdateFromDepthBuffer(LiveCameraInput *);
+        void UpdateFromDepthBufferClip(LiveCameraInput *, float, float);
 
         RndTex *mTex; // 0x0
     };
@@ -61,9 +81,12 @@ public:
     void SetTrackedSkeletons(int, int) const;
     void IncrementSnapshotCount();
     void SetNewFrame(const SkeletonFrame *);
+    void PollNewStream(BufferType);
 
     static void PreInit();
     static void Init();
+    static void NuiAudioErrorCallback(HRESULT);
+    static void NuiAudioDataCallback(NUIAUDIO_RESULTS *);
     static LiveCameraInput *sInstance;
 
 protected:
@@ -91,6 +114,8 @@ protected:
     int mNumStoredTextures; // 0x1220
     CamTexClip mTexClips[8]; // 0x1224
     SpeechMgr *mSpeechMgr; // 0x1444
-    HANDLE mStreams[3]; // 0x1448
-    int unk1454;
+    Buffer mStreams[kBufferNum]; // 0x1448
+    DxTex *unk14a8;
+    DxTex *unk14ac;
+    int unk14b0;
 };

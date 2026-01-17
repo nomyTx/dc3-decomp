@@ -35,6 +35,7 @@ add_relocations:
 
 # These are Windows error codes, not relocations!
 block_relocations:
+- target: .data:0x83010001
 - target: .data:0x83010003
 - target: .data:0x8301000B
 - target: .data:0x8301000D

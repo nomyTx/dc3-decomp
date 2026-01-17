@@ -24,7 +24,7 @@ public:
         kTexShadowMap = 0x42,
         kTexDepthVolumeMap = 0xA2,
         kTexDensityMap = 0x122,
-        kTexScratch = 0x200,
+        kScratch = 0x200,
         kTexDeviceTexture = 0x1000,
         kTexRegularLinear = 0x2000
     };
