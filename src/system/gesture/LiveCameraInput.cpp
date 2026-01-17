@@ -44,7 +44,7 @@ void LiveCameraInput::TextureStore::StoreTexture(RndTex *tex) {
         mTex = Hmx::Object::New<RndTex>();
         RndBitmap bitmap;
         tex->LockBitmap(bitmap, 1);
-        mTex->SetBitmap(bitmap, nullptr, true, RndTex::kTexRenderedNoZ);
+        mTex->SetBitmap(bitmap, nullptr, true, RndTex::kRenderedNoZ);
         tex->UnlockBitmap();
     } else {
         mTex = nullptr;
@@ -284,7 +284,7 @@ void LiveCameraInput::InitSnapshots(int numSnapshots) {
         if (mSnapshots.size() != numSnapshots) {
             mSnapshots.resize(numSnapshots);
             for (int i = 0; i < numSnapshots; i++) {
-                mSnapshots[i] = CreateCameraBufferMat(640, 480, RndTex::kTexRendered);
+                mSnapshots[i] = CreateCameraBufferMat(640, 480, RndTex::kRendered);
             }
         }
     }

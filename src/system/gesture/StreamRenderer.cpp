@@ -134,7 +134,7 @@ void StreamRenderer::Init() {
         MILO_ASSERT(mBlurRT[i] == NULL, 0xCF);
         mBlurRT[i] = Hmx::Object::New<RndTex>();
         mBlurRT[i]->SetBitmap(
-            0x140, 0xf0, TheRnd.Bpp(), RndTex::kTexRenderedNoZ, false, nullptr
+            0x140, 0xf0, TheRnd.Bpp(), RndTex::kRenderedNoZ, false, nullptr
         );
     }
 }
