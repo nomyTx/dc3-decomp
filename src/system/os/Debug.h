@@ -86,9 +86,6 @@ typedef void ModalCallbackFunc(Debug::ModalType &, FixedString &, bool);
 extern Debug TheDebug;
 extern const char *kAssertStr;
 
-// #define MILO_ASSERT(cond, line) \
-//     ((cond) || (TheDebugFailer << (MakeString(kAssertStr, __FILE__, line, #cond)), 0))
-
 #define MILO_ASSERT(cond, line)                                                          \
     do {                                                                                 \
         if (!(cond)) {                                                                   \
@@ -97,7 +94,12 @@ extern const char *kAssertStr;
     } while (0)
 
 #define MILO_ASSERT_FMT(cond, ...)                                                       \
-    ((cond) || (TheDebugFailer << (MakeString(__VA_ARGS__)), 0))
+    do {                                                                                 \
+        if (!(cond)) {                                                                   \
+            TheDebugFailer << MakeString(__VA_ARGS__);                                   \
+        }                                                                                \
+    } while (0)
+
 #define MILO_FAIL(...) TheDebugFailer << MakeString(__VA_ARGS__)
 #define MILO_WARN(...) TheDebugWarner << MakeString(__VA_ARGS__)
 #define MILO_NOTIFY(...) TheDebugNotifier << MakeString(__VA_ARGS__)
