@@ -1,10 +1,13 @@
 #pragma once
+#include "MoveDir.h"
 #include "hamobj/Difficulty.h"
 #include "math/Vec.h"
 #include "obj/Object.h"
 #include "utl/MemMgr.h"
 
 struct BeatCollisionData {
+    void Set(float, float, const Transform &, const Transform &);
+
     float mMinX;
     float mMaxX;
     Vector3 mOffset;
@@ -26,9 +29,12 @@ public:
     NEW_OBJ(SongCollision)
 
     static void Init();
+    void Update(MoveDir *);
+    bool Equals(SongCollision *);
 
 private:
     static float sCollisionTolerance;
+    const BeatCollisionData *BeatData(int, Difficulty) const;
 
 protected:
     SongCollision();
