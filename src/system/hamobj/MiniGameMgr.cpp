@@ -1,5 +1,6 @@
 #include "hamobj/MiniGameMgr.h"
 #include "hamobj/HamDirector.h"
+#include "hamobj/HamGameData.h"
 #include "hamobj/MoveGraph.h"
 #include "hamobj/MoveMgr.h"
 #include "obj/Data.h"
@@ -79,9 +80,39 @@ void MiniGameMgr::InitCascade(int numMovesNeeded, int blockingFactor) {
     LoadValidMoves(false);
 }
 
-// void MiniGameMgr::UpdateCascadeMovePool(
-//     MoveGraph &, std::vector<const MoveVariant *> &, std::vector<const MoveVariant *> &
-// ) {}
+void MiniGameMgr::UpdateCascadeMovePool(
+    MoveGraph &graph,
+    std::vector<const MoveVariant *> &allMoves,
+    std::vector<const MoveVariant *> &validMoves
+) {
+    allMoves.clear();
+    FOREACH (it, graph.MoveParents()) {
+        const MoveVariant *mv = it->second->PickRandomVariant();
+        if (mv->IsValidForMinigame()
+            && std::find(validMoves.begin(), validMoves.end(), mv) == validMoves.end()) {
+            allMoves.push_back(mv);
+        }
+    }
+    std::random_shuffle(allMoves.begin(), allMoves.end());
+    for (int i = 0; i < 1; i++) {
+        auto it = allMoves.begin();
+        while (it != allMoves.end()
+               && allMoves.size() > mBlockingFactor + mNumMovesNeeded) {
+            const MoveVariant *mv = *it;
+            bool b8 = true;
+            if (i != 0) {
+                MILO_ASSERT(0, 0xB3);
+            } else {
+                b8 = mv->Song() == TheGameData->GetSong();
+            }
+            if (b8) {
+                ++it;
+            } else {
+                it = allMoves.erase(it);
+            }
+        }
+    }
+}
 
 void MiniGameMgr::GetMoveOptions(DataArray *a1, DataArray *a2) {
     MILO_ASSERT(TheHamDirector->IsWorldLoaded(), 0x32);

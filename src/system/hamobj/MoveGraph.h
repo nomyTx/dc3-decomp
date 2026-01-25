@@ -134,6 +134,7 @@ public:
     Symbol Genre() const { return mGenre; }
     bool IsFinalPose() const { return mFlags & 8; }
     MoveParent *Parent() const { return mMoveParent; }
+    Symbol Song() const { return mSongName; }
 
 private:
     Vector3 mPositionOffset; // 0x0
