@@ -9,6 +9,7 @@ public:
     virtual ~HandInvokeGestureFilter();
 
     void Update(const Skeleton &, int ms);
+    bool GetUnk140() const { return unk140; }
 
     Vector3DESmoother unk4; // 0x4
     Vector3 unk40; // 0x40
