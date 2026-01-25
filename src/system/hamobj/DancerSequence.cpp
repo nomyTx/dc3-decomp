@@ -96,8 +96,51 @@ BEGIN_LOADS(DancerSequence)
                 int x;
                 d >> x;
             }
-            // one big loop here
             for (int i = 0; i < kNumJoints; i++) {
+                int count = 6;
+                if (skeletonRev < 1) {
+                    count = 4;
+                } else if (skeletonRev < 2) {
+                    count = 9;
+                }
+                for (int j = 0; j < count; j++) {
+                    if (j >= 6) {
+                        Vector3 v;
+                        d >> v >> v >> v;
+                    } else {
+                        if (j == 0) {
+                            Vector3 pos, disp;
+                            d >> pos;
+                            d >> disp;
+                            skeleton.SetCamJointPos((SkeletonJoint)i, pos);
+                            skeleton.SetCamJointDisplacement((SkeletonJoint)i, disp);
+                        } else {
+                            Vector3 v1, v2;
+                            d >> v1 >> v2;
+                        }
+                        if (skeletonRev < 4) {
+                            Vector3 v;
+                            d >> v;
+                        }
+                    }
+                }
+                if (skeletonRev < 3) {
+                    std::vector<float> floats;
+                    d >> floats;
+                    int x;
+                    d >> x;
+                } else if (skeletonRev > 4) {
+                    int x;
+                    d >> x;
+                }
+            }
+            if (skeletonRev < 2) {
+                for (int i = 0; i < 2; i++) {
+                    for (int j = 0; j < 3; j++) {
+                        std::vector<float> floats;
+                        d >> floats;
+                    }
+                }
             }
         } else {
             for (int i = 0; i < kNumJoints; i++) {
@@ -130,4 +173,13 @@ float DancerSequence::EndFrame() { return mDancerFrames.size() - 1.0f; }
 
 const std::vector<DancerFrame> &DancerSequence::GetDancerFrames() const {
     return mDancerFrames;
+}
+
+const DancerSkeleton *DancerSequence::CurSkeleton() const {
+    int idx = GetFrame();
+    if (idx >= 0 && idx < mDancerFrames.size()) {
+        return &mDancerFrames[idx].mSkeleton;
+    } else {
+        return nullptr;
+    }
 }

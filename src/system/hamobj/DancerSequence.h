@@ -31,6 +31,7 @@ public:
     NEW_OBJ(DancerSequence);
 
     const std::vector<DancerFrame> &GetDancerFrames() const;
+    const DancerSkeleton *CurSkeleton() const;
 
 protected:
     DancerSequence();
