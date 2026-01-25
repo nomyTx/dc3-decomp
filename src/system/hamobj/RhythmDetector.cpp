@@ -1,39 +1,15 @@
 #include "RhythmDetector.h"
-
+#include "gesture/BaseSkeleton.h"
+#include "gesture/GestureMgr.h"
+#include "gesture/Skeleton.h"
+#include "math/Vec.h"
 #include "ui/UIPanel.h"
 #include "obj/DataFunc.h"
 #include "gesture/SkeletonUpdate.h"
 
-
-void CameraToScreenUnit(Vector3 &vec, const Skeleton &skeleton, SkeletonJoint joint) {
-    Vector2 skelPos;
-    skeleton.ScreenPos(joint, skelPos);
-    vec.y = -(skeleton.TrackedJoints()[joint].unk60.z) * 0.22977939;
-    vec.x = (skelPos.x - 0.5f) * 2.0f;
-    vec.z = (0.5f - skelPos.y) * 2.0f;
-}
-
-DebugGraph::DebugGraph(
-    float f1,
-    float f2,
-    float f3,
-    float f4,
-    Hmx::Color color1,
-    Hmx::Color color2,
-    int i1,
-    float f5,
-    float f6,
-    String s
-)
-    : mRect(f1, f2, f3, f4), mColorA(color1), mColorB(color2), unk38(i1), unk3c(f5), unk40(f6),
-      unk44(3.4028235e+38), unk48(s), unk50(1) {}
-
-DebugGraph::~DebugGraph() {}
-
-RhythmDetector::RecordData::~RecordData() {}
-
 namespace {
-    int kAnalyzeJoints[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19};
+    int kAnalyzeJoints[] = { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
+                             10, 11, 12, 13, 14, 15, 16, 17, 18, 19 };
     int gDebugBone = -1;
     float gAdjust = 1;
     int gLog = -1;
@@ -42,9 +18,21 @@ namespace {
     int kConvCount = 4;
     int kConvLen;
 
-    void AnalyzeData(const std::vector<RhythmDetector::Frame> &frames, float &f1, float &f2, float &f3, float f4, bool b1, Symbol sym, bool b2, DebugGraph *dbg, int i1, TextStream *stream) {
-        return;
-    }
+    //     void AnalyzeData(
+    //         const std::vector<RhythmDetector::Frame> &frames,
+    //         float &f1,
+    //         float &f2,
+    //         float &f3,
+    //         float f4,
+    //         bool b1,
+    //         Symbol sym,
+    //         bool b2,
+    //         DebugGraph *dbg,
+    //         int i1,
+    //         TextStream *stream
+    //     ) {
+    //         return;
+    //     }
 
     DataNode TightenDebugBone(DataArray *da) {
         gAdjust *= 1.01f;
@@ -79,7 +67,7 @@ namespace {
 
     void initCheat() {
         // if(SomeGlobalOrSymbol == 0) {
-        //SomeGlobalOrSymbol = 1;
+        // SomeGlobalOrSymbol = 1;
         Symbol cycle_movement_bone("cycle_movement_bone");
         DataRegisterFunc(cycle_movement_bone, CycleDebugBone);
         Symbol tighten_current_bone("tighten_current_bone");
@@ -123,67 +111,10 @@ namespace {
         return 0.0f;
     }
 
-
 }
 
-BEGIN_HANDLERS(RhythmDetector)
-    HANDLE_ACTION(start_recording, StartRecording())
-    HANDLE_ACTION(stop_recording, StopRecording())
-    HANDLE_EXPR(is_recording, mRecording)
-    HANDLE_SUPERCLASS(RndPollable)
-    HANDLE_SUPERCLASS(Hmx::Object)
-END_HANDLERS
-
-BEGIN_PROPSYNCS(RhythmDetector)
-    SYNC_SUPERCLASS(Hmx::Object)
-    SYNC_SUPERCLASS(RndPollable)
-    SYNC_PROP(rhythm_rating, unk48);
-    SYNC_PROP(rhythm_decay, unk4c)
-    SYNC_PROP(num_beats_to_cover, unk44)
-    SYNC_PROP(beat_fold, unk50)
-    SYNC_PROP(tolerance_factor, unk54)
-    SYNC_PROP(dir_x, unk58.x)
-    SYNC_PROP(dir_y, unk58.y)
-    SYNC_PROP(dir_z, unk58.z)
-END_PROPSYNCS
-
-BEGIN_COPYS(RhythmDetector)
-    COPY_SUPERCLASS(RndPollable)
-    CREATE_COPY(RhythmDetector)
-    BEGIN_COPYING_MEMBERS
-        COPY_MEMBER(unk44)
-        COPY_MEMBER(unk50)
-        COPY_MEMBER(unk54)
-        COPY_MEMBER(unk58)
-    END_COPYING_MEMBERS
-END_COPYS
-
-BEGIN_LOADS(RhythmDetector)
-    LOAD_REVS(bs)
-    ASSERT_REVS(2, 0)
-    LOAD_SUPERCLASS(RndPollable)
-    bs >> unk44;
-    bs >> unk50;
-    bs >> unk54;
-    bs >> unk58.x;
-    bs >> unk58.y;
-    bs >> unk58.z;
-    Normalize(unk58, unk58);
-END_LOADS
-
-BEGIN_SAVES(RhythmDetector)
-    SAVE_REVS(2, 0)
-    SAVE_SUPERCLASS(RndPollable)
-    bs << unk44;
-    bs << unk50;
-    bs << unk54;
-    bs << unk58.x;
-    bs << unk58.y;
-    bs << unk58.z;
-END_SAVES
-
 void EraseNewerData(std::vector<RhythmDetector::Frame> &vec, float time) {
-    for (auto it = vec.begin(); it != vec.end(); ++it) {
+    FOREACH (it, vec) {
         if (it->unk0 >= time) {
             vec.erase(it, vec.end());
             break;
@@ -191,95 +122,209 @@ void EraseNewerData(std::vector<RhythmDetector::Frame> &vec, float time) {
     }
 }
 
-RhythmDetector::RhythmDetector() : unkc(false), mRecording(0), unk10(0), unk18(0), unk44(0), unk48(0), unk4c(0), unk50(2), unk54(0), unkaa8(0) {}
+void CameraToScreenUnit(Vector3 &vec, const Skeleton &skeleton, SkeletonJoint joint) {
+    Vector2 skelPos;
+    skeleton.ScreenPos(joint, skelPos);
+    float y = -skeleton.TrackedJoints()[joint].unk60.z;
+    vec.Set((skelPos.x - 0.5f) * 2.0f, y * 0.22977939f, (0.5f - skelPos.y) * 2.0f);
+}
+
+RhythmDetector::RhythmDetector()
+    : mTracked(false), mRecording(0), mSkeletonID(-1), mBeats(8), mGroove(0),
+      mRhythmDecay(0), mFold(2), mToleranceFactor(1.5f), mDirection(0, 0, 0), unk68(0),
+      mDebugGraphA(0), mDebugGraphB(0), mDebugGraphC(0), mDebugGraphD(0), mDebugGraphE(0),
+      unk80(0), unkaa4(0) {
+    unk1c.mJointVelocities.clear();
+    for (int i = 0; i < 8; i++) {
+        unka84[i] = -1;
+    }
+    initCheat();
+}
+
+RhythmDetector::~RhythmDetector() {
+    delete mDebugGraphA;
+    delete mDebugGraphB;
+    if (SkeletonUpdate::InstanceHandle().HasCallback(this)) {
+        SkeletonUpdate::InstanceHandle().RemoveCallback(this);
+    }
+}
+
+BEGIN_HANDLERS(RhythmDetector)
+    HANDLE_ACTION(start_recording, StartRecording())
+    HANDLE_ACTION(stop_recording, StopRecording())
+    HANDLE_EXPR(is_recording, IsRecording())
+    HANDLE_SUPERCLASS(RndPollable)
+    HANDLE_SUPERCLASS(Hmx::Object)
+END_HANDLERS
+
+BEGIN_PROPSYNCS(RhythmDetector)
+    SYNC_SUPERCLASS(Hmx::Object)
+    SYNC_SUPERCLASS(RndPollable)
+    SYNC_PROP(rhythm_rating, mGroove);
+    SYNC_PROP(rhythm_decay, mRhythmDecay)
+    SYNC_PROP(num_beats_to_cover, mBeats)
+    SYNC_PROP(beat_fold, mFold)
+    SYNC_PROP(tolerance_factor, mToleranceFactor)
+    SYNC_PROP(dir_x, mDirection.x)
+    SYNC_PROP(dir_y, mDirection.y)
+    SYNC_PROP(dir_z, mDirection.z)
+END_PROPSYNCS
+
+BEGIN_SAVES(RhythmDetector)
+    SAVE_REVS(2, 0)
+    SAVE_SUPERCLASS(RndPollable)
+    bs << mBeats;
+    bs << mFold;
+    bs << mToleranceFactor;
+    bs << mDirection.x;
+    bs << mDirection.y;
+    bs << mDirection.z;
+END_SAVES
+
+BEGIN_COPYS(RhythmDetector)
+    COPY_SUPERCLASS(RndPollable)
+    CREATE_COPY(RhythmDetector)
+    BEGIN_COPYING_MEMBERS
+        COPY_MEMBER(mBeats)
+        COPY_MEMBER(mFold)
+        COPY_MEMBER(mToleranceFactor)
+        COPY_MEMBER(mDirection)
+    END_COPYING_MEMBERS
+END_COPYS
+
+BEGIN_LOADS(RhythmDetector)
+    LOAD_REVS(bs)
+    ASSERT_REVS(2, 0)
+    LOAD_SUPERCLASS(RndPollable)
+    if (d.rev >= 1) {
+        d >> mBeats;
+    }
+    if (d.rev >= 2) {
+        d >> mFold;
+        d >> mToleranceFactor;
+        d >> mDirection.x;
+        d >> mDirection.y;
+        d >> mDirection.z;
+        Normalize(mDirection, mDirection);
+    }
+END_LOADS
 
 void RhythmDetector::Poll() {
     if (mRecording) {
-        if (TheGestureMgr->GetSkeleton(unk10).IsTracked()) {
-            if (mDebugGraphA) mDebugGraphA->Draw();
-            if (mDebugGraphB) mDebugGraphB->Draw();
-            if (mDebugGraphC) mDebugGraphC->Draw();
-            if (mDebugGraphD) mDebugGraphD->Draw();
-            if (mDebugGraphE) mDebugGraphE->Draw();
+        if (TheGestureMgr->GetSkeleton(mSkeletonID).IsTracked()) {
+            if (mDebugGraphA)
+                mDebugGraphA->Draw();
+            if (mDebugGraphB)
+                mDebugGraphB->Draw();
+            if (mDebugGraphC)
+                mDebugGraphC->Draw();
+            if (mDebugGraphD)
+                mDebugGraphD->Draw();
+            if (mDebugGraphE)
+                mDebugGraphE->Draw();
         }
     }
 }
 
 void RhythmDetector::Enter() {
-    bool hasSkelInst = false;
     RndPollable::Enter();
-    if (SkeletonUpdate::HasInstance()) {
-        //somethign
-        auto skel = SkeletonUpdate::InstanceHandle();
-        hasSkelInst = true;
-        bool hasSkelCallback = skel.HasCallback(this);
+    if (SkeletonUpdate::HasInstance()
+        && !SkeletonUpdate::InstanceHandle().HasCallback(this)) {
+        SkeletonUpdate::InstanceHandle().AddCallback(this);
     }
-    if (!SkeletonUpdate::HasInstance()) {
-        auto skel = SkeletonUpdate::InstanceHandle();
-        skel.AddCallback(this);
+}
+
+void RhythmDetector::PostUpdate(const SkeletonUpdateData *data) {
+    if (mSkeletonID >= 0) {
+        mTracked = TheGestureMgr->GetSkeleton(mSkeletonID).IsTracked();
+    } else {
+        mTracked = false;
+    }
+    if (mRecording == 0 || !mTracked) {
+        unk1c.mJointVelocities.clear();
+        unk38.clear();
+        unk2c.clear();
+        mRecordData.frames.clear();
+    } else if (data) {
+        Skeleton &skeleton = TheGestureMgr->GetSkeleton(mSkeletonID);
+        if (skeleton.ElapsedMs() != data->unk8->mElapsedMs) {
+            MILO_WARN("current skeleton doesn't match update data");
+        }
+        AddFrame(skeleton);
+        for (int i = 0; i < kNumJoints; i++) {
+            CameraToScreenUnit(unkaac[i], skeleton, (SkeletonJoint)i);
+        }
+        ProcessFrames();
     }
 }
 
 float RhythmDetector::Groove() const {
-    if (unkc) return unk48;
-    else return 0;
+    if (mTracked)
+        return mGroove;
+    else
+        return 0;
 }
 
 float RhythmDetector::Freshness() const {
-    if (unkc) return 1 - unk4c;
-    else return 0;
+    if (mTracked)
+        return 1 - mRhythmDecay;
+    else
+        return 0;
+}
+Vector4 RhythmDetector::Data1(int idx) const {
+    const Vector3 &v = unkaac[idx];
+    return Vector4(v.x, v.y, v.z, 0);
 }
 
-Vector4 RhythmDetector::Data1(int i1) const {
-    //Vector4 out;
-    //out.x = unkaac[i1].x;
-    //out.y = unkaac[i1].y;
-    ////out.w = 0.0;
-    //out.z = unkaac[i1].z;
-    //return out;
-    return Vector4(unkaac.x, unkaac.y, unkaac.z, 0.0);
- }
-
-Vector4 RhythmDetector::Data2(int i1) const {
-    return Vector4(0, 1, 1, 1);
-}
+Vector4 RhythmDetector::Data2(int) const { return Vector4(0, 1, 1, 1); }
 
 void RhythmDetector::RemoveDebugGraphs() {
-    delete mDebugGraphA;
-    mDebugGraphA = nullptr;
-    delete mDebugGraphB;
-    mDebugGraphB = nullptr;
-    delete mDebugGraphC;
-    mDebugGraphC = nullptr;
-    delete mDebugGraphD;
-    mDebugGraphD = nullptr;
-    delete mDebugGraphE;
-    mDebugGraphE = nullptr;
+    RELEASE(mDebugGraphA);
+    RELEASE(mDebugGraphB);
+    RELEASE(mDebugGraphC);
+    RELEASE(mDebugGraphD);
+    RELEASE(mDebugGraphE);
 }
 
-void RhythmDetector::AddDebugGraph(float f1, float f2, float f3, float f4, Hmx::Color color) {
-    if (mDebugGraphE) {
-        delete mDebugGraphE;
-    }
-    String s = MakeString("beats %d fold %d dir %.1f %.1f %.1f", unk44, unk50, unk58.x, unk58.y, unk58.z);
-    mDebugGraphE = new DebugGraph(f1, f2, f3, f4, Hmx::Color(0x3ecccccd, 0x3ecccccd, 0x3ecccccd), Hmx::Color(0x3ecccccd, 0x3ecccccd, 0x3ecccccd), s.length(), 0, 2, s);
-    mDebugGraphE->SetUnk44(1.0);
+void RhythmDetector::AddDebugGraph(
+    float f1, float f2, float f3, float f4, Hmx::Color color
+) {
+    delete mDebugGraphE;
+    mDebugGraphE = new DebugGraph(
+        f1,
+        f2,
+        f3,
+        f4,
+        color,
+        Hmx::Color(0.4f, 0.4f, 0.4f, 0.8f),
+        120,
+        0,
+        2,
+        MakeString(
+            "beats %d  fold %d  dir %.1f %.1f %.1f",
+            (int)mBeats,
+            mFold,
+            mDirection.x,
+            mDirection.y,
+            mDirection.z
+        )
+    );
+    mDebugGraphE->SetUnk44(1);
 }
 
 void RhythmDetector::AddFullDebugGraphs() {
     if (gLog != -1) {
-        if (mDebugGraphA) {
-            delete mDebugGraphA;
-        }
-        auto mDebugGraphA = new DebugGraph(0.1,0.0,0.8,0.06, Hmx::Color(0.0,0.0,0.0,0.0), Hmx::Color(0.0,0.0,0.0,0.0), 0, -1.1, 1.1, "");
+        Hmx::Color red(1, 0, 0, 1);
+        delete mDebugGraphA;
+        mDebugGraphA = new DebugGraph(
+            0.1f, 0.0f, 0.8f, 0.06f, red, Hmx::Color(0, 0, 0, 0), 120, -1.1f, 1.1f, ""
+        );
         mDebugGraphA->SetUnk50(false);
     }
 }
 
 void RhythmDetector::StartRecording() {
-    char temp = mRecording;
-    mRecording = temp + 1;
-    if (mRecording == 1) {
+    if (++mRecording == 1) {
         AddFullDebugGraphs();
         unkaa8 = TheTaskMgr.Beat();
         ClearData();
@@ -289,9 +334,7 @@ void RhythmDetector::StartRecording() {
 }
 
 void RhythmDetector::StopRecording() {
-    char temp = mRecording;
-    mRecording = temp - 1;
-    if (mRecording == 0) {
+    if (--mRecording == 0) {
         unkaa8 = TheTaskMgr.Beat();
         ClearData();
     }
@@ -300,74 +343,88 @@ void RhythmDetector::StopRecording() {
 }
 
 void RhythmDetector::ClearData() {
-    float temp = 0.0;
-    unk68 = 0.0;
+    unk68 = 0;
     unk2c.clear();
     unk38.clear();
-    unkc08.clear();
-    unk48 = 0.0;
-    unk4c = 0.0;
-    unkc04 = true;
-    mRecordData.unkbf4 = -1.0;
-    mRecordData.unkbf8 = -1.0;
-    mRecordData.unkbec = -1.0;
-    mRecordData.unkbf0 = -1.0;
-    mRecordData.unkbfc = -1.0;
-    mRecordData.unkc00 = -1.0;
+    mRecordData.frames.clear();
+    mGroove = 0;
+    mRhythmDecay = 0;
+    mRecordData.unk18 = true;
+    mRecordData.unk8 = -1;
+    mRecordData.unkc = -1;
+    mRecordData.unk0 = -1;
+    mRecordData.unk4 = -1;
+    mRecordData.unk10 = -1;
+    mRecordData.unk14 = -1;
     unk14.clear();
     AddFullDebugGraphs();
 }
 
-void RhythmDetector::AddFrame(BaseSkeleton const &skel) {
-    auto panel = ObjectDir::Main()->Find<UIPanel>("rhythm_detector_panel", false);
-    if (panel) {
-        Vector3 jointPosVec;
-        for (int skelJoint = 0; skelJoint < kNumJoints; skelJoint++) {
-            skel.JointPos(kCoordCamera, static_cast<SkeletonJoint>(skelJoint), jointPosVec);
-        }
-        float beat = TheTaskMgr.Beat();
-        float seconds =TheTaskMgr.Seconds(TaskMgr::kRealTime);
-        float beatDiff = beat - unkaa8;
-        if (beatDiff < 0.0) {
-            ClearData();
-            beatDiff = 0.0;
-        }
-        int temp = -1;
-        int anotherInt = 0;
-        float something = 0.0;
-        for (int i = 0; i < 8; i++) {
-            if (0.0 < unka80.back() && ((fabs(seconds - unka80.back()) - 0.1) < something || temp == -1)) {
-                something = fabs(seconds - unka80.back()) - 0.1;
-                temp = anotherInt;
-                anotherInt++;
-            }
-        }
-        if (temp != -1) {
+// void RhythmDetector::AddFrame(BaseSkeleton const &skel) {
+//     auto panel = ObjectDir::Main()->Find<UIPanel>("rhythm_detector_panel", false);
+//     if (panel) {
+//         Vector3 jointPosVec;
+//         for (int skelJoint = 0; skelJoint < kNumJoints; skelJoint++) {
+//             skel.JointPos(
+//                 kCoordCamera, static_cast<SkeletonJoint>(skelJoint), jointPosVec
+//             );
+//         }
+//         float beat = TheTaskMgr.Beat();
+//         float seconds = TheTaskMgr.Seconds(TaskMgr::kRealTime);
+//         float beatDiff = beat - unkaa8;
+//         if (beatDiff < 0.0) {
+//             ClearData();
+//             beatDiff = 0.0;
+//         }
+//         int temp = -1;
+//         int anotherInt = 0;
+//         float something = 0.0;
+//         for (int i = 0; i < 8; i++) {
+//             if (0.0 < unka80.back()
+//                 && ((fabs(seconds - unka80.back()) - 0.1) < something || temp == -1)) {
+//                 something = fabs(seconds - unka80.back()) - 0.1;
+//                 temp = anotherInt;
+//                 anotherInt++;
+//             }
+//         }
+//         if (temp != -1) {
+//         }
+//     }
+// }
 
-        }
-    }
-
-}
-
-const RhythmDetector::RecordData &
-RhythmDetector::GetRecord(float f1, float f2, bool b, Symbol sym, TextStream *stream) {
-    RecordData ret = mRecordData;
-    if (mRecordData.unkbec == f1 && mRecordData.unkbf8 == f2) {
-        if (stream) {
-            AnalyzeData(unk38, mRecordData.unkbfc, mRecordData.unkc00, unk4c, unk54, mDebugGraphA->GetUnk50(), 0, b, 0, mDebugGraphA->GetUnk38(), stream);
-            unkc04 = true;
-        }
-    }
-    else {
-        if (unkc04 == false) {
-            MILO_NOTIFY("new rhythm detector window w/o finalization [%.1f,%.1f] to [%.1f, %.1f]", mRecordData.unkbec, mRecordData.unkbf0, f1, f2);
-        }
-        ClearData();
-        mRecordData.unkbf0 = f2;
-        unkc04 = false;
-        mRecordData.unkbf4 = -1.0;
-        mRecordData.unkbf8 = -1.0;
-        unkc08.clear();
-    }
-    return ret;
-}
+// const RhythmDetector::RecordData &
+// RhythmDetector::GetRecord(float f1, float f2, bool b, Symbol sym, TextStream *stream) {
+//     RecordData ret = mRecordData;
+//     if (mRecordData.unkbec == f1 && mRecordData.unkbf8 == f2) {
+//         if (stream) {
+//             AnalyzeData(
+//                 unk38,
+//                 mRecordData.unkbfc,
+//                 mRecordData.mTracked00,
+//                 mRhythmDecay,
+//                 mToleranceFactor,
+//                 mDebugGraphA->GetmFold(),
+//                 0,
+//                 b,
+//                 0,
+//                 mDebugGraphA->GetUnk38(),
+//                 stream
+//             );
+//             mTracked04 = true;
+//         }
+//     } else {
+//         if (mTracked04 == false) {
+//             MILO_NOTIFY(
+//                 "new rhythm detector window w/o finalization [%.1f,%.1f] to [%.1f,
+//                 %.1f]", mRecordData.unkbec, mRecordData.unkbf0, f1, f2
+//             );
+//         }
+//         ClearData();
+//         mRecordData.unkbf0 = f2;
+//         mTracked04 = false;
+//         mRecordData.unkbf4 = -1.0;
+//         mRecordData.unkbf8 = -1.0;
+//         mTracked08.clear();
+//     }
+//     return ret;
+// }
