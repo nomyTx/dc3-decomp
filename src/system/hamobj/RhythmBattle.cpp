@@ -331,6 +331,60 @@ void RhythmBattle::UpdateMindControl() {
     static Symbol gameplay_mode("gameplay_mode");
     static Symbol game_stage("game_stage");
     static Symbol playing("playing");
+    static Symbol grooving("grooving");
+    static Symbol not_grooving("not_grooving");
+
+    // Get gameplay mode and game stage
+    const DataNode *gameplayNode = TheHamProvider->Property(gameplay_mode, true);
+    Symbol gameplaySym = gameplayNode->Sym();
+
+    const DataNode *stageNode = TheHamProvider->Property(game_stage, true);
+    Symbol stageSym = stageNode->Sym();
+
+    // Check if mind control and playing
+    if (gameplaySym == mind_control && stageSym == playing) {
+        // Set player active states for mind control mode
+        if (mPlayerOne) {
+            mPlayerOne->SetActive(true);
+        }
+        if (mPlayerTwo) {
+            mPlayerTwo->SetActive(true);
+        }
+
+        // Character animation management
+        HamCharacter *character = nullptr;
+        for (int i = 0; i < 2; i++) {
+            character = TheHamDirector->GetCharacter(i);
+            if (!character) continue;
+
+            RndAnimatable *animMC = character->Find<RndAnimatable>("mind_control.anim", false);
+            RndAnimatable *animSound = character->Find<RndAnimatable>("mind_control_sound.anim", false);
+
+            // Calculate animation parameters
+            float timeSeconds = TheTaskMgr.UISeconds();
+            float phase = sin(timeSeconds * (2.0f * 3.14159265f)) * (0.2f - 0.2f) + 0.2f;
+            float beatVal = phase * unk110;
+
+            if (animMC) {
+                animMC->Animate(0.0f, animMC->EndFrame(), animMC->Units(), beatVal, 0, 0, kEaseLinear, 0, 0);
+            }
+            if (animSound) {
+                animSound->Animate(0.0f, animSound->EndFrame(), animSound->Units(), unk10c, 0, 0, kEaseLinear, 0, 0);
+            }
+        }
+
+        // Check grooving status
+        float beatMC = unk10c;
+        if (beatMC > 0.5f && beatMC <= 0.9333f) {
+            PlayMindControlVO(grooving);
+        } else if (beatMC <= 0.2f && beatMC > 0.0f) {
+            PlayMindControlVO(not_grooving);
+        }
+
+        // Update beat counter
+        float deltaSecs = TheTaskMgr.DeltaSeconds();
+        unk110 += deltaSecs;
+    }
 }
 
 void RhythmBattle::OnBeat() {
