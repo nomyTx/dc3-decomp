@@ -2,7 +2,7 @@
 #include "hamobj/MoveGraph.h"
 #include "obj/Data.h"
 #include "obj/Object.h"
-#include "stl/_vector.h"
+#include <vector>
 #include <set>
 
 class MiniGameMgr : public Hmx::Object {

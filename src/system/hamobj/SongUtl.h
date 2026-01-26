@@ -1,11 +1,14 @@
 #pragma once
 #include "obj/Data.h"
 #include "obj/PropSync.h"
-#include "utl/BinStream.h"
-#include "utl/TimeConversion.h"
 
 struct Range {
     Range() : start(0), end(0) {}
+    Range &operator=(const Range &r) {
+        start = r.start;
+        end = r.end;
+        return *this;
+    }
     int start;
     int end;
 };

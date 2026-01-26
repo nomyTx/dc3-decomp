@@ -4,21 +4,24 @@
 #include "hamobj/SongUtl.h"
 #include "obj/Data.h"
 #include "obj/Object.h"
-#include "stl/_vector.h"
 #include "utl/MemMgr.h"
+#include <vector>
 
 class SongPattern {
-    friend bool
-    PropSync(SongPattern &o, DataNode &_val, DataArray *_prop, int _i, PropOp _op);
-
 public:
-    SongPattern() : unk24(0) {
+    SongPattern() : mNumMoves(0) {
         mElements.clear();
         mMoveParents.clear();
     }
     ~SongPattern() {}
 
-private:
+    void ClearMoves() {
+        mNumMoves = 0;
+        FOREACH (it, mMoveParents) {
+            *it = nullptr;
+        }
+    }
+
     /** "The name of this pattern" */
     Symbol mName; // 0x0
     /** "The measure range when this pattern first appears" */
@@ -26,7 +29,7 @@ private:
     /** "Pattern elements" */
     std::vector<Symbol> mElements; // 0xc
     std::vector<const MoveParent *> mMoveParents; // 0x18
-    int unk24; // 0x24
+    int mNumMoves; // 0x24
 };
 
 class SongSection {
@@ -37,14 +40,14 @@ public:
     Range mPatternRange; // 0x8
     /** "The pattern this section is using" */
     Symbol mPattern; // 0x10
-    int unk14;
+    SongPattern *unk14; // 0x14
 };
 
 struct MoveReplacer {
-    int unk0;
-    int unk4;
-    int unk8;
-    std::vector<int> unkc;
+    Symbol unk0; // 0x0 - from
+    Symbol unk4; // 0x4 - to
+    const MoveParent *unk8; // 0x8
+    std::vector<int> mMeasures; // 0xc
 };
 
 /** "Song layout" */
@@ -66,6 +69,16 @@ public:
     void SetDefaultPattern(int);
     void SetDefaultReplacer();
     void ClearChosenPatterns();
+    void AddPatternMove(int, Symbol);
+    void SetReplacerMove(int, Symbol);
+    void ClearAllPatternMoves();
+    int FirstUnfilledPattern() const;
+    int FirstUnfilledReplacer() const;
+    int ReplacerFirstMeasure(int) const;
+    void DumpPatterns() const;
+    bool MeasureInPattern(int, int) const;
+    void ClearMoves(int);
+
     int NumReplacers() const { return mMoveReplacers.size(); }
     const std::vector<SongSection> &SongSections() const { return mSongSections; }
 
