@@ -7,13 +7,25 @@
 #define kChunkSizeMask 0x00ffffff
 #define kChunkUnusedMask 0xfe000000
 #define CHUNKSTREAM_Z_ID 0xCBBEDEAF
+#define CHUNKSTREAM_Z_ID2 0xCCBEDEAF
+#define CHUNKSTREAM_Z_ID3 0xCDBEDEAF
 #define kChunkIDMask 0xC0BEDEAF
+
 
 enum BufferState {
     kInvalid,
     kReading,
     kDecompressing,
     kReady,
+};
+
+struct DecompressTask {
+    int *mChunk; // 0x0
+    void *mBuffer; // 0x4
+    BufferState *mState; // 0x8
+    int unkc; // 0xc i think this is the expected decompressed size
+    int mID; // 0x10
+    char *mTempBuf; // 0x14
 };
 
 class ChunkStream : public BinStream {
@@ -47,10 +59,17 @@ public:
     virtual bool Cached() const;
     virtual Platform GetPlatform() const;
 
+    void PotentiallyWriteChunk(bool b) { MaybeWriteChunk(b); } // so dumb
+    static bool PollDecompressionWorker();
+
 private:
     virtual void ReadImpl(void *, int);
     virtual void WriteImpl(const void *, int);
     virtual void SeekImpl(int, SeekType);
+
+    static void DecompressChunk(DecompressTask &);
+    void DecompressChunkAsync();
+    int WriteChunk();
 
     void SetPlatform(Platform);
     void ReadChunkAsync();
@@ -82,3 +101,4 @@ private:
 BinStream &MarkChunk(BinStream &);
 void SetActiveChunkObject(Hmx::Object *obj);
 BinStream &WriteChunks(BinStream &, const void *, int, int);
+void DecompressMemHelper(const void *, int, void *, int &, const char *);

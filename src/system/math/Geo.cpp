@@ -265,3 +265,75 @@ void MultiplyEq(BSPNode *n, const Transform &t) {
         MultiplyEq(n->left, t);
     }
 }
+
+void Intersect(const Hmx::Ray &ray1, const Hmx::Ray &ray2, Vector2 &vec) {
+    float dot = ray1.dir.y * ray2.dir.x - ray1.dir.x * ray2.dir.y;
+    if (dot != 0.0f) {
+        float s = ((ray2.base.y - ray1.base.y) * ray1.dir.x + (ray1.base.x - ray2.base.x)
+                    * ray1.dir.y) / dot;
+        vec.Set(s * ray2.dir.x + ray2.base.x, s * ray2.dir.y + ray2.base.y);
+    }
+    else {
+        vec = ray1.base;
+    }
+}
+
+void Intersect(const Transform &trans, const Plane &plane, Hmx::Ray &ray) {
+    Vector3 planeVec(plane.a, plane.b, plane.c);
+    float planeVecSquared = planeVec.x * planeVec.x + planeVec.y * planeVec.y + planeVec.z * planeVec.z;
+    float scale = -(plane.d / planeVecSquared);
+    Vector3 scaledVec(planeVec.x * scale, planeVec.y * scale, planeVec.z * scale);
+    Vector3 point;
+    MultiplyTranspose(scaledVec, trans, point);
+    float dotX = trans.m.x.x * plane.a + trans.m.x.y * plane.b + trans.m.x.z * plane.c;
+    float dotY = trans.m.y.x * plane.a + trans.m.y.y * plane.b + trans.m.y.z * plane.c;
+    float dotZ = trans.m.z.x * plane.a + trans.m.z.y * plane.b + trans.m.z.z * plane.c;
+    ray.dir.Set(dotX, dotY);
+    if (std::fabs(dotY) > std::fabs(dotX)) {
+        ray.base.Set(point.x + (dotZ / dotX) * point.z, point.y);
+    }
+    else {
+        ray.base.Set(point.x, point.y + (dotZ / dotY) * point.z);
+    }
+}
+
+bool Intersect(const Segment &seg, const Triangle &tri, bool b, float &out) {
+    Vector3 segDirection(seg.end.x - seg.start.x, seg.end.y - seg.start.y, seg.end.z - seg.start.z);
+    const Vector3 &triFrameZ = tri.frame.z;
+    float segDirDot = triFrameZ.x * segDirection.x + triFrameZ.y * segDirection.y + triFrameZ.z * segDirection.z;
+    if (fabs(segDirDot) < 0.0001f || b && segDirDot > 0.0f) {
+        return false;
+    }
+
+    Vector3 vec3A(seg.start.x - tri.origin.x, seg.start.y - tri.origin.y, seg.start.z - tri.origin.z);
+    float tempDot = triFrameZ.x * vec3A.x + triFrameZ.y * vec3A.y + triFrameZ.z * vec3A.z;
+    float t = -(tempDot / segDirDot);
+    out = t;
+    if (t < 0.0f || t > 1.0f) {
+        return false;
+    }
+
+    Vector3 vec3B((seg.start.x + segDirection.x * t) - tri.origin.x,
+                  (seg.start.y + segDirection.y * t) - tri.origin.y,
+                  (seg.start.z + segDirection.z * t) - tri.origin.z);
+
+    const Vector3 &triFrameX = tri.frame.x;
+    const Vector3 &triFrameY = tri.frame.y;
+
+    float dotXX = triFrameX.x * triFrameX.x + triFrameX.y * triFrameX.y + triFrameX.z * triFrameX.z;
+    float dotYY = triFrameY.x * triFrameY.x + triFrameY.y * triFrameY.y + triFrameY.z * triFrameY.z;
+    float dotXY = triFrameX.x * triFrameY.x + triFrameX.y * triFrameY.y + triFrameX.z * triFrameY.z;
+    float dotX3B = triFrameX.x * vec3B.x + triFrameX.y * vec3B.y + triFrameX.z * vec3B.z;
+    float dotY3B = triFrameY.x * vec3B.x + triFrameY.y * vec3B.y + triFrameY.z * vec3B.z;
+
+    float inv = 1.0f / (dotXY * dotXY - dotYY * dotXX);
+    float k = (dotY3B * dotXY - dotX3B * dotYY) * inv;
+    if (k < 0.0f || k > 1.0f) {
+        return false;
+    }
+    float j = (dotX3B * dotXY - dotY3B * dotXX) * inv;
+    if (j < 0.0f || k + j > 1.0f) {
+        return false;
+    }
+    return true;
+}
