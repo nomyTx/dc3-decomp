@@ -18,11 +18,11 @@
 #include "os/System.h"
 #include "rndobj/PropAnim.h"
 #include "rndobj/PropKeys.h"
-#include "stl/_algo.h"
+#include <algorithm>
 
 MoveMgr::MoveMgr() : unk40(0), unka0(0) {
     mMovesDir = nullptr;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < kNumDifficultiesDC2; i++) {
         unk54[i].clear();
         mMovePropKeys[i] = nullptr;
         mClipPropKeys[i] = nullptr;
@@ -44,7 +44,7 @@ MoveMgr::~MoveMgr() {
     unk19c.clear();
     unka0 = 0;
     mMovesDir = nullptr;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < kNumDifficultiesDC2; i++) {
         unk54[i].clear();
         mMovePropKeys[i] = nullptr;
         mClipPropKeys[i] = nullptr;

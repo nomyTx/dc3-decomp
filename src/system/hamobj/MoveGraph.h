@@ -93,6 +93,8 @@ private:
     std::vector<const MoveParent *> mPrevAdjacents; // 0x40
 };
 
+struct MoveVariantValueStruct {};
+
 union MoveVariantValue {
     const MoveVariant *mVariant;
     const char *mVariantName;
@@ -137,6 +139,7 @@ public:
     Symbol Song() const { return mSongName; }
 
 private:
+    // every use of this so far has just been (0,0,0)
     Vector3 mPositionOffset; // 0x0
     Symbol mVariantName; // 0x10
     MoveParent *mMoveParent; // 0x14
