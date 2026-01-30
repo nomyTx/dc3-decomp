@@ -58,8 +58,6 @@ private:
 };
 
 class MoveParent {
-    friend class MoveGraph;
-
 public:
     MoveParent();
     MoveParent(const MoveParent *);
@@ -78,22 +76,20 @@ public:
     bool HasCategory(Symbol) const;
     Difficulty GetDifficulty() const { return mDifficulty; }
     const std::vector<MoveVariant *> &Variants() const { return mVariants; }
-    Symbol Name() const { return unk4; }
+    Symbol Name() const { return mName; }
 
 private:
     void PopulateAdjacentParents();
 
-    Symbol unk4; // 0x4
+    Symbol mName; // 0x4
     Difficulty mDifficulty; // 0x8
     bool unkc; // 0xc
     std::vector<MoveVariant *> mVariants; // 0x10
     std::vector<Symbol> mGenreFlags; // 0x1c
     std::vector<Symbol> mEraFlags; // 0x28
-    std::vector<const MoveParent *> unk34; // 0x34
+    std::vector<const MoveParent *> mNextAdjacents; // 0x34
     std::vector<const MoveParent *> mPrevAdjacents; // 0x40
 };
-
-struct MoveVariantValueStruct {};
 
 union MoveVariantValue {
     const MoveVariant *mVariant;
@@ -119,6 +115,7 @@ struct MoveCandidate {
 
 class MoveVariant {
     friend class MoveCandidate;
+    friend class MoveParent;
 
 public:
     MoveVariant() {}
