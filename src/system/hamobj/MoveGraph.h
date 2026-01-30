@@ -58,6 +58,8 @@ private:
 };
 
 class MoveParent {
+    friend class MoveGraph;
+
 public:
     MoveParent();
     MoveParent(const MoveParent *);
@@ -77,6 +79,18 @@ public:
     Difficulty GetDifficulty() const { return mDifficulty; }
     const std::vector<MoveVariant *> &Variants() const { return mVariants; }
     Symbol Name() const { return mName; }
+
+    void AddGenre(Symbol genre) {
+        if (!HasGenre(genre)) {
+            mGenreFlags.push_back(genre);
+        }
+    }
+    void AddEra(Symbol era) {
+        if (!HasEra(era)) {
+            mEraFlags.push_back(era);
+        }
+    }
+    void AddVariant(MoveVariant *v) { mVariants.push_back(v); }
 
 private:
     void PopulateAdjacentParents();
@@ -134,6 +148,7 @@ public:
     bool IsFinalPose() const { return mFlags & 8; }
     MoveParent *Parent() const { return mMoveParent; }
     Symbol Song() const { return mSongName; }
+    Symbol Era() const { return mEra; }
 
 private:
     // every use of this so far has just been (0,0,0)
