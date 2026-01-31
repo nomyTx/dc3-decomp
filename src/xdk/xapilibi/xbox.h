@@ -27,6 +27,7 @@ DWORD XShowPartyUI(DWORD dwUserIndex);
 DWORD XShowNuiFriendsUI(DWORD dwTrackingID, DWORD dwUserIndex);
 DWORD XShowNuiPartyUI(DWORD dwTrackingID, DWORD dwUserIndex);
 DWORD XShowNuiGuideUI(DWORD dwTrackingID);
+HRESULT XNuiDelayUI(ULONG ulMilliSeconds);
 DWORD XUserCheckPrivilege(
     DWORD dwUserIndex, XPRIVILEGE_TYPE PrivilegeType, BOOL *pfResult
 );

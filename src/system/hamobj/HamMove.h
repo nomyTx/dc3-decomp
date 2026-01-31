@@ -35,6 +35,7 @@ public:
         int filterMask = (unk4 & 0x300000) >> 5;
         return filterMask ? kFilterVersionHam1 : kFilterVersionHam2;
     }
+    float Beat() const { return mBeat; }
 
 private:
     float mBeat; // 0x0

@@ -104,6 +104,7 @@ public:
     PracticeSection *GetPracticeSection(Difficulty);
     DancerSequence *SkillsSequence(Difficulty, Symbol, Symbol);
     float DetectFrac(int, int);
+    bool InGracePeriod(int);
 
     MoveAsyncDetector *GetAsyncDetector() const { return mAsyncDetector; }
 
@@ -122,8 +123,16 @@ private:
         std::vector<DetectFrame> &, std::pair<DetectFrame *, DetectFrame *> &, int, int
     );
     void PostUpdateFilters();
+    float SongSpeed() const;
+    MoveFrame *ClosestMoveFrame();
 
     DataNode OnStreamJump(const DataArray *);
+    float DetectRangePSNR(
+        const std::pair<const DetectFrame *, const DetectFrame *> &, const FilterVersion *
+    ) const;
+    float DetectRangeFrac(
+        const std::pair<DetectFrame *, DetectFrame *> &, const FilterVersion *
+    ) const;
 
     static std::vector<FilterVersion *> sFilterVersions;
     static float sLatencySeconds;
