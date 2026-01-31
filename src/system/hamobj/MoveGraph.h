@@ -59,6 +59,7 @@ private:
 
 class MoveParent {
     friend class MoveGraph;
+    friend class MoveMgr;
 
 public:
     MoveParent();
@@ -79,6 +80,9 @@ public:
     Difficulty GetDifficulty() const { return mDifficulty; }
     const std::vector<MoveVariant *> &Variants() const { return mVariants; }
     Symbol Name() const { return mName; }
+    const std::vector<const MoveParent *> &NextAdjacents() const {
+        return mNextAdjacents;
+    }
 
     void AddGenre(Symbol genre) {
         if (!HasGenre(genre)) {
@@ -91,6 +95,7 @@ public:
         }
     }
     void AddVariant(MoveVariant *v) { mVariants.push_back(v); }
+    void SetUnkc(bool b) { unkc = b; }
 
 private:
     void PopulateAdjacentParents();
