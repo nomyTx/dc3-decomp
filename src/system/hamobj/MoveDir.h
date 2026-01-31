@@ -159,8 +159,8 @@ protected:
     FilterQueue *mFilterQueue; // 0x314
     MovePlayerData mMovePlayerData[2]; // 0x318
     MoveAsyncDetector *mAsyncDetector; // 0x390
-    DirLoader *unk394; // 0x394 - update loader?
-    std::list<ObjDirPtr<UILabelDir> > unk398; // 0x398 - update fonts?
+    DirLoader *mUpdateLoader; // 0x394
+    std::list<ObjDirPtr<UILabelDir> > mUpdateFonts; // 0x398
     /** Smoothed normalized results of the current move. */
     DoubleExponentialSmoother mCurMoveSmoothers[2]; // 0x3a0
 

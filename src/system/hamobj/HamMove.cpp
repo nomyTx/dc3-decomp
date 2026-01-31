@@ -119,7 +119,7 @@ BinStream &operator>>(BinStreamRev &d, Ham2FrameWeight &wt) {
 void MoveFrame::Save(BinStream &bs) const {
     bs << mBeat;
     bs << unk4;
-    bs << 16;
+    bs << kNumHam1Nodes;
     for (int i = 0; i < kNumMoveModes; i++) {
         for (int j = 0; j < kNumMoveMirrored; j++) {
             for (int k = 0; k < kNumHam1Nodes; k++) {
@@ -774,9 +774,10 @@ float HamMove::ConfusabilityWithMoveDataArray(const DataArray *a) {
             i3++;
             float f5 = Confusability(move);
             if (f5 > f6) {
-                f6 = 0.5f;
                 if (f5 < 0.5f) {
                     f6 = f5;
+                } else {
+                    f6 = 0.5f;
                 }
             }
         }
@@ -796,5 +797,13 @@ float HamMove::AdjustNormalizedPercentToConfusability(float f1, float f2) {
         return (0.5f / fvar1) * f1;
     } else {
         return ((f1 - fvar1) / (perfectFrac - fvar1) + 1.0f) / 2.0f;
+    }
+}
+
+const std::vector<float> *HamMove::RatingOverride() const {
+    if (mRatingStates.front() > 0) {
+        return &mRatingStates;
+    } else {
+        return nullptr;
     }
 }

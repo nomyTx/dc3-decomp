@@ -46,6 +46,8 @@
 #include "rndobj/Font.h"
 #include "rndobj/FontBase.h"
 #include "rndobj/Overlay.h"
+#include "rndobj/Rnd.h"
+#include "rndobj/Utl.h"
 #include "ui/PanelDir.h"
 #include "ui/ResourceDirPtr.h"
 #include "ui/UILabelDir.h"
@@ -58,6 +60,28 @@
 #include "world/Dir.h"
 
 std::vector<FilterVersion *> MoveDir::sFilterVersions;
+
+namespace {
+    static Hmx::Color sGray(0.5, 0.5, 0.5, 1);
+    static Hmx::Color sGreen(0, 0.6, 0, 0.5);
+    static Hmx::Color sDarkerGray(0.3, 0.3, 0.3, 0.8);
+    static Hmx::Color sLightGray(0.8, 0.8, 0.8, 1);
+    static Hmx::Color sDarkGray(0.3, 0.3, 0.3, 0.6);
+
+    float DrawOverlayBar(float f1, float f2, float f3, const Hmx::Color &c, float f4) {
+        TheRnd.DrawRectScreen(
+            Hmx::Rect(f2, f1, (f3 - f2), f4), c, nullptr, nullptr, nullptr
+        );
+        UtilDrawLine(Vector2(f2, f1), Vector2(f2, f1 + f4), sGray);
+        UtilDrawLine(Vector2(f3, f1), Vector2(f3, f1 + f4), sGray);
+        return f4;
+    }
+
+    float DrawDetectedBar(float, const char *, float, float, float, bool, bool);
+    void DrawBeatLine(float, float, float, const Hmx::Color &);
+    float DrawPlayClip(float, SkeletonClip *, int);
+
+}
 
 String RecordClipName(const char *cc, int i2) {
     DateTime dt;
@@ -100,7 +124,7 @@ MoveMode CurrentMoveMode() {
 MoveDir::MoveDir()
     : mShowMoveOverlay(0), mErrorNodeInfo(0), mPlayClip(this), mRecordClip(this),
       unk2bc(this), unk2d0(this), unk2e4(0), mReportMove(this), mFiltersEnabled(0),
-      mGamePanel(0), unk30c(0), mFilterQueue(0), mAsyncDetector(0), unk394(0),
+      mGamePanel(0), unk30c(0), mFilterQueue(0), mAsyncDetector(0), mUpdateLoader(0),
       mFinishingMoveMeasure(10000), mMoveOverlay(RndOverlay::Find("ham_move", true)),
       mDancerSeq(this), unk414(0), mSkeletonViz(Hmx::Object::New<SkeletonViz>()),
       unk41c(0), mDebugLatencyOffset(0), mDebugLoop(0), mLastPollMs(0),
@@ -285,7 +309,7 @@ void MoveDir::PreLoad(BinStream &bs) {
             const SongMetadata *songData =
                 songMgr->Data(songMgr->GetSongIDFromShortName(song, true));
             if (songData->Version() < 11) {
-                unk394 = dynamic_cast<DirLoader *>(TheLoadMgr.AddLoader(
+                mUpdateLoader = dynamic_cast<DirLoader *>(TheLoadMgr.AddLoader(
                     FilePath(FileRoot(), songMgr->SongFilePath(song, "_update.milo", 11)),
                     kLoadFront
                 ));
@@ -422,9 +446,9 @@ void MoveDir::PostLoad(BinStream &bs) {
         d >> filterVersion;
     }
     SetFilterVersion(filterVersion);
-    if (unk394) {
-        ObjectDir *loaderDir = unk394->GetDir();
-        RELEASE(unk394);
+    if (mUpdateLoader) {
+        ObjectDir *loaderDir = mUpdateLoader->GetDir();
+        RELEASE(mUpdateLoader);
         if (loaderDir) {
             for (ObjDirItr<Hmx::Object> it(loaderDir, true); it != nullptr; ++it) {
                 Hmx::Object *cur = it;
@@ -474,7 +498,7 @@ void MoveDir::PostLoad(BinStream &bs) {
                     RndFontBase *font = labelDirPtr->FontObj(gNullStr);
                     MILO_ASSERT(font, 0xA52);
                     ReplaceObject(font, updateFont, false, false, true);
-                    unk398.push_back(labelDirPtr);
+                    mUpdateFonts.push_back(labelDirPtr);
                 }
             }
         }
@@ -660,9 +684,9 @@ void MoveDir::PostUpdate(const SkeletonUpdateData *data) {
                     unk424.Poll(0, skeletonFrame);
                 }
             } else {
-                const Skeleton *playerSkeleton =
-                    TheGameData->Player(0)->GetSkeleton((const Skeleton *const(&)[6]
-                    )data->unk4);
+                const Skeleton *playerSkeleton = TheGameData->Player(0)->GetSkeleton(
+                    (const Skeleton *const(&)[6])data->unk4
+                );
                 if (playerSkeleton) {
                     unk424 = *playerSkeleton;
                 }
@@ -846,8 +870,9 @@ void MoveDir::FlushMoveRecord() {
 }
 
 void MoveDir::SwapMoveRecord() {
-    if (unk2d0) {
-        unk2d0->SwapMoveRecord();
+    SkeletonClip *clip = unk2d0;
+    if (clip) {
+        clip->SwapMoveRecord();
     } else {
         MILO_NOTIFY("skeleton recording not yet active");
     }
