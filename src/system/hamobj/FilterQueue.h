@@ -9,6 +9,19 @@
 // size 0x34
 class FilterQueue {
 public:
+    FilterQueue();
+
+    bool GetResults(float &, DetectFrame **, float);
+    void EnqueueNewJob(float, float, MoveMode);
+    void EnqueueFrame(int, float, float, DetectFrame *, const FilterVersion *);
+    bool IsJobFinished() const;
+    float LastPollMs() const;
+    bool HasJob() const;
+    void CancelJob();
+    void StartJob();
+    void Poll(const SkeletonUpdateData &);
+
+private:
     // size 0x14
     class FilterInputFrame {
     public:
@@ -26,30 +39,21 @@ public:
         Vector3 unk4[kMaxNumErrorNodes]; // 0x4
     };
 
-    class QueuedJob {
-    public:
+    struct QueuedJob {
+        float unk0; // 0x0 - song seconds minus latency seconds
+        MoveMode unk4; // 0x4 - current move mode
+        float unk8; // 0x8 - song speed
+        std::vector<FilterInputFrame> frames; // 0xc
     };
 
-    FilterQueue();
+    struct Output {
+        float unk0;
+        MoveMode unk4;
+        std::vector<FilterOutputFrame> frames; // 0x20
+    };
 
-    bool GetResults(float &, DetectFrame **, float);
-    void EnqueueNewJob(float, float, MoveMode);
-    void EnqueueFrame(int, float, float, DetectFrame *, const FilterVersion *);
-    bool IsJobFinished() const;
-    float LastPollMs() const;
-    bool HasJob() const;
-    void CancelJob();
-    void StartJob();
-    void Poll(const SkeletonUpdateData &);
-
-private:
-    float unk0;
-    MoveMode unk4;
-    float unk8;
-    std::vector<FilterInputFrame> qframes; // 0xc
-    float unk18;
-    MoveMode unk1c;
-    std::vector<FilterOutputFrame> oframes; // 0x20
+    QueuedJob mQueuedJob; // 0x0
+    Output mOutput; // 0x18
     bool jobFinished; // 0x2c
     float lastPollMs; // 0x30
 };
