@@ -1,25 +1,55 @@
 #include "hamobj/SongCollision.h"
 #include "SongCollision.h"
 #include "hamobj/Difficulty.h"
+#include "hamobj/HamCharacter.h"
+#include "hamobj/HamDirector.h"
+#include "hamobj/HamGameData.h"
+#include "hamobj/MocapSkeletonIterator.h"
+#include "hamobj/MoveDir.h"
+#include "math/Mtx.h"
 #include "math/Vec.h"
 #include "obj/Data.h"
 #include "obj/DataUtl.h"
 #include "obj/Object.h"
+#include "os/Debug.h"
+#include "rndobj/Trans.h"
 #include "utl/BinStream.h"
 #include "utl/Std.h"
+#include "utl/TimeConversion.h"
 
 std::vector<const char *> sCollisionUsefulBoneNames;
+
+void bones_min_max_x(
+    float &minX,
+    float &maxX,
+    std::vector<RndTransformable *> &transes,
+    const Transform &xfm
+) {
+    FOREACH (it, transes) {
+        Vector3 v40;
+        MultiplyTranspose((*it)->WorldXfm().v, xfm, v40);
+        minX = Min(minX, v40.x);
+        maxX = Max(maxX, v40.x);
+    }
+}
+
+bool AreDancersColliding1D(
+    std::vector<RndTransformable *> &,
+    std::vector<RndTransformable *> &,
+    const Vector3 &,
+    const Vector3 &
+);
 
 #pragma region BeatCollisionData
 
 void BeatCollisionData::Set(
-    float minX, float minY, const Transform &start_xfm, const Transform &end_xfm
+    float minX, float maxX, const Transform &start_xfm, const Transform &end_xfm
 ) {
     using namespace Hmx;
     MILO_ASSERT(start_xfm.m == Matrix3::GetIdentity(), 0x62);
     MILO_ASSERT(end_xfm.m == Matrix3::GetIdentity(), 0x63);
     mMinX = minX;
-    mMaxX = minY;
+    mMaxX = maxX;
     Subtract(start_xfm.v, end_xfm.v, mOffset);
 }
 
@@ -170,5 +200,79 @@ const BeatCollisionData *SongCollision::BeatData(int beat, Difficulty diff) cons
         return &diffData[beat];
     } else {
         return nullptr;
+    }
+}
+
+void SongCollision::GatherUsefulBones(
+    std::vector<RndTransformable *> &usefulBones, HamCharacter *dancer
+) {
+    MILO_ASSERT(dancer, 0x19);
+    usefulBones.clear();
+    for (ObjDirItr<RndTransformable> it(dancer, true); it != nullptr; ++it) {
+        const char *curName = it->Name();
+        for (int i = 0; i < sCollisionUsefulBoneNames.size(); i++) {
+            if (strneq(
+                    curName,
+                    sCollisionUsefulBoneNames[i],
+                    strlen(sCollisionUsefulBoneNames[i])
+                )) {
+                usefulBones.push_back(it);
+                break;
+            }
+        }
+    }
+}
+
+void SongCollision::Update(MoveDir *moveDir) {
+    if (moveDir) {
+        MILO_ASSERT(TheGameData, 0xFB);
+        MILO_ASSERT(TheHamDirector, 0xFC);
+        HamCharacter *dancer = TheHamDirector->GetCharacter(0);
+        MILO_ASSERT(dancer, 0xFF);
+        std::vector<RndTransformable *> usefulBones;
+        GatherUsefulBones(usefulBones, dancer);
+        Timer timer;
+        for (int i = 0; i < kNumDifficulties; i++) {
+            MILO_LOG("Processing collisions for %s\n", DifficultyToSym((Difficulty)i));
+            timer.Restart();
+            MILO_ASSERT(TheGameData, 0x10C);
+            TheGameData->Player(0)->SetDifficulty((Difficulty)i);
+            mData[i].clear();
+            MocapSkeletonIterator it(0, TheHamDirector->SongAnim(0)->EndFrame());
+            int current_beat = -1;
+            Transform startXfm;
+            float minX, maxX;
+            for (; it; ++it) {
+                int beat = SecondsToBeat(it.Unk24b8() * 0.03333333507180214f);
+                MILO_ASSERT(beat >= 0, 0x11B);
+                if (beat != current_beat) {
+                    MILO_ASSERT(beat == current_beat + 1, 0x11F);
+                    if (current_beat >= 0) {
+                        BeatCollisionData data;
+                        data.Set(minX, maxX, startXfm, dancer->WorldXfm());
+                        mData[i].push_back(data);
+                    }
+                    startXfm = dancer->WorldXfm();
+                    maxX = 0;
+                    minX = 0;
+                    current_beat = beat;
+                }
+                bones_min_max_x(minX, maxX, usefulBones, startXfm);
+            }
+            if (current_beat != -1) {
+                BeatCollisionData data;
+                data.Set(minX, maxX, startXfm, dancer->WorldXfm());
+                mData[i].push_back(data);
+            } else {
+                MILO_NOTIFY(
+                    "Could not process collision mocap for %s", TheGameData->GetSong()
+                );
+            }
+            timer.Stop();
+            MILO_LOG("Took %fms\n", timer.Ms());
+        }
+        int sizeKB = mData[0].size() * 0x48; // where is this 0x48 coming from
+        sizeKB /= 1024;
+        MILO_LOG("Approx size = %ikB\n", sizeKB);
     }
 }

@@ -18,6 +18,7 @@ struct BeatCollisionData {
 
 struct SongCollisionOutput {};
 
+/** "Contains data for handling potential character collisions" */
 class SongCollision : public Hmx::Object {
 public:
     // Hmx::Object

@@ -14,6 +14,8 @@ public:
     operator bool();
     void operator++();
 
+    int Unk24b8() const { return unk24b8; }
+
 private:
     void Update();
 
