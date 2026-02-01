@@ -349,14 +349,14 @@ void EventTrigger::SetName(const char *cc, class ObjectDir *dir) {
 }
 
 void EventTrigger::StartAnim() {
-    mFrame = kHugeFloat;
+    ResetFrame();
     if (mAnimTrigger == kTriggerAnimStart) {
         Trigger();
     }
 }
 
 void EventTrigger::EndAnim() {
-    mFrame = kHugeFloat;
+    ResetFrame();
     if (mAnimTrigger == kTriggerAnimEnd) {
         Trigger();
     } else if (mAnimTrigger == kTriggerAnimStart) {
@@ -365,10 +365,10 @@ void EventTrigger::EndAnim() {
 }
 
 void EventTrigger::SetFrame(float frame, float blend) {
-    float oldframe = mFrame;
+    float oldframe = GetFrame();
     RndAnimatable::SetFrame(frame, blend);
     if (mAnimTrigger == kTriggerAnimFrame && oldframe < mAnimFrame
-        && mFrame >= mAnimFrame) {
+        && GetFrame() >= mAnimFrame) {
         Trigger();
     }
 }
