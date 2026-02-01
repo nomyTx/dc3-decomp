@@ -5,7 +5,7 @@
 #include "hamobj/HamCharacter.h"
 #include "math/Mtx.h"
 
-class MocapSkeletonIterator : public SkeletonHistory, public SkeletonHistoryArchive {
+class MocapSkeletonIterator : public SkeletonHistoryArchive, public SkeletonHistory {
 public:
     MocapSkeletonIterator(int, int);
     ~MocapSkeletonIterator();
