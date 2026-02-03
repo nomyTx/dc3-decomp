@@ -56,6 +56,7 @@ public:
     void UpdateAnimations(Hmx::Object *);
     void ResetCombo();
     void SetActive(bool);
+    bool Unk2a8Check() const { return unk2a5 && unk2a8 > 12; }
 
 protected:
     RhythmBattlePlayer();

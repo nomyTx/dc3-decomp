@@ -6,7 +6,11 @@
 #include "hamobj/HamGameData.h"
 #include "hamobj/HamLabel.h"
 #include "hamobj/HamPlayerData.h"
+#include "hamobj/RhythmBattle.h"
+#include "hamobj/RhythmDetector.h"
+#include "hamobj/ScoreUtl.h"
 #include "math/Easing.h"
+#include "obj/Data.h"
 #include "obj/Dir.h"
 #include "obj/Msg.h"
 #include "obj/Object.h"
@@ -17,6 +21,7 @@
 #include "rndobj/Poll.h"
 #include "ui/UIPanel.h"
 #include "utl/Loader.h"
+#include "utl/Option.h"
 #include "utl/Symbol.h"
 #include "world/Dir.h"
 
@@ -116,6 +121,105 @@ BEGIN_LOADS(RhythmBattlePlayer)
     if (d.rev >= 1)
         d >> mBoxyDir;
 END_LOADS
+
+void RhythmBattlePlayer::Poll() {
+    static UIPanel *sRhythmDetectorPanel =
+        ObjectDir::Main()->Find<UIPanel>("rhythm_detector_panel", false);
+    if (!TheLoadMgr.EditMode() && sRhythmDetectorPanel) {
+        float f12 = TheTaskMgr.Beat();
+        if (unk23c && unk23c->Unkf9()) {
+            HamPlayerData *hpd = TheGameData->Player(mPlayer);
+            hpd->Provider()->Export(Message("hide_hud", 0), true);
+        }
+        if (unk240 && unk23c && !unk23c->Unk102()) {
+            int skelIdx = TheGestureMgr->GetSkeletonIndexByTrackingID(
+                TheGameData->Player(mPlayer)->GetSkeletonTrackingID()
+            );
+            RhythmDetector *rd = nullptr;
+            unk244 = 0;
+            unk248 = 0;
+            if (skelIdx != -1 && sRhythmDetectorPanel->LoadedDir()) {
+                String name = MakeString("RhythmDetectorX%d.rhy", skelIdx);
+                rd = sRhythmDetectorPanel->LoadedDir()->Find<RhythmDetector>(
+                    name.c_str(), false
+                );
+            }
+            if (unk258 >= 1) {
+                if (rd) {
+                    const RhythmDetector::RecordData &recordData =
+                        rd->GetRecord(unk28c, unk290, false, "", nullptr);
+                    unk244 = recordData.unk10;
+                    if (Unk2a8Check() && 1 < recordData.unk14) {
+                        unk244 = 1;
+                    }
+                    unk248 = Unk2a8Check() ? 1 : rd->Freshness();
+                }
+                Symbol autoplay = TheGameData->Player(mPlayer)->Autoplay();
+                if (!autoplay.Null()) {
+                    static Symbol move_ok("move_ok");
+                    static Symbol maximum("maximum");
+                    if (autoplay == move_ok) {
+                        unk244 = 1;
+                        unk248 = 0;
+                    } else if (autoplay == maximum) {
+                        unk244 = 1;
+                        unk248 = 1;
+                    } else {
+                        unk244 = RatingToDetectFrac(autoplay, nullptr);
+                        unk248 = 1;
+                    }
+                }
+            }
+            float f17 = f12 - unk25c;
+            if (f17 < 0) {
+                f17 = 0;
+            }
+            float f13 = 1;
+            if (unk244 <= 0 && unk248 <= 0) {
+                f13 = 0;
+            }
+            if (unk24c <= unk244) {
+                unk24c = unk244;
+            }
+            if (unk2a4) {
+                unk24c = 0;
+            }
+            unk250 += unk248 * f17;
+            unk254 += f13 * f17;
+            unk258 += f17;
+            f13 = unk24c;
+            if (unk24c > 1) {
+                f13 = 1;
+            }
+            float f16 = 4.0f - unk258 - f17;
+            if (mPhraseMeter) {
+                f16 = Max(f16, 0.0f);
+                mPhraseMeter->SetRatingFrac(f13, f16);
+            }
+            if (mInTheZone == 1 && unk23c && unk23c->Unkf9()) {
+                unk284 -= f17 * 1.125f;
+                if (unk284 < 0) {
+                    unk284 = 0;
+                    int i7 = 0;
+                    if (!unk240) {
+                        i7 = -1;
+                    }
+                    if (i7 != 1) {
+                        AnimateBoxyState(i7, true, false);
+                    }
+                }
+                if (mComboPosAnim) {
+                    mComboPosAnim->Animate(unk284, unk284, mComboPosAnim->Units());
+                }
+            }
+            if (mBoxyman1) {
+                mBoxyman1->SetGrooviness(rd, rd);
+                mBoxyman2->SetGrooviness(rd, rd);
+            }
+        }
+        unk25c = f12;
+    }
+}
 
 void RhythmBattlePlayer::Enter() {
     RndPollable::Enter();
@@ -248,12 +352,9 @@ void RhythmBattlePlayer::SetInTheZone(int i, bool b1, bool b2) {
 
 void RhythmBattlePlayer::SetActive(bool b1) {
     unk240 = b1;
-    if (!unk23c)
-        return;
-    // unk23c is a ptr
-    if (mInTheZone == -1)
-        return;
-    AnimateBoxyState(-1, true, false);
+    if (!unk240 && unk23c && unk23c->Unkf9() && mInTheZone != -1) {
+        AnimateBoxyState(-1, true, false);
+    }
 }
 
 void RhythmBattlePlayer::AnimateIn() { AnimateBoxyState(0, true, false); }
@@ -530,4 +631,107 @@ void RhythmBattlePlayer::UpdateAnimations(Hmx::Object *handler) {
             mComboPosAnim->Animate(unk284, unk284, mComboPosAnim->Units());
         }
     }
+}
+
+void RhythmBattlePlayer::UpdateScore(Hmx::Object *handler) {
+    unk2a8++;
+    if (mStealPart) {
+        mStealPart->SetEmitRate(0, 0);
+    }
+    int skelIdx = TheGestureMgr->GetSkeletonIndexByTrackingID(
+        TheGameData->Player(mPlayer)->GetSkeletonTrackingID()
+    );
+    static UIPanel *sRhythmDetectorPanel =
+        ObjectDir::Main()->Find<UIPanel>("rhythm_detector_panel", false);
+    int i10 = 0;
+    if (sRhythmDetectorPanel && skelIdx != -1 && sRhythmDetectorPanel->LoadedDir()) {
+        String name = MakeString("RhythmDetectorX%d.rhy", skelIdx);
+        RhythmDetector *rd =
+            sRhythmDetectorPanel->LoadedDir()->Find<RhythmDetector>(name.c_str(), false);
+        if (rd) {
+            const RhythmDetector::RecordData &recordData =
+                rd->GetRecord(unk28c, unk290, true, "", nullptr);
+            unk244 = recordData.unk10;
+            if (Unk2a8Check() && 1 < recordData.unk14) {
+                unk244 = 1;
+            }
+            unk248 = Unk2a8Check() ? 1 : rd->Freshness();
+            Symbol autoplay = TheGameData->Player(mPlayer)->Autoplay();
+            if (!autoplay.Null()) {
+                static Symbol move_ok("move_ok");
+                static Symbol maximum("maximum");
+                if (autoplay == move_ok) {
+                    unk244 = 1;
+                    unk248 = 0;
+                } else if (autoplay == maximum) {
+                    unk244 = 1;
+                    unk248 = 1;
+                } else {
+                    unk244 = RatingToDetectFrac(autoplay, nullptr);
+                    unk248 = 1;
+                }
+            }
+            float set = unk244;
+            if (unk24c > unk244) {
+                set = unk24c;
+            }
+            unk24c = set;
+        }
+    }
+    if (unk2a4) {
+        unk24c = 0;
+    }
+    static Symbol none("none");
+    static Symbol pose("pose");
+    static Symbol getlow("getlow");
+    static Symbol jump("jump");
+    static Symbol rhythmbattle_trickpose("rhythmbattle_trickpose");
+    static Symbol rhythmbattle_trickgetlow("rhythmbattle_trickgetlow");
+    static Symbol rhythmbattle_trickjump("rhythmbattle_trickjump");
+    unk27c = none;
+    unk278 = unk254 / unk258;
+    static Symbol autotrick(OptionStr("autotrick", "none"));
+    if ((unk278 < 0.5f || autotrick == pose) && unk23c->CanTrick(pose)) {
+        unk27c = rhythmbattle_trickpose;
+    }
+    skelIdx = TheGestureMgr->GetSkeletonIndexByTrackingID(
+        TheGameData->Player(mPlayer)->GetSkeletonTrackingID()
+    );
+    if (skelIdx >= 0) {
+        Skeleton &skeleton = TheGestureMgr->GetSkeleton(skelIdx);
+        float yLeft = skeleton.TrackedJoints()[kJointFootLeft].mJointPos[0].y;
+        float yRight = skeleton.TrackedJoints()[kJointFootRight].mJointPos[0].y;
+        float yMin = yLeft < yRight ? yLeft : yRight;
+        float yMax = yLeft > yRight ? yLeft : yRight;
+        if (unk2a0 != -1 && (yMin - unk2a0 > 0.1f) && unk23c->CanTrick(jump)) {
+            unk27c = rhythmbattle_trickjump;
+        }
+        unk2a0 = yMax;
+    }
+    unk270 = unk24c;
+    if (unk270 > 1) {
+        unk270 = 1;
+    }
+    unk274 = unk250 / unk258;
+    if (unk274 > 1) {
+        unk274 = 1;
+    }
+    unk254 = 0;
+    unk250 = 0;
+    unk24c = 0;
+    unk258 = 0;
+    if (mPhraseMeter) {
+        mPhraseMeter->SetRatingFrac(0, -1);
+    }
+    MILO_ASSERT(handler != NULL, 0x305);
+    if (unk27c == none) {
+        static Message m("rating_to_score", 0, 0);
+        m[0] = unk270;
+        m[1] = unk274;
+        DataNode handled = handler->HandleType(m);
+        if (handled.Type() == kDataInt) {
+            i10 = handled.Int();
+        }
+    }
+    UpdateScore(i10);
 }
