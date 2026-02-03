@@ -4,6 +4,8 @@
 #include "obj/Dir.h"
 #include "os/Timer.h"
 #include "rndobj/HiResScreen.h"
+#include "rndobj/Rnd.h"
+#include "ui/UI.h"
 
 App::App(int, char **) {
     ObjDirPtr<ObjectDir> dPtr;
@@ -29,4 +31,10 @@ void App::CaptureHiRes() {
 
     if (paused)
         TheGame->SetTimePaused(false);
+}
+
+void App::DrawRegular() {
+    TheRnd.BeginDrawing();
+    TheUI->Draw();
+    TheRnd.EndDrawing();
 }
