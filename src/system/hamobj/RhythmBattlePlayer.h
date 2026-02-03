@@ -103,7 +103,7 @@ private:
     /** "which player is this" */
     int mPlayer; // 0x238
     RhythmBattle *unk23c; // 0x23c
-    bool unk240;
+    bool unk240; // 0x240 - active?
     float unk244;
     float unk248;
     float unk24c;

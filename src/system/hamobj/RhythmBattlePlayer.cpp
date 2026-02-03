@@ -15,9 +15,15 @@
 #include "rndobj/Anim.h"
 #include "rndobj/PartLauncher.h"
 #include "rndobj/Poll.h"
+#include "ui/UIPanel.h"
 #include "utl/Loader.h"
 #include "utl/Symbol.h"
 #include "world/Dir.h"
+
+namespace {
+    bool gDebugGroove;
+    bool gDebugFresh;
+}
 
 RhythmBattlePlayer::RhythmBattlePlayer()
     : mComboPosAnim(this), mComboColorAnim(this), mResetComboAnim(this),
@@ -28,8 +34,8 @@ RhythmBattlePlayer::RhythmBattlePlayer()
       mOutTheZoneBadFlow(this), mSwagJackedFlow(this), mPhraseMeter(this),
       mTransConstraint(this), mBoxyWaistTrans(this), mBoxyman1(this), mBoxyman2(this),
       mTextFeedback(this), mMoveFeedback(this), mStealPart(this), mStealAnim(this),
-      mPlayer(0), unk23c(0), unk244(0), unk248(0), unk250(0), unk258(0), unk25c(0),
-      unk260(0), mInTheZone(-2), unk270(0), unk274(0), unk280(0), unk284(0),
+      mPlayer(0), unk23c(0), unk244(0), unk248(0), unk24c(0), unk250(0), unk258(0),
+      unk25c(0), unk260(0), mInTheZone(-2), unk270(0), unk274(0), unk280(0), unk284(0),
       unk288(false), unk294(-1), unk298("none"), unk29c(0), unk2a4(false), unk2a5(false),
       unk2a8(0) {}
 
@@ -217,13 +223,7 @@ void RhythmBattlePlayer::HackPlayerQuit() {
         mShowScoreAnim->Animate(
             mShowScoreAnim->GetFrame(),
             mShowScoreAnim->EndFrame(),
-            mShowScoreAnim->Units(),
-            0,
-            0,
-            nullptr,
-            kEaseLinear,
-            0,
-            false
+            mShowScoreAnim->Units()
         );
     }
 }
@@ -288,15 +288,7 @@ void RhythmBattlePlayer::ResetCombo() {
 void RhythmBattlePlayer::SwagJackedBonus(Hmx::Object *, RhythmBattleJackState, int i) {
     if (mStealAnim) {
         mStealAnim->Animate(
-            mStealAnim->StartFrame(),
-            mStealAnim->EndFrame(),
-            mStealAnim->Units(),
-            0,
-            0,
-            nullptr,
-            kEaseLinear,
-            0,
-            0
+            mStealAnim->StartFrame(), mStealAnim->EndFrame(), mStealAnim->Units()
         );
     }
     static Symbol swag_jacked("swag_jacked");
@@ -374,5 +366,168 @@ void RhythmBattlePlayer::UpdateScore(int i1) {
         static Symbol score("score");
         HamPlayerData *hpd = TheGameData->Player(mPlayer);
         hpd->Provider()->SetProperty(score, unk280);
+    }
+}
+
+void RhythmBattlePlayer::OnReset(RhythmBattle *rb) {
+    static Symbol none("none");
+    unk23c = rb;
+    unk29c = 0;
+    unk27c = none;
+    unk260 = 0;
+    unk278 = 0;
+    unk264 = 0;
+    unk254 = 0;
+    unk280 = 0;
+    unk244 = 0;
+    unk26c = -1;
+    unk248 = 0;
+    mInTheZone = -2;
+    unk284 = 0;
+    unk250 = 0;
+    unk24c = 0;
+    unk258 = 0;
+    unk270 = 0;
+    unk274 = 0;
+    unk25c = 0;
+    unk2a0 = -1;
+    if (mResetComboAnim) {
+        mResetComboAnim->Animate(
+            mResetComboAnim->StartFrame(),
+            mResetComboAnim->EndFrame(),
+            mResetComboAnim->Units()
+        );
+    }
+    if (unk94) {
+        unk94->Animate(unk94->StartFrame(), unk94->StartFrame(), unk94->Units());
+    }
+    unk94 = nullptr;
+    if (mBattleMeterOutAnim) {
+        mBattleMeterOutAnim->Animate(
+            mBattleMeterOutAnim->EndFrame(),
+            mBattleMeterOutAnim->EndFrame(),
+            mBattleMeterOutAnim->Units()
+        );
+    }
+    if (mComboColorAnim) {
+        mComboColorAnim->SetFrame(0, 1);
+    }
+    if (mComboPosAnim) {
+        mComboPosAnim->SetFrame(unk284, 1);
+    }
+    if (mBattleMeterStaleAnim) {
+        mBattleMeterStaleAnim->SetFrame(mBattleMeterStaleAnim->EndFrame(), 1);
+    }
+    unk2a8 = 0;
+    UpdateScore(0);
+    AnimateBoxyState(-1, false, false);
+}
+
+void RhythmBattlePlayer::UpdateAnimations(Hmx::Object *handler) {
+    if (TheGestureMgr->GetSkeletonIndexByTrackingID(
+            TheGameData->Player(mPlayer)->GetSkeletonTrackingID()
+        )
+        != -1) {
+        MILO_ASSERT(handler, 0x378);
+        static Symbol rhythmbattle_nogroove("rhythmbattle_nogroove");
+        static Symbol rhythmbattle_groovelost("rhythmbattle_groovelost");
+        static Symbol rhythmbattle_fresh("rhythmbattle_fresh");
+        static Symbol rhythmbattle_switchup("rhythmbattle_switchup");
+        static Symbol rhythmbattle_stale("rhythmbattle_stale");
+        static Symbol rhythmbattle_unison("rhythmbattle_unison");
+        static Symbol rhythmbattle_jacked("rhythmbattle_jacked");
+        static Symbol rhythmbattle_jacked_bonus("rhythmbattle_jacked_bonus");
+        static Symbol rhythmbattle_samegroove("rhythmbattle_samegroove");
+        static Symbol rhythmbattle_inthezone("rhythmbattle_inthezone");
+        static Symbol move_perfect("move_perfect");
+        static Symbol move_awesome("move_awesome");
+        static Symbol move_ok("move_ok");
+        static Symbol move_bad("move_bad");
+        static Symbol none("none");
+        static Message groove_passed("groove_passed", 0, 0, 0, none, none);
+        groove_passed[0] = mPlayer;
+        int player = unk288 ? !mPlayer : mPlayer;
+        player += 3;
+        groove_passed[player] = none;
+        Symbol playerNodeValue;
+        if (unk27c != none) {
+            groove_passed[1] = move_perfect;
+            playerNodeValue = unk27c;
+        } else if (unk270 < 0.5f) {
+            groove_passed[1] = move_bad;
+            if (unk264) {
+                playerNodeValue = rhythmbattle_groovelost;
+            } else {
+                playerNodeValue = rhythmbattle_nogroove;
+            }
+        } else {
+            groove_passed[1] = move_awesome;
+            if (InTheZone() && unk26c != 1) {
+                groove_passed[1] = move_perfect;
+                playerNodeValue = rhythmbattle_inthezone;
+            } else {
+                if (unk264) {
+                    playerNodeValue = rhythmbattle_samegroove;
+                } else {
+                    playerNodeValue = rhythmbattle_fresh;
+                }
+            }
+        }
+        if (groove_passed[1] != move_ok && groove_passed[1] != move_awesome) {
+            unk29c = 0;
+        } else if (unk29c > 0) {
+            unk29c--;
+        }
+        bool d13 = false;
+        if (gDebugGroove) {
+            unk294 = unk270 * 100.0f;
+        } else if (gDebugFresh) {
+            unk294 = unk274 * 100.0f;
+        }
+        if (unk294 != -1) {
+            MILO_LOG("measure score: %d\n", unk294);
+            unk294 = -1;
+        } else if (unk298 != none) {
+            d13 = true;
+            static Symbol rhythmbattle_swagjackeddd1("rhythmbattle_swagjackeddd1");
+            static Symbol rhythmbattle_swagjackeddd2("rhythmbattle_swagjackeddd2");
+            if (unk298 == rhythmbattle_swagjackeddd1) {
+                groove_passed[1] = move_bad;
+                playerNodeValue = rhythmbattle_jacked;
+            } else if (unk298 == rhythmbattle_swagjackeddd2) {
+                groove_passed[1] = move_perfect;
+                playerNodeValue = rhythmbattle_jacked_bonus;
+            } else {
+                MILO_LOG("unknown token %s\n", playerNodeValue);
+            }
+            unk298 = none;
+        }
+        groove_passed[player] = playerNodeValue;
+        groove_passed[2] = d13;
+        static UIPanel *sLoadingPanel =
+            ObjectDir::Main()->Find<UIPanel>("loading_panel", false);
+        if (sLoadingPanel && sLoadingPanel->LoadedDir() && sLoadingPanel->IsLoaded()) {
+            mMoveFeedback->Find<Flow>("flow.flow")->Activate();
+            mTextFeedback->Find<Flow>("flow.flow")->Activate();
+            sLoadingPanel->HandleType(groove_passed);
+        } else {
+            handler->HandleType(groove_passed);
+        }
+        RndAnimatable *anim = nullptr;
+        if (mInTheZone == 1U) {
+            anim = m4xMultAnim;
+        }
+        if (anim != unk94) {
+            if (anim) {
+                static Symbol loop("loop");
+                static Symbol dest("dest");
+                anim->EndFrame();
+                anim->EndFrame();
+            }
+            unk94 = anim;
+        }
+        if (mComboPosAnim) {
+            mComboPosAnim->Animate(unk284, unk284, mComboPosAnim->Units());
+        }
     }
 }
